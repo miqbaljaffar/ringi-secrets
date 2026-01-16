@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kontrak Vendor (Transaksi) - Sistem Ringi</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+</head>
+<body>
+    <div class="header">
+        <h1>Kontrak Vendor (Transaksi)</h1>
+        <div class="user-info">
+            <span id="user-name">Loading...</span>
+            <a href="../index.html" class="btn btn-secondary btn-sm">Kembali</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <form id="vendor-form" class="card p-4 ajax-form" enctype="multipart/form-data">
+            <!-- Header -->
+            <div class="form-group row">
+                <div class="col-md-4">
+                    <label class="form-label">No. Dokumen</label>
+                    <input type="text" class="form-control" value="Auto Generated (CV...)" disabled>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Pemohon</label>
+                    <input type="text" id="applicant-name" class="form-control" disabled>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Tanggal Pengajuan</label>
+                    <input type="date" id="apply-date" class="form-control" disabled>
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- Company Info -->
+            <h3>Informasi Vendor</h3>
+            <div class="form-group">
+                <label class="form-label required">Nama Dagang / Perusahaan</label>
+                <input type="text" name="s_name" id="s_name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label required">Furigana</label>
+                <input type="text" name="s_kana" id="s_kana" class="form-control" required>
+            </div>
+
+            <!-- Address -->
+            <div class="form-group mt-3">
+                <label class="form-label required">Kode Pos Kantor</label>
+                <div class="d-flex gap-2" style="max-width: 200px;">
+                    <input type="text" name="pcode1" class="form-control" maxlength="3">
+                    <span class="align-self-center">-</span>
+                    <input type="text" name="pcode2" class="form-control pcode-input" maxlength="4" onKeyUp="AjaxZip3.zip2addr('pcode1','pcode2','s_office_address','s_office_address');">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label required">Alamat Kantor</label>
+                <input type="text" name="s_office_address" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Nama Gedung</label>
+                <input type="text" name="s_office_address2" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label required">Telp Kantor</label>
+                <div class="d-flex gap-2" style="max-width: 300px;">
+                    <input type="text" name="tel1" class="form-control">
+                    <span>-</span>
+                    <input type="text" name="tel2" class="form-control">
+                    <span>-</span>
+                    <input type="text" name="tel3" class="form-control">
+                </div>
+            </div>
+
+            <!-- Representative Info -->
+            <h3 class="mt-4">Informasi Perwakilan</h3>
+            <div class="form-group">
+                <label class="form-label required">Nama Perwakilan</label>
+                <div class="d-flex gap-2">
+                    <input type="text" name="s_rep_name_1" class="form-control" placeholder="Nama Belakang">
+                    <input type="text" name="s_rep_name_2" class="form-control" placeholder="Nama Depan">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label required">Jabatan</label>
+                <div class="d-flex gap-3">
+                    <label><input type="radio" name="s_rep_title" value="1"> Dirut</label>
+                    <label><input type="radio" name="s_rep_title" value="2"> Direktur</label>
+                    <label><input type="radio" name="s_rep_title" value="9"> Lainnya</label>
+                </div>
+            </div>
+
+            <!-- Details -->
+            <h3 class="mt-4">Detail Kontrak</h3>
+            <div class="form-group">
+                <label class="form-label">Ikhtisar Kontrak</label>
+                <textarea name="s_contract_overview" class="form-control"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label required">Latar Belakang / Situasi</label>
+                <textarea name="s_situation" class="form-control" required></textarea>
+            </div>
+
+            <!-- Uploads -->
+            <h3 class="mt-4">Lampiran</h3>
+            <div class="form-group">
+                <label class="form-label">Estimasi (PDF)</label>
+                <input type="file" name="estimate_file" accept=".pdf" class="form-control">
+            </div>
+
+            <div class="form-actions mt-4 text-center">
+                <button type="submit" class="btn btn-primary btn-lg">Ajukan Permohonan</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="../assets/js/lib/jquery.autoKana.js"></script>
+    <script src="../assets/js/lib/ajaxzip3.js"></script>
+    <script src="../assets/js/main.js"></script>
+    <script src="../assets/js/modules/auth.js"></script>
+    <script src="../assets/js/modules/vendor-form.js"></script>
+</body>
+</html>

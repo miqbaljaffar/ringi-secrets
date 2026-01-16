@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kontrak Pajak - Sistem Ringi</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+</head>
+<body>
+    <div class="header">
+        <h1>Kontrak Pajak (Pajak)</h1>
+        <div class="user-info">
+            <span id="user-name">Loading...</span>
+            <a href="../index.html" class="btn btn-secondary btn-sm">Kembali</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <form id="tax-form" class="card p-4 ajax-form" enctype="multipart/form-data">
+            <!-- Header Info -->
+            <div class="form-group row">
+                <div class="col-md-4">
+                    <label class="form-label">No. Dokumen</label>
+                    <input type="text" class="form-control" value="Auto (CT...)" disabled>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Pemohon</label>
+                    <input type="text" id="applicant-name" class="form-control" disabled>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Tanggal Pengajuan</label>
+                    <input type="date" id="apply-date" class="form-control" disabled>
+                </div>
+            </div>
+            
+            <hr>
+            
+            <!-- Klasifikasi -->
+            <div class="form-group">
+                <label class="form-label required">Klasifikasi</label>
+                <div class="d-flex gap-3">
+                    <label><input type="radio" name="n_type" value="1" checked> Badan Hukum (Perusahaan)</label>
+                    <label><input type="radio" name="n_type" value="2"> Perorangan</label>
+                </div>
+            </div>
+
+            <!-- Info Dasar -->
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label class="form-label required">Nama Dagang / Perusahaan</label>
+                    <input type="text" name="s_name" id="s_name" class="form-control" required>
+                </div>
+                <div class="col-md-6 form-group">
+                    <label class="form-label required">Furigana</label>
+                    <input type="text" name="s_kana" id="s_kana" class="form-control" required>
+                </div>
+            </div>
+
+            <div class="row company-only">
+                <div class="col-md-6 form-group">
+                    <label class="form-label required">Tanggal Pendirian</label>
+                    <input type="date" name="dt_establishment" class="form-control">
+                </div>
+                <div class="col-md-6 form-group">
+                    <label class="form-label">Modal (Yen)</label>
+                    <input type="number" name="n_capital" class="form-control">
+                </div>
+            </div>
+
+            <!-- Alamat & Kontak -->
+            <div class="form-group mt-3">
+                <label class="form-label required">Kode Pos Kantor</label>
+                <div class="d-flex gap-2" style="max-width: 200px;">
+                    <input type="text" name="pcode1" class="form-control" maxlength="3">
+                    <span class="align-self-center">-</span>
+                    <input type="text" name="pcode2" class="form-control pcode-input" maxlength="4" onKeyUp="AjaxZip3.zip2addr('pcode1','pcode2','s_office_address','s_office_address');">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label required">Alamat Kantor</label>
+                <input type="text" name="s_office_address" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Nama Gedung</label>
+                <input type="text" name="s_office_address2" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label required">Telp Kantor</label>
+                <div class="d-flex gap-2" style="max-width: 300px;">
+                    <input type="text" name="tel1" class="form-control">
+                    <span>-</span>
+                    <input type="text" name="tel2" class="form-control">
+                    <span>-</span>
+                    <input type="text" name="tel3" class="form-control">
+                </div>
+            </div>
+
+            <!-- Detail Pajak (Sesuai PDF Hal 3) -->
+            <h3 class="mt-4">Informasi Pajak</h3>
+            <div class="row">
+                <div class="col-md-4 form-group">
+                    <label class="form-label required">Bulan Tutup Buku</label>
+                    <select name="n_closing_month" class="form-control" required>
+                        <option value="">Pilih Bulan</option>
+                        <option value="1">Januari</option>
+                        <option value="2">Februari</option>
+                        <option value="3">Maret</option>
+                        <option value="4">April</option>
+                        <option value="5">Mei</option>
+                        <option value="6">Juni</option>
+                        <option value="7">Juli</option>
+                        <option value="8">Agustus</option>
+                        <option value="9">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Desember</option>
+                    </select>
+                </div>
+                <div class="col-md-4 form-group">
+                    <label class="form-label required">Kantor Pajak</label>
+                    <input type="text" name="s_tax_office" class="form-control" required>
+                </div>
+                <div class="col-md-4 form-group">
+                    <label class="form-label required">No. Wajib Pajak (8 digit)</label>
+                    <input type="text" name="s_tax_num" class="form-control" maxlength="8" required>
+                </div>
+            </div>
+
+            <!-- Perwakilan -->
+            <h3 class="mt-4">Perwakilan</h3>
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label class="form-label required">Nama Perwakilan</label>
+                    <input type="text" name="s_rep_name" id="s_rep_name" class="form-control" required>
+                </div>
+                <div class="col-md-6 form-group">
+                    <label class="form-label required">Furigana</label>
+                    <input type="text" name="s_rep_kana" id="s_rep_kana" class="form-control" required>
+                </div>
+            </div>
+
+            <!-- Kinerja Keuangan (PDF Hal 4) -->
+            <h3 class="mt-4">Kinerja Keuangan (Periode Sebelumnya)</h3>
+            <div class="row">
+                <div class="col-md-3 form-group">
+                    <label class="form-label">Total Aset</label>
+                    <input type="number" name="n_pre_total" class="form-control">
+                </div>
+                <div class="col-md-3 form-group">
+                    <label class="form-label">Penjualan</label>
+                    <input type="number" name="n_pre_sales" class="form-control">
+                </div>
+                <div class="col-md-3 form-group">
+                    <label class="form-label">Hutang</label>
+                    <input type="number" name="n_pre_debt" class="form-control">
+                </div>
+                <div class="col-md-3 form-group">
+                    <label class="form-label">Laba Bersih</label>
+                    <input type="number" name="n_pre_income" class="form-control">
+                </div>
+            </div>
+
+            <!-- Info Kontrak -->
+            <h3 class="mt-4">Detail Kontrak</h3>
+            <div class="form-group">
+                <label class="form-label required">Ikhtisar Kontrak</label>
+                <textarea name="s_contract_overview" class="form-control"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label required">Tanggal Mulai Kontrak</label>
+                <input type="date" name="dt_contract_start" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label required">Penanggung Jawab (Internal)</label>
+                <select name="s_incharge" id="s_incharge" class="form-control" required>
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label required">Latar Belakang</label>
+                <textarea name="s_situation" class="form-control" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Estimasi (PDF)</label>
+                <input type="file" name="estimate_file" accept=".pdf" class="form-control">
+            </div>
+
+            <div class="form-actions mt-4 text-center">
+                <button type="submit" class="btn btn-primary btn-lg">Ajukan Permohonan</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="../assets/js/lib/jquery.autoKana.js"></script>
+    <script src="../assets/js/lib/ajaxzip3.js"></script>
+    <script src="../assets/js/main.js"></script>
+    <script src="../assets/js/modules/auth.js"></script>
+    <script src="../assets/js/modules/tax-form.js"></script>
+</body>
+</html>
