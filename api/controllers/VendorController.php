@@ -6,7 +6,6 @@ class VendorController {
     
     public function __construct() {
         $this->validator = new Validator();
-        // PDF Hal 25: Folder 'cv'
         $this->fileUpload = new FileUpload('cv'); 
         $this->model = new Vendor();
     }
@@ -15,7 +14,6 @@ class VendorController {
         $data = $_POST;
         $files = $_FILES;
         
-        // Validasi Dasar (PDF Hal 20-21)
         $rules = [
             's_name' => 'required|max:100', // Nama Dagang
             's_kana' => 'required|max:100',
@@ -36,9 +34,9 @@ class VendorController {
             // Create Document
             $docId = $this->model->createDocument($data);
             
-            // Handle File Uploads (Folder: files/cv/{docId}/)
+            // Handle File Uploads 
             if (!empty($files['estimate_file'])) {
-                $this->fileUpload->save($files['estimate_file'], $docId . '/見積書');
+                $this->fileUpload->save($files['estimate_file'], $docId, '見積書');
             }
             
             return json_encode([
@@ -63,7 +61,8 @@ class VendorController {
         }
         
         $userModel = new User();
-        $doc['applicant_name'] = $userModel->findByEmployeeId($doc['s_applied'])['s_name'] ?? '';
+        $applicant = $userModel->findByEmployeeId($doc['s_applied']);
+        $doc['applicant_name'] = $applicant ? $applicant['s_name'] : $doc['s_applied'];
         
         return json_encode(['success' => true, 'data' => $doc]);
     }

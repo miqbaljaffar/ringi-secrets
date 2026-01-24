@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>申請書一覧 | 稟議書管理システム</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- PERBAIKAN: Gunakan titik dua (..) untuk naik satu folder -->
+    <link rel="stylesheet" href="../assets/css/list.css">
+</head>
+<body>
+
+<div id="app" class="list-wrapper">
+    <h1 class="page-title">申請書一覧</h1>
+
+    <!-- Search Container -->
+    <div class="search-container">
+        <div class="search-form">
+            <div class="form-item">
+                <label>日付</label>
+                <input type="date" v-model="filters.date_start" class="input-date">
+                <span class="tilde">～</span>
+                <input type="date" v-model="filters.date_end" class="input-date">
+            </div>
+
+            <div class="form-item">
+                <label>申請書</label>
+                <select v-model="filters.form_type" class="input-select">
+                    <option value="">(すべて)</option>
+                    <option value="tax">税務契約 (Tax)</option>
+                    <option value="contract">契約稟議 (Other)</option>
+                    <option value="vendor">取引開始 (Vendor)</option>
+                </select>
+            </div>
+
+            <div class="form-item">
+                <input type="text" v-model="filters.keyword" class="input-text" placeholder="検索語 部分一致">
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-blue" @click="doSearch">
+                    <i class="fas fa-search"></i> 検索
+                </button>
+                <a href="contract_form.html" class="btn btn-blue">
+                    <i class="fas fa-plus"></i> 新規作成
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Container -->
+    <div class="tab-container">
+        <button :class="['tab-item', { active: currentTab === 'all' }]" @click="switchTab('all')">すべて</button>
+        <button :class="['tab-item', { active: currentTab === 'to_approve' }]" @click="switchTab('to_approve')">承認待ち (Saya)</button>
+        <button :class="['tab-item', { active: currentTab === 'approved' }]" @click="switchTab('approved')">承認済み</button>
+        <button :class="['tab-item', { active: currentTab === 'rejected' }]" @click="switchTab('rejected')">否認・取下</button>
+    </div>
+
+    <!-- Table Container -->
+    <div class="table-container">
+        <div class="pc-only">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th width="12%">文書No</th>
+                        <th width="15%">申請書</th>
+                        <th width="15%">氏名</th>
+                        <th width="12%">申請日</th>
+                        <th width="30%">題名</th>
+                        <th width="10%">ステータス</th>
+                        <th width="6%">Link</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="item in items" :key="item.id">
+                        <td>{{ item.id }}</td>
+                        <td>{{ item.form_name }}</td>
+                        <td>{{ item.applicant }}</td>
+                        <td>{{ item.date }}</td>
+                        <td>{{ item.subject }}</td>
+                        <td>{{ item.statusText }}</td>
+                        <td class="text-center">
+                            <a :href="'detail.html?id=' + item.id + '&type=' + item.typeRaw">
+                                <i class="far fa-file-alt icon-doc"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <tr v-if="items.length === 0">
+                        <td colspan="7" class="text-center" style="padding: 20px;">データがありません</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+
+<!-- PERBAIKAN: Gunakan titik dua (..) untuk path script juga -->
+<script src="../assets/js/main.js"></script>
+<script src="../assets/js/modules/list.js"></script>
+
+</body>
+</html>

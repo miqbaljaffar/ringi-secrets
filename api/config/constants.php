@@ -4,8 +4,6 @@ define('APP_NAME', 'Sistem Manajemen Ringi');
 define('APP_VERSION', '1.0.0');
 
 // PATH FILE UPLOAD
-// Sesuai struktur folder: ringi/files/
-// __DIR__ menunjuk ke ringi/config/, jadi naik satu level ke ringi/ lalu ke files/
 define('UPLOAD_PATH', realpath(__DIR__ . '/../../files')); 
 
 define('MAX_FILE_SIZE', 5242880); // 5MB

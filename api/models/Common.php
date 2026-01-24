@@ -37,7 +37,7 @@ class Common extends BaseModel {
                 }
             }
             
-            // 4. Set Approval Route (PERBAIKAN LOGIKA SESUAI PDF HAL 13)
+            // 4. Set Approval Route
             $this->setApprovalRoute($docId, $data['n_type']);
             
             $this->commit();
@@ -76,7 +76,7 @@ class Common extends BaseModel {
             2 => 6
         ];
         
-        // Default ke n_type jika tidak ada di map (fallback safety)
+        // Default ke n_type jika tidak ada di map
         $targetCategory = $docCategoryMap[$nType] ?? $nType;
         
         $approvers = $userModel->getApprovers($targetCategory);
@@ -88,7 +88,7 @@ class Common extends BaseModel {
                 $updateData['s_approved_1'] = $approvers[0]['s_approved_1'];
             }
             
-            if (isset($approvers[0]['s_approved_2'])) { // Biasanya approver 2 ada di baris yang sama atau logika array
+            if (isset($approvers[0]['s_approved_2'])) { 
                 $updateData['s_approved_2'] = $approvers[0]['s_approved_2'];
             }
             
@@ -162,37 +162,7 @@ class Common extends BaseModel {
         return $this->db->fetchAll($sql, $params);
     }
     
-    // 承認処理
-    public function approve($docId, $userId, $action, $comment = '') {
-        $document = $this->find($docId);
-        
-        if (!$document) {
-            throw new Exception("文書が見つかりません");
-        }
-        
-        $updateData = [];
-        
-        if ($action === 'approve') {
-            // 承認者が適切かチェック
-            if ($document['s_approved_1'] === $userId && empty($document['dt_approved_1'])) {
-                $updateData['dt_approved_1'] = date('Y-m-d H:i:s');
-            } elseif ($document['s_approved_2'] === $userId && empty($document['dt_approved_2'])) {
-                $updateData['dt_approved_2'] = date('Y-m-d H:i:s');
-            } else {
-                throw new Exception("承認権限がありません");
-            }
-        } elseif ($action === 'reject') {
-            $updateData['dt_rejected'] = date('Y-m-d H:i:s');
-        } elseif ($action === 'complete') {
-            $updateData['dt_confirmed'] = date('Y-m-d H:i:s');
-        }
-        
-        if (!empty($updateData)) {
-            return $this->update($docId, $updateData);
-        }
-        
-        return false;
-    }
+    // [REMOVED] approve() method - Moved to BaseModel
     
     // 取下げ処理
     public function withdraw($docId, $userId) {

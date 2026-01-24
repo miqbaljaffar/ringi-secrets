@@ -1,0 +1,260 @@
+/* css/list.css - REVISI UKURAN BESAR */
+
+body {
+    font-family: "Meiryo", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+    background-color: #fff;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+    /* Mencegah scroll horizontal jika tabel terlalu lebar */
+    overflow-x: auto; 
+}
+
+.list-wrapper {
+    /* UBAH: Gunakan persentase agar lebar menyesuaikan layar, jangan dilimit 1200px */
+    width: 98%; 
+    min-width: 1000px; /* Mencegah layout hancur di layar sangat kecil */
+    margin: 0 auto;
+}
+
+/* --- 1. JUDUL --- */
+.page-title {
+    text-align: center;
+    font-size: 28px; /* Diperbesar */
+    font-weight: bold;
+    margin-bottom: 25px;
+    color: #000;
+}
+
+/* --- 2. SEARCH AREA (Sesuai Gambar) --- */
+.search-container {
+    background-color: #cceeff; /* Biru muda persis screenshot */
+    border: 1px solid #8ec6eb;
+    padding: 15px 20px; /* Padding diperbesar */
+    margin-bottom: 5px; /* Jarak ke tab diperkecil agar nempel */
+    border-radius: 4px;
+}
+
+.search-form {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px; /* Jarak antar elemen input */
+}
+
+.form-item {
+    display: flex;
+    align-items: center;
+    font-size: 15px; /* Font diperbesar */
+}
+
+.form-item label {
+    margin-right: 10px;
+    font-weight: normal;
+    color: #222;
+}
+
+/* --- Input Styles (Dibuat Lebih Besar/Tinggi) --- */
+/* Reset style dasar */
+.input-date, .input-select, .input-text {
+    padding: 6px 10px;
+    height: 38px; /* Tinggi input diperbesar agar gagah */
+    border: 1px solid #aaa;
+    border-radius: 3px;
+    font-size: 14px;
+    box-sizing: border-box; /* Agar padding tidak menambah lebar */
+    background-color: #fff;
+}
+
+.input-date {
+    width: 150px;
+}
+
+.tilde {
+    margin: 0 8px;
+    font-weight: bold;
+    color: #666;
+}
+
+.input-select {
+    width: 180px;
+}
+
+.input-text {
+    width: 250px; /* Input keyword lebih lebar */
+}
+
+/* --- Tombol Aksi --- */
+.action-buttons {
+    margin-left: auto; /* Dorong ke kanan mentok */
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    border: none;
+    color: white;
+    height: 38px; /* Tinggi disamakan dengan input */
+    padding: 0 20px;
+    font-size: 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+
+.btn i {
+    font-size: 16px;
+}
+
+/* Warna Biru Cerah Sesuai Screenshot */
+.btn-blue {
+    background-color: #0088cc; 
+}
+.btn-blue:hover {
+    background-color: #0077b3;
+}
+
+/* --- 3. TABS --- */
+.tab-container {
+    margin-top: 10px;
+    display: flex;
+    /* Tidak ada border-bottom di container, border ikut header tabel */
+}
+
+.tab-item {
+    padding: 12px 30px; /* Tab lebih lebar & tinggi */
+    font-size: 15px;
+    cursor: pointer;
+    background-color: #d9efff; /* Biru pucat (Inactive) */
+    border: 1px solid #fff; /* Pemisah putih antar tab */
+    border-bottom: none;
+    color: #0088cc;
+    margin-right: 2px;
+    border-radius: 5px 5px 0 0; /* Sudut atas rounded */
+    outline: none;
+    position: relative;
+    font-weight: normal;
+    transition: background-color 0.2s;
+}
+
+/* State Aktif */
+.tab-item.active {
+    background-color: #0088cc; /* Biru Tua (Active) */
+    color: white;
+    font-weight: bold;
+}
+
+.tab-item:hover:not(.active) {
+    background-color: #cceeff;
+}
+
+/* Badge Merah */
+.badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: #ff0000;
+    color: white;
+    border-radius: 50%;
+    min-width: 20px;
+    height: 20px;
+    font-size: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    z-index: 10;
+}
+
+/* --- 4. TABLE --- */
+.table-container {
+    width: 100%;
+    /* Menghilangkan jarak antara tab dan tabel */
+    margin-top: 0; 
+}
+
+.custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px; /* Font tabel diperbesar */
+    background-color: #fff;
+    border: 1px solid #ccc; /* Border luar tabel */
+}
+
+.custom-table th {
+    background-color: #0088cc; /* Header Biru Tua */
+    color: white;
+    padding: 12px 15px; /* Padding header diperbesar */
+    text-align: left;
+    font-weight: normal;
+    border-right: 1px solid rgba(255,255,255,0.3); /* Pemisah kolom halus */
+    white-space: nowrap; /* Header tidak boleh turun baris */
+}
+
+.custom-table th:last-child {
+    border-right: none;
+}
+
+.custom-table td {
+    padding: 12px 15px; /* Padding sel diperbesar */
+    border-bottom: 1px solid #e0e0e0;
+    color: #333;
+    vertical-align: middle;
+}
+
+/* Zebra Striping: Baris ganjil biru sangat muda */
+.custom-table tr:nth-child(odd) td {
+    background-color: #f2f9ff; 
+}
+.custom-table tr:nth-child(even) td {
+    background-color: #fff;
+}
+
+.custom-table tr:hover td {
+    background-color: #e6f3ff; /* Efek hover baris */
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Ikon Dokumen */
+.icon-doc {
+    font-size: 18px;
+    color: #333;
+}
+
+/* --- MOBILE RESPONSIVE --- */
+.pc-only { display: block; }
+.sp-only { display: none; }
+
+@media screen and (max-width: 900px) {
+    .list-wrapper { width: 100%; padding: 10px; }
+    .pc-only { display: none; }
+    .sp-only { display: block; }
+    
+    .search-form { flex-direction: column; align-items: stretch; }
+    .input-date, .input-select, .input-text { width: 100%; }
+    .action-buttons { margin-left: 0; margin-top: 10px; }
+    .btn { width: 100%; }
+    
+    .card-list { margin-top: 15px; }
+    .card-item {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        padding: 15px;
+        background: #fff;
+    }
+    .card-header { display: flex; justify-content: space-between; color: #888; font-size: 13px; margin-bottom: 5px; }
+    .card-title { font-weight: bold; color: #0088cc; margin-bottom: 5px; }
+    .card-subject { font-size: 16px; font-weight: bold; margin-bottom: 10px; }
+    .card-footer { border-top: 1px solid #eee; padding-top: 10px; text-align: right; }
+}

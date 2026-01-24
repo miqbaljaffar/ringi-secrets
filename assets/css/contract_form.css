@@ -1,0 +1,228 @@
+/* css/contract_form.css - Updated */
+
+/* --- GLOBAL STYLES (Sama dengan List) --- */
+body {
+    font-family: "Meiryo", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+    background-color: #fff;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 30px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    background-color: #fff;
+}
+
+/* --- HEADERS --- */
+h1 {
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    color: #000;
+    border-bottom: 3px solid #0088cc;
+    padding-bottom: 10px;
+}
+
+h2 {
+    font-size: 16px;
+    background-color: #0088cc;
+    color: white;
+    padding: 10px 15px;
+    margin-top: 30px;
+    margin-bottom: 20px;
+    font-weight: bold;
+    border-radius: 2px;
+}
+
+.section-sub-title { 
+    font-weight: bold; 
+    margin: 20px 0 10px 0; 
+    color: #0056b3; 
+    border-bottom: 1px dashed #ccc; 
+}
+
+/* --- FORM LAYOUT --- */
+.section { padding: 0 5px; }
+
+.form-group {
+    display: flex;
+    margin-bottom: 15px;
+    align-items: flex-start;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 15px;
+}
+
+.form-group:last-child { border-bottom: none; }
+
+.form-label {
+    width: 220px;
+    font-weight: normal;
+    color: #333;
+    flex-shrink: 0;
+    padding-top: 8px;
+    font-size: 14px;
+}
+
+.sub-label {
+    font-weight: bold;
+    color: #555;
+    margin-right: 10px;
+}
+
+.required::after {
+    content: "必須";
+    background-color: #ff0000;
+    color: white;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 2px;
+    margin-left: 8px;
+    vertical-align: middle;
+    font-weight: bold;
+}
+
+.note {
+    font-size: 11px;
+    color: #777;
+    display: block;
+    margin-top: 2px;
+}
+
+.form-control-wrapper {
+    flex-grow: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.flex-row { display: flex; gap: 10px; align-items: center; }
+.flex-column { display: flex; flex-direction: column; gap: 5px; }
+.full-width { width: 100%; }
+
+/* --- INPUTS --- */
+input[type="text"],
+input[type="date"],
+input[type="number"],
+input[type="email"],
+select,
+textarea {
+    padding: 8px 10px;
+    border: 1px solid #aaa;
+    border-radius: 2px;
+    font-size: 14px;
+    box-sizing: border-box;
+    height: 38px;
+}
+
+textarea { height: 100px; max-width: 600px; resize: vertical; padding-top: 8px; }
+input[readonly] { background-color: #f5f5f5; color: #666; border-color: #ccc; }
+
+/* Sizes */
+.input-short { width: 80px !important; }
+.input-mid { width: 200px !important; }
+.text-right { text-align: right; }
+
+/* Radio/Checkboxes */
+.form-control-wrapper label {
+    margin-right: 15px;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+input[type="radio"], input[type="checkbox"] { margin-right: 5px; cursor: pointer; }
+
+/* --- FINANCIAL GRID --- */
+.financial-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    width: 100%;
+}
+
+.fin-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.fin-item span {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.input-with-unit {
+    display: flex;
+    align-items: center;
+}
+
+.input-with-unit input {
+    width: 100%;
+    margin-right: 5px;
+}
+
+/* --- CHECKBOX GRID (BOOKS) --- */
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 100%;
+}
+
+.vertical-radio {
+    flex-direction: column;
+    align-items: flex-start !important;
+}
+
+/* --- BUTTONS --- */
+.btn-area {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.btn {
+    padding: 0 30px;
+    height: 40px;
+    border: none;
+    border-radius: 4px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-primary { background-color: #0088cc; color: white; }
+.btn-primary:hover { opacity: 0.9; }
+.btn-secondary { background-color: #888; color: white; }
+.btn-secondary:disabled, .btn-primary:disabled { background-color: #ccc; cursor: not-allowed; }
+.btn-sm { height: 30px; padding: 0 15px; font-size: 12px; }
+
+/* --- MOBILE RESPONSIVE --- */
+@media screen and (max-width: 768px) {
+    body { padding: 10px; }
+    .container { padding: 15px; border: none; box-shadow: none; }
+
+    .form-group { display: block; padding-bottom: 20px; }
+    .form-label { width: 100%; margin-bottom: 8px; display: block; }
+
+    .financial-grid, .checkbox-grid {
+        grid-template-columns: 1fr; /* Stack vertically on mobile */
+    }
+
+    input[type="text"], input[type="number"], select { width: 100%; }
+    .input-short { width: 30% !important; display: inline-block; margin-right: 5px; }
+    
+    .btn-area { flex-direction: column-reverse; }
+    .btn { width: 100%; }
+}

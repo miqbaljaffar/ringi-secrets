@@ -4,7 +4,9 @@ class DB {
     private static $instance = null;
     
     private function __construct() {
-        $this->pdo = Database::getInstance();
+        // PERBAIKAN: Gunakan DatabaseConfig, bukan Database::getInstance()
+        // Pastikan DatabaseConfig sudah diload (kita akan load manual di index.php)
+        $this->pdo = DatabaseConfig::getConnection();
     }
     
     public static function getInstance() {
@@ -22,20 +24,28 @@ class DB {
             return $stmt;
         } catch (PDOException $e) {
             error_log("Query failed: " . $e->getMessage() . " SQL: " . $sql);
-            throw new Exception("データベースクエリの実行に失敗しました");
+            
+            // [PERBAIKAN DEBUGGING]
+            // Tampilkan pesan error asli SQL agar kita tahu tabel mana yang hilang/salah
+            if (defined('DEBUG_MODE') && DEBUG_MODE) {
+                throw new Exception("SQL Error: " . $e->getMessage());
+            } else {
+                // Fallback untuk production
+                throw new Exception("Database Error: " . $e->getMessage());
+            }
         }
     }
     
     // SELECT - 単一行取得
     public function fetch($sql, $params = []) {
         $stmt = $this->query($sql, $params);
-        return $stmt->fetch();
+        return $stmt->fetch(PDO::FETCH_ASSOC); // Tambahkan FETCH_ASSOC agar lebih aman
     }
     
     // SELECT - 全行取得
     public function fetchAll($sql, $params = []) {
         $stmt = $this->query($sql, $params);
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC); // Tambahkan FETCH_ASSOC
     }
     
     // INSERT

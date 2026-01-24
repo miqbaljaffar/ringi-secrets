@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>稟議詳細 | 稟議書管理システム</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    
+    <!-- PERBAIKAN: Relative Path -->
+    <link rel="stylesheet" href="../assets/css/detail.css" />
+  </head>
+  <body>
+    <div id="app" class="container">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <a href="list.html" style="text-decoration: none; color: #0088cc; font-size: 14px">
+          <i class="fas fa-arrow-left"></i> 一覧に戻る
+        </a>
+      </div>
+
+      <!-- Stamp Status -->
+      <div v-if="form.dt_approved_2" class="stamp stamp-approved"></div>
+      <div v-if="form.dt_rejected" class="stamp stamp-rejected"></div>
+
+      <h1>稟議書詳細: {{ form.id_doc }}</h1>
+
+      <!-- --- TAMPILAN KHUSUS TAX CONTRACT --- -->
+      <div v-if="docType === 'tax'">
+          <h2>基本情報 (Basic Info)</h2>
+          <table class="detail-table">
+              <tr>
+                  <th>商号 (Company)</th>
+                  <td>{{ form.s_name }} ({{ form.s_kana }})</td>
+              </tr>
+              <tr>
+                  <th>代表者 (Rep)</th>
+                  <td>{{ form.s_rep_name }}</td>
+              </tr>
+              <tr>
+                  <th>住所 (Address)</th>
+                  <td>〒{{ form.s_office_pcode }}<br>{{ form.s_office_address }} {{ form.s_office_address2 }}</td>
+              </tr>
+              <tr>
+                  <th>電話番号 (Tel)</th>
+                  <td>{{ form.s_office_tel }}</td>
+              </tr>
+          </table>
+
+          <h2>税務情報 (Tax Info)</h2>
+          <table class="detail-table">
+              <tr>
+                  <th>管轄税務署</th><td>{{ form.s_tax_office }}</td>
+                  <th>決算月</th><td>{{ form.n_closing_month }}月</td>
+              </tr>
+              <tr>
+                  <th>納税No</th><td colspan="3">{{ form.s_tax_num }}</td>
+              </tr>
+          </table>
+
+          <h2>契約内容 (Contract)</h2>
+          <div class="section">
+              <p><strong>経緯:</strong> <br>{{ form.s_situation }}</p>
+              <p><strong>開始日:</strong> {{ form.dt_contract_start }}</p>
+          </div>
+      </div>
+
+      <!-- --- TAMPILAN KHUSUS COMMON RINGI --- -->
+      <div v-else-if="docType === 'common'">
+          <div class="section">
+             <div class="form-group">
+                <label class="form-label">件名</label>
+                <div class="form-control-wrapper">{{ form.s_title }}</div>
+             </div>
+             <div class="form-group">
+                <label class="form-label">概要</label>
+                <div class="form-control-wrapper" style="white-space: pre-wrap;">{{ form.s_overview }}</div>
+             </div>
+             <!-- List Detail Barang/Jasa -->
+             <table class="approval-table" v-if="form.details && form.details.length">
+                 <thead><tr><th>分類</th><th>支払先</th><th>金額</th></tr></thead>
+                 <tbody>
+                     <tr v-for="d in form.details">
+                         <td>{{ d.s_category }}</td>
+                         <td>{{ d.s_payer }}</td>
+                         <td class="text-right">{{ d.n_amount | currency }}</td>
+                     </tr>
+                 </tbody>
+             </table>
+          </div>
+      </div>
+
+      <!-- --- APPROVAL ROUTE (Global) --- -->
+      <h2>承認ルート</h2>
+      <div class="section">
+            <table class="approval-table">
+                <thead>
+                    <tr>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Approver</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(step, index) in approvalRoute" :key="index">
+                        <td>{{ step.role }}</td>
+                        <td :style="{ color: step.statusColor, fontWeight: 'bold' }">
+                            {{ step.statusText }}
+                        </td>
+                        <td>{{ step.name }}</td>
+                        <td>{{ step.date || '-' }}</td>
+                    </tr>
+                </tbody>
+            </table>
+      </div>
+
+      <div class="btn-area" v-if="canApprove">
+            <button type="button" class="btn btn-danger" @click="doReject">
+              <i class="fas fa-times"></i> 否認 (Reject)
+            </button>
+            <button type="button" class="btn btn-primary" @click="doApprove">
+              <i class="fas fa-check"></i> 承認 (Approve)
+            </button>
+      </div>
+
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    
+    <!-- PERBAIKAN: Relative Path -->
+    <script src="../assets/js/main.js"></script>
+    <script src="../assets/js/modules/detail.js"></script>
+  </body>
+</html>

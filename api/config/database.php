@@ -1,46 +1,47 @@
 <?php
-class DatabaseConfig {
-    // Sesuai spesifikasi PDF Halaman 1
-    const HOST = 'localhost'; //mysqi320.phy.lolipop.lan
-    const DB_NAME = 'LAA1611970-ringi';
-    const USERNAME = 'LAA1611970';
-    const PASSWORD = 'Iqbal#0811'; //Mhu1FNyK
-    
-    // Spesifikasi: utf8mb4_general_ci
-    const CHARSET = 'utf8mb4';
-    const COLLATION = 'utf8mb4_general_ci';
-    
-    public static function getConnection() {
-        $dsn = "mysql:host=" . self::HOST . ";dbname=" . self::DB_NAME . ";charset=" . self::CHARSET;
-        
-        try {
-            $pdo = new PDO($dsn, self::USERNAME, self::PASSWORD);
-            // Error handling level Exception untuk debugging yang lebih baik
-            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-            $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-            
-            // Memaksa collation spesifik saat koneksi
-            $pdo->exec("SET NAMES " . self::CHARSET . " COLLATE " . self::COLLATION);
-            
-            return $pdo;
-        } catch (PDOException $e) {
-            // Log error di server, jangan tampilkan detail sensitif ke user
-            error_log("Database Connection Error: " . $e->getMessage());
-            throw new Exception("Koneksi database gagal. Silakan hubungi administrator.");
-        }
-    }
-}
+// Load environment variables
+require_once __DIR__ . '/env.php';
 
-// Wrapper Singleton untuk akses global yang efisien
-class Database {
-    private static $instance = null;
-    
-    public static function getInstance() {
-        if (self::$instance === null) {
-            self::$instance = DatabaseConfig::getConnection();
+class DatabaseConfig {
+    const HOST = DB_HOST;
+    const DB_NAME = DB_NAME;
+    const USERNAME = DB_USER;
+    const PASSWORD = DB_PASS;
+
+    public static function getConnection() {
+        $conn = null;
+        try {
+            $conn = new PDO(
+                "mysql:host=" . self::HOST . ";dbname=" . self::DB_NAME, 
+                self::USERNAME, 
+                self::PASSWORD
+            );
+            $conn->exec("set names utf8");
+            
+            // [PENTING] Set ERRMODE ke EXCEPTION agar error SQL muncul di try-catch
+            $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            
+            // Opsi tambahan untuk mencegah emulasi prepare statement (lebih aman dari SQL Injection)
+            $conn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+            
+        } catch(PDOException $exception) {
+            // Log ke file server (xampp/apache/logs/error.log)
+            error_log("Connection error: " . $exception->getMessage());
+            
+            // [MODIFIKASI DEBUG]
+            // Kita paksa throw message asli agar muncul di JSON response browser
+            // Kembalikan ke kode lama jika sudah production
+            throw new Exception("DB Connection/SQL Failed: " . $exception->getMessage());
+            
+            /*
+            if (defined('DEBUG_MODE') && DEBUG_MODE) {
+                 throw new Exception("DB Connection Failed: " . $exception->getMessage());
+            } else {
+                 throw new Exception("Database Connection Error. Please checks logs.");
+            }
+            */
         }
-        return self::$instance;
+        return $conn;
     }
 }
 ?>

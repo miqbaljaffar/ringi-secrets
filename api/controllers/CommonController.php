@@ -6,6 +6,11 @@ class CommonController {
     private $fileUpload;
     
     public function __construct() {
+        // Pastikan model dimuat. Jika autoloader tidak ada, uncomment baris di bawah:
+        // require_once __DIR__ . '/../models/Common.php';
+        // require_once __DIR__ . '/../models/CommonDetail.php';
+        // require_once __DIR__ . '/../models/User.php';
+        
         $this->commonModel = new Common();
         $this->detailModel = new CommonDetail();
         $this->validator = new Validator();
@@ -25,7 +30,7 @@ class CommonController {
         try {
             $documents = $this->commonModel->search($filters, $request['user']);
             
-            // タブ別フィルタリング
+            // Tab filtering
             if ($filters['tab'] !== 'all') {
                 $documents = array_filter($documents, function($doc) use ($filters, $request) {
                     return $this->filterByTab($doc, $filters['tab'], $request['user']);
@@ -38,7 +43,7 @@ class CommonController {
                 'count' => count($documents)
             ]);
             
-        } catch (Exception $e) {
+        } catch (Throwable $e) { // Ubah Exception ke Throwable untuk menangkap Error PHP 7+
             http_response_code(API_SERVER_ERROR);
             return json_encode([
                 'success' => false,
@@ -53,70 +58,69 @@ class CommonController {
         switch ($tab) {
             case 'all':
                 return true;
-                
             case 'pending':
                 return $status === 'pending' || $status === 'pending_second';
-                
             case 'approved':
                 return $status === 'approved';
-                
             case 'rejected':
                 return $status === 'rejected' || $status === 'withdrawn';
-                
             case 'to_approve':
-                // 自分が承認者である文書
                 return ($document['s_approved_1'] === $user['id'] && empty($document['dt_approved_1'])) ||
                        ($document['s_approved_2'] === $user['id'] && empty($document['dt_approved_2']));
-                
             default:
                 return true;
         }
     }
     
     public function show($request) {
-        $docId = $_GET['id'] ?? null;
-        
+        // [PERBAIKAN] Ambil ID dari params routing, bukan $_GET
+        $docId = $request['params']['id'] ?? $_GET['id'] ?? null;
+
         if (!$docId) {
             http_response_code(API_BAD_REQUEST);
-            return json_encode(['success' => false, 'error' => '文書IDが必要です']);
+            return json_encode(['success' => false, 'error' => 'Document ID is required']);
         }
         
         try {
             $document = $this->commonModel->find($docId);
-            
             if (!$document) {
                 http_response_code(API_NOT_FOUND);
-                return json_encode(['success' => false, 'error' => '文書が見つかりません']);
+                return json_encode(['success' => false, 'error' => 'Document not found']);
             }
             
-            // 詳細情報取得
+            // Ambil Detail Barang/Jasa
             $details = $this->detailModel->getByDocument($docId);
             $document['details'] = $details;
             
-            // 申請者・承認者情報取得
-            $userModel = new User();
-            $document['applicant_info'] = $userModel->findByEmployeeId($document['s_applied']);
-            $document['approver1_info'] = $document['s_approved_1'] ? 
-                $userModel->findByEmployeeId($document['s_approved_1']) : null;
-            $document['approver2_info'] = $document['s_approved_2'] ? 
-                $userModel->findByEmployeeId($document['s_approved_2']) : null;
+            // Ambil Info User terkait
+            // Pastikan class User tersedia
+            if (class_exists('User')) {
+                $userModel = new User();
+                $document['applicant_info'] = $userModel->findByEmployeeId($document['s_applied']);
+                $document['approver1_info'] = $document['s_approved_1'] ? $userModel->findByEmployeeId($document['s_approved_1']) : null;
+                $document['approver2_info'] = $document['s_approved_2'] ? $userModel->findByEmployeeId($document['s_approved_2']) : null;
+            } else {
+                // Fallback jika class User tidak terload
+                $document['applicant_info'] = ['s_name' => $document['s_applied']];
+                $document['approver1_info'] = ['s_name' => $document['s_approved_1']];
+                $document['approver2_info'] = ['s_name' => $document['s_approved_2']];
+            }
             
             return json_encode([
                 'success' => true,
                 'data' => $document
             ]);
             
-        } catch (Exception $e) {
+        } catch (Throwable $e) { // Gunakan Throwable untuk menangkap Fatal Error
             http_response_code(API_SERVER_ERROR);
             return json_encode([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => 'Server Error (500): ' . $e->getMessage()
             ]);
         }
     }
     
     public function store($request) {
-        // マルチパートフォームデータ処理
         if ($_SERVER['CONTENT_TYPE'] === 'application/x-www-form-urlencoded' || 
             strpos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') !== false) {
             $data = $_POST;
@@ -126,7 +130,6 @@ class CommonController {
             $files = [];
         }
         
-        // バリデーション
         $validation = $this->validator->validate($data, [
             'n_type' => 'required|in:1,2',
             's_title' => 'required|max:30',
@@ -144,34 +147,25 @@ class CommonController {
         }
         
         try {
-            // 申請者情報追加
             $data['s_applied'] = $request['user']['id'];
-            
-            // ファイルアップロード処理
             if (!empty($files['attachment'])) {
-                $docId = $this->commonModel->generateDocId(); // 一時的なID生成
+                $docId = $this->commonModel->generateDocId(); 
                 $filename = $this->fileUpload->save($files['attachment'], $docId);
                 $data['s_file'] = $filename;
             }
-            
-            // 詳細データのデコード
             if (is_string($data['details'])) {
                 $data['details'] = json_decode($data['details'], true);
             }
             
-            // 文書作成
             $docId = $this->commonModel->createDocument($data);
-            
-            // メール通知
-            $this->sendNotification($docId, 'created');
             
             return json_encode([
                 'success' => true,
                 'doc_id' => $docId,
-                'message' => '申請が完了しました'
+                'message' => 'Application submitted successfully'
             ]);
             
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             http_response_code(API_SERVER_ERROR);
             return json_encode([
                 'success' => false,
@@ -181,41 +175,28 @@ class CommonController {
     }
     
     public function update($request) {
-        $docId = $_GET['id'] ?? null;
-        
+        $docId = $request['params']['id'] ?? $_GET['id'] ?? null;
+
         if (!$docId) {
             http_response_code(API_BAD_REQUEST);
-            return json_encode(['success' => false, 'error' => '文書IDが必要です']);
+            return json_encode(['success' => false, 'error' => 'Document ID is required']);
         }
         
         $data = json_decode(file_get_contents('php://input'), true);
-        
-        // 備考更新のみ管理者権限
-        if (isset($data['s_memo'])) {
+        if (isset($data['s_memo']) && class_exists('AuthMiddleware')) {
             AuthMiddleware::requireRole(ROLE_ADMIN, $request);
         }
         
         try {
             $result = $this->commonModel->update($docId, $data);
-            
             if ($result) {
-                return json_encode([
-                    'success' => true,
-                    'message' => '更新が完了しました'
-                ]);
+                return json_encode(['success' => true, 'message' => 'Update successful']);
             } else {
-                return json_encode([
-                    'success' => false,
-                    'error' => '更新に失敗しました'
-                ]);
+                return json_encode(['success' => false, 'error' => 'Update failed']);
             }
-            
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             http_response_code(API_SERVER_ERROR);
-            return json_encode([
-                'success' => false,
-                'error' => $e->getMessage()
-            ]);
+            return json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
     }
     
@@ -224,90 +205,94 @@ class CommonController {
         
         if (!isset($data['doc_id']) || !isset($data['action'])) {
             http_response_code(API_BAD_REQUEST);
-            return json_encode(['success' => false, 'error' => '必要なパラメータが不足しています']);
+            return json_encode(['success' => false, 'error' => 'Missing parameters (doc_id, action)']);
         }
         
         try {
-            $result = $this->commonModel->approve(
-                $data['doc_id'],
+            $docId = $data['doc_id'];
+            $prefix = strtoupper(substr($docId, 0, 2));
+            $targetModel = null;
+            
+            // Pastikan class-class ini diload di index.php atau gunakan require_once jika perlu
+            switch ($prefix) {
+                case 'AR': $targetModel = $this->commonModel; break;
+                case 'CT': $targetModel = new Tax(); break;
+                case 'CO': $targetModel = new OtherContract(); break;
+                case 'CV': $targetModel = new Vendor(); break;
+                default: throw new Exception("Unknown Document ID Prefix: " . $prefix);
+            }
+
+            $result = $targetModel->approve(
+                $docId,
                 $request['user']['id'],
                 $data['action'],
                 $data['comment'] ?? ''
             );
             
             if ($result) {
-                // 通知送信
-                $this->sendNotification($data['doc_id'], $data['action']);
-                
-                return json_encode([
-                    'success' => true,
-                    'message' => '処理が完了しました'
-                ]);
+                return json_encode(['success' => true, 'message' => 'Approval processed successfully']);
             } else {
-                return json_encode([
-                    'success' => false,
-                    'error' => '処理に失敗しました'
-                ]);
+                return json_encode(['success' => false, 'error' => 'Failed to process approval']);
             }
             
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             http_response_code(API_SERVER_ERROR);
-            return json_encode([
-                'success' => false,
-                'error' => $e->getMessage()
-            ]);
+            return json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
     }
     
     public function withdraw($request) {
-        $docId = $_GET['id'] ?? null;
+        $docId = $request['params']['id'] ?? $_GET['id'] ?? null;
         
         if (!$docId) {
             http_response_code(API_BAD_REQUEST);
-            return json_encode(['success' => false, 'error' => '文書IDが必要です']);
+            return json_encode(['success' => false, 'error' => 'Document ID is required']);
         }
         
         try {
-            $result = $this->commonModel->withdraw($docId, $request['user']['id']);
-            
-            if ($result) {
-                $this->sendNotification($docId, 'withdrawn');
-                
-                return json_encode([
-                    'success' => true,
-                    'message' => '取下げが完了しました'
-                ]);
+             $prefix = strtoupper(substr($docId, 0, 2));
+             $targetModel = ($prefix === 'AR') ? $this->commonModel : null;
+             
+             if(!$targetModel && $prefix == 'CT') $targetModel = new Tax();
+             if(!$targetModel && $prefix == 'CO') $targetModel = new OtherContract();
+             if(!$targetModel && $prefix == 'CV') $targetModel = new Vendor();
+
+             if(!$targetModel) throw new Exception("Withdraw not supported for this type");
+
+            if(method_exists($targetModel, 'withdraw')) {
+                $result = $targetModel->withdraw($docId, $request['user']['id']);
             } else {
-                return json_encode([
-                    'success' => false,
-                    'error' => '取下げに失敗しました'
-                ]);
+                $doc = $targetModel->find($docId);
+                if($doc['s_applied'] !== $request['user']['id']) throw new Exception("Permission denied");
+                if(!empty($doc['dt_approved_1'])) throw new Exception("Cannot withdraw approved document");
+                $result = $targetModel->delete($docId);
             }
             
-        } catch (Exception $e) {
+            if ($result) {
+                return json_encode(['success' => true, 'message' => 'Application withdrawn']);
+            } else {
+                return json_encode(['success' => false, 'error' => 'Failed to withdraw']);
+            }
+            
+        } catch (Throwable $e) {
             http_response_code(API_SERVER_ERROR);
-            return json_encode([
-                'success' => false,
-                'error' => $e->getMessage()
-            ]);
+            return json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
     }
     
-    private function sendNotification($docId, $action) {
-        // メール送信ロジック
-        // 実際の実装ではPHPMailerなどのライブラリを使用
-        error_log("Notification: Document {$docId} - Action: {$action}");
-    }
-    
     public function getCategories() {
-        $db = DB::getInstance();
-        $sql = "SELECT * FROM tm_category WHERE dt_delete IS NULL ORDER BY s_category";
-        $categories = $db->fetchAll($sql);
-        
-        return json_encode([
-            'success' => true,
-            'data' => $categories
-        ]);
+        try {
+            $db = DB::getInstance();
+            $sql = "SELECT * FROM tm_category WHERE dt_delete IS NULL ORDER BY s_category";
+            $categories = $db->fetchAll($sql);
+            
+            return json_encode([
+                'success' => true,
+                'data' => $categories
+            ]);
+        } catch (Throwable $e) {
+            return json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
     }
 }
 ?>

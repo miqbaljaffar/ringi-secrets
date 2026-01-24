@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | 稟議書管理システム</title>
+    <!-- Relative Path ke Assets -->
+    <link rel="stylesheet" href="../assets/css/style.css"> 
+    <link rel="stylesheet" href="../assets/css/login.css">
+</head>
+<body>
+
+    <div class="login-container">
+        <h1>稟議システム Login</h1>
+        
+        <div id="error-msg" class="alert-error"></div>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label>Employee ID / User ID</label>
+                <!-- Default value 0001 untuk memudahkan test -->
+                <input type="text" name="username" class="form-control" placeholder="例: 0001" value="0001" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Password</label>
+                <!-- Default value admin untuk memudahkan test -->
+                <input type="password" name="password" class="form-control" placeholder="Password" value="admin" required>
+            </div>
+            
+            <button type="submit" class="btn-login">Login</button>
+        </form>
+
+        <div class="login-footer">
+            <p>Develop for Testing &copy; 2025</p>
+        </div>
+    </div>
+
+    <!-- Load Main JS (Penting untuk apiRequest) -->
+    <script src="../assets/js/main.js"></script>
+    
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const btn = document.querySelector('.btn-login');
+            const errorMsg = document.getElementById('error-msg');
+            const username = this.username.value;
+            const password = this.password.value;
+
+            // Reset UI
+            errorMsg.style.display = 'none';
+            btn.disabled = true;
+            btn.textContent = 'Authenticating...';
+
+            try {
+                // Panggil API Login
+                // Data dikirim sebagai JSON object {username: ..., password: ...}
+                const response = await ringiSystem.apiRequest('POST', 'auth/login', {
+                    username: username,
+                    password: password
+                });
+
+                if (response.success) {
+                    // Simpan Token & User Info
+                    // Token biasanya dipakai untuk header Authorization
+                    // Tapi di Mock ini kita pakai Session PHP, jadi token hanya pelengkap
+                    if(response.token) localStorage.setItem('auth_token', response.token);
+                    
+                    sessionStorage.setItem('user', JSON.stringify(response.user));
+                    
+                    // Redirect ke Dashboard/List
+                    window.location.href = 'list.html';
+                } else {
+                    throw new Error(response.error || 'Login Gagal');
+                }
+
+            } catch (error) {
+                console.error(error);
+                errorMsg.textContent = error.message;
+                errorMsg.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = 'Login';
+            }
+        });
+    </script>
+</body>
+</html>
