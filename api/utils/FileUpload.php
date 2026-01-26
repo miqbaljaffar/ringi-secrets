@@ -1,9 +1,10 @@
 <?php
-require_once __DIR__ . '/../../config/constants.php';
+// HAPUS baris ini karena constants.php sudah diload di index.php
+// require_once __DIR__ . '/../../config/constants.php';
 
 class FileUpload {
     private $allowedExtensions = ['pdf'];
-    private $maxSize = 5242880; // 5MB
+    private $maxSize = 5242880; // 5MB (Default fallback)
     private $basePath;
     private $subDirectory;
     
@@ -11,7 +12,18 @@ class FileUpload {
      * @param string $subDirectory Direktori tipe dokumen (ar, ct, co, cv)
      */
     public function __construct($subDirectory = '') {
-        $this->basePath = UPLOAD_PATH; // Dari constants.php
+        // Gunakan konstanta global jika ada, jika tidak gunakan default relative path
+        if (defined('UPLOAD_PATH')) {
+            $this->basePath = UPLOAD_PATH;
+        } else {
+            // Fallback path jika konstanta belum didefinisikan (untuk safety)
+            $this->basePath = realpath(__DIR__ . '/../../files');
+        }
+
+        if (defined('MAX_FILE_SIZE')) {
+            $this->maxSize = MAX_FILE_SIZE;
+        }
+
         $this->subDirectory = strtolower($subDirectory);
     }
     
@@ -22,12 +34,17 @@ class FileUpload {
     public function save($file, $docId, $customName = null) {
         $this->validate($file);
         
+        // Validasi path dasar
+        if (!$this->basePath) {
+            throw new Exception("Konfigurasi direktori upload (UPLOAD_PATH) tidak ditemukan.");
+        }
+
         // Struktur folder: files/ar/AR25120401/
         $targetDir = $this->basePath . '/' . $this->subDirectory . '/' . $docId;
         
         if (!file_exists($targetDir)) {
             if (!mkdir($targetDir, 0755, true)) {
-                throw new Exception("Gagal membuat direktori penyimpanan.");
+                throw new Exception("Gagal membuat direktori penyimpanan di: " . $targetDir);
             }
         }
         
@@ -65,7 +82,18 @@ class FileUpload {
     
     private function validate($file) {
         if ($file['error'] !== UPLOAD_ERR_OK) {
-            throw new Exception("Error upload: " . $file['error']);
+            // Mapping kode error PHP File Upload
+            $errors = [
+                UPLOAD_ERR_INI_SIZE   => 'Ukuran file melebihi batas upload_max_filesize di php.ini',
+                UPLOAD_ERR_FORM_SIZE  => 'Ukuran file melebihi batas MAX_FILE_SIZE form',
+                UPLOAD_ERR_PARTIAL    => 'File hanya terupload sebagian',
+                UPLOAD_ERR_NO_FILE    => 'Tidak ada file yang diupload',
+                UPLOAD_ERR_NO_TMP_DIR => 'Folder temporary hilang',
+                UPLOAD_ERR_CANT_WRITE => 'Gagal menulis ke disk',
+                UPLOAD_ERR_EXTENSION  => 'Upload dihentikan oleh ekstensi PHP'
+            ];
+            $msg = $errors[$file['error']] ?? 'Unknown Error';
+            throw new Exception("Error upload: " . $msg);
         }
         
         if ($file['size'] > $this->maxSize) {
@@ -82,7 +110,7 @@ class FileUpload {
         finfo_close($finfo);
         
         if ($mimeType !== 'application/pdf') {
-            throw new Exception("MIME type tidak valid (harus PDF).");
+            throw new Exception("MIME type tidak valid (harus PDF). Deteksi: " . $mimeType);
         }
     }
 }

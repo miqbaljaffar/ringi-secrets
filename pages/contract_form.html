@@ -16,6 +16,15 @@
         
         <!-- HEADER -->
         <div class="section">
+            <!-- NOMOR DOKUMEN (OTOMATIS SESUAI SPEK HAL 14) -->
+            <div class="form-group">
+                <label class="form-label required">稟議書No</label>
+                <div class="form-control-wrapper">
+                    <input type="text" v-model="generatedDocNo" class="input-mid" readonly style="background-color: #e9ecef; font-weight: bold; color: #0088cc;">
+                    <span class="note">※自動採番 (Prefix: CT)</span>
+                </div>
+            </div>
+
             <div class="form-group">
                 <label class="form-label required">稟議書種別</label>
                 <div class="form-control-wrapper">
@@ -24,9 +33,9 @@
             </div>
             
             <div class="form-group">
-                <label class="form-label required" for="applied_date">申請日</label>
+                <label class="form-label required">申請日</label>
                 <div class="form-control-wrapper">
-                     <input type="date" id="applied_date" v-model="form.applied_date" readonly>
+                     <input type="date" v-model="form.applied_date" readonly>
                 </div>
             </div>
         </div>
@@ -42,37 +51,36 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label required" for="company_name">商号、屋号</label>
+                <label class="form-label required">商号、屋号</label>
                 <div class="form-control-wrapper">
-                    <input type="text" id="company_name" v-model="form.company_name" placeholder="例：株式会社アイワークス" required>
+                    <input type="text" id="company_name" v-model="form.company_name" placeholder="例：株式会社アイワークス" required maxlength="100">
                 </div>
             </div>
 
             <div class="form-group">
-                <label class="form-label required" for="company_kana">フリガナ</label>
+                <label class="form-label required">フリガナ</label>
                 <div class="form-control-wrapper">
-                    <input type="text" id="company_kana" v-model="form.company_kana" placeholder="自動入力" required>
+                    <input type="text" id="company_kana" v-model="form.company_kana" placeholder="自動入力" required maxlength="100">
                 </div>
             </div>
             
             <div v-if="isCorporate">
                 <div class="form-group">
-                    <label class="form-label required" for="establishment_date" style="color: #800080;">設立年月日</label>
+                    <label class="form-label required" style="color: #800080;">設立年月日</label>
                     <div class="form-control-wrapper">
-                        <input type="date" id="establishment_date" v-model="form.establishment_date">
-                        <span class="note">※和暦は自動計算（仕様）</span>
+                        <input type="date" v-model="form.establishment_date" required>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="capital" style="color: #800080;">資本金</label>
+                    <label class="form-label" style="color: #800080;">資本金</label>
                     <div class="form-control-wrapper">
                         <input type="text" :value="form.capital | formatNumber" @input="updateNumber($event, 'capital')" class="input-mid text-right"> 円
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="n_before" style="color: #800080;">直前期</label>
+                    <label class="form-label" style="color: #800080;">直前期</label>
                     <div class="form-control-wrapper">
                         <input type="number" v-model="form.n_before" class="input-short text-right"> 期
                     </div>
@@ -82,9 +90,9 @@
             <div class="section-sub-title">業種情報</div>
             
             <div class="form-group">
-                <label class="form-label required" for="industry_name">業種名</label>
+                <label class="form-label required">業種名</label>
                 <div class="form-control-wrapper">
-                    <input type="text" id="industry_name" v-model="form.industry_name" placeholder="例：ソフトウェア開発業" required>
+                    <input type="text" v-model="form.industry_name" placeholder="例：ソフトウェア開発業" required maxlength="50">
                 </div>
             </div>
 
@@ -95,22 +103,22 @@
                         <option value="" disabled>大</option>
                         <option v-for="c in 'ABCDEFGHIJKLMNOPQRST'" :value="c">{{c}}</option>
                     </select>
-                    <input type="text" v-model="form.industry_cat_2" maxlength="2" class="input-short" placeholder="中(01)" required>
-                    <input type="text" v-model="form.industry_cat_3" maxlength="1" class="input-short" placeholder="小(1)" required>
+                    <input type="text" v-model="form.industry_cat_2" maxlength="2" pattern="\d{2}" class="input-short" placeholder="中(01)" required>
+                    <input type="text" v-model="form.industry_cat_3" maxlength="1" pattern="\d{1}" class="input-short" placeholder="小(1)" required>
                 </div>
             </div>
 
             <div class="form-group">
-                <label class="form-label required" for="industry_oms">業種コード (OMS)</label>
+                <label class="form-label required">業種コード (OMS)</label>
                 <div class="form-control-wrapper">
-                    <input type="text" v-model="form.industry_oms" maxlength="4" class="input-mid" placeholder="0000" required>
+                    <input type="text" v-model="form.industry_oms" maxlength="4" pattern="\d{4}" class="input-mid" placeholder="0000" required>
                 </div>
             </div>
 
             <div class="section-sub-title">税務・住所情報</div>
 
             <div class="form-group">
-                <label class="form-label required" for="closing_month" :style="isCorporate ? 'color:#800080' : ''">決算月</label>
+                <label class="form-label required" :style="isCorporate ? 'color:#800080' : ''">決算月</label>
                 <div class="form-control-wrapper">
                     <select v-model="form.closing_month" class="input-short">
                         <option v-for="n in 12" :value="n">{{ n }}月</option>
@@ -135,16 +143,16 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label required" for="tax_office_name">管轄税務署</label>
+                <label class="form-label required">管轄税務署</label>
                 <div class="form-control-wrapper">
-                    <input type="text" v-model="form.tax_office_name" required>
+                    <input type="text" v-model="form.tax_office_name" required maxlength="20">
                 </div>
             </div>
             
             <div class="form-group">
-                <label class="form-label required" for="tax_number">納税No</label>
+                <label class="form-label required">納税No</label>
                 <div class="form-control-wrapper">
-                    <input type="text" v-model="form.tax_number" maxlength="8" placeholder="12345678" required>
+                    <input type="text" v-model="form.tax_number" maxlength="8" pattern="\d{8}" placeholder="数値8桁" required>
                 </div>
             </div>
 
@@ -152,21 +160,21 @@
                 <label class="form-label required">事業所住所</label>
                 <div class="form-control-wrapper">
                     <div style="width: 100%; margin-bottom: 5px;">
-                        〒 <input type="text" v-model="form.zip1" class="input-short" maxlength="3"> - 
-                        <input type="text" v-model="form.zip2" class="input-short" maxlength="4">
+                        〒 <input type="text" v-model="form.zip1" class="input-short" maxlength="3" pattern="\d{3}"> - 
+                        <input type="text" v-model="form.zip2" class="input-short" maxlength="4" pattern="\d{4}">
                         <button type="button" class="btn-secondary btn-sm" @click="searchAddress('office')">住所検索</button>
                     </div>
-                    <input type="text" v-model="form.address" style="width: 100%; margin-bottom: 5px;" placeholder="住所" required>
-                    <input type="text" v-model="form.address2" style="width: 100%;" placeholder="ビル名・階数">
+                    <input type="text" v-model="form.address" style="width: 100%; margin-bottom: 5px;" placeholder="住所" required maxlength="100">
+                    <input type="text" v-model="form.address2" style="width: 100%;" placeholder="ビル名・階数" maxlength="100">
                 </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label required">事業所TEL</label>
                 <div class="form-control-wrapper flex-row">
-                    <input type="text" v-model="form.tel1" class="input-short"> - 
-                    <input type="text" v-model="form.tel2" class="input-short"> - 
-                    <input type="text" v-model="form.tel3" class="input-short">
+                    <input type="text" v-model="form.tel1" class="input-short" maxlength="5"> - 
+                    <input type="text" v-model="form.tel2" class="input-short" maxlength="4"> - 
+                    <input type="text" v-model="form.tel3" class="input-short" maxlength="4">
                 </div>
             </div>
 
@@ -179,9 +187,9 @@
                 </div>
             </div>
             <div class="form-group" v-if="form.send_to == '9'">
-                 <label class="form-label" for="send_to_others">郵送先 (その他)</label>
+                 <label class="form-label">郵送先 (その他)</label>
                  <div class="form-control-wrapper">
-                     <input type="text" v-model="form.send_to_others" placeholder="その他の郵送先住所">
+                     <input type="text" v-model="form.send_to_others" placeholder="その他の郵送先住所" maxlength="100">
                  </div>
             </div>
         </div>
@@ -191,16 +199,16 @@
             <div class="form-group">
                 <label class="form-label required">代表者氏名</label>
                 <div class="form-control-wrapper flex-row">
-                    <input type="text" v-model="form.rep_name_sei" placeholder="姓" class="input-mid" required>
-                    <input type="text" v-model="form.rep_name_mei" placeholder="名" class="input-mid" required>
+                    <input type="text" v-model="form.rep_name_sei" placeholder="姓" class="input-mid" required maxlength="15">
+                    <input type="text" v-model="form.rep_name_mei" placeholder="名" class="input-mid" required maxlength="15">
                 </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label required">代表者フリガナ</label>
                 <div class="form-control-wrapper flex-row">
-                    <input type="text" v-model="form.rep_kana_sei" placeholder="セイ" class="input-mid" required>
-                    <input type="text" v-model="form.rep_kana_mei" placeholder="メイ" class="input-mid" required>
+                    <input type="text" v-model="form.rep_kana_sei" placeholder="セイ" class="input-mid" required maxlength="15">
+                    <input type="text" v-model="form.rep_kana_mei" placeholder="メイ" class="input-mid" required maxlength="15">
                 </div>
             </div>
             
@@ -212,7 +220,7 @@
                     <label><input type="radio" value="3" v-model="form.rep_title"> 理事長</label>
                     <label><input type="radio" value="4" v-model="form.rep_title"> 代表社員</label>
                     <label><input type="radio" value="9" v-model="form.rep_title"> その他</label>
-                    <input type="text" v-model="form.rep_title_others" class="input-mid" v-if="form.rep_title == '9'" placeholder="その他肩書き">
+                    <input type="text" v-model="form.rep_title_others" class="input-mid" v-if="form.rep_title == '9'" placeholder="その他肩書き" maxlength="30">
                 </div>
             </div>
             
@@ -221,7 +229,7 @@
                 <div class="form-control-wrapper">
                     <label><input type="radio" value="1" v-model="form.rep_email_exists"> あり</label>
                     <label><input type="radio" value="0" v-model="form.rep_email_exists"> なし</label>
-                    <input type="email" v-model="form.rep_email" placeholder="representative@example.com" v-if="form.rep_email_exists == '1'" style="width: 300px;">
+                    <input type="email" v-model="form.rep_email" placeholder="representative@example.com" v-if="form.rep_email_exists == '1'" style="width: 300px;" maxlength="100">
                 </div>
             </div>
 
@@ -237,12 +245,12 @@
                 <label class="form-label required">自宅住所</label>
                 <div class="form-control-wrapper">
                     <div style="width: 100%; margin-bottom: 5px;">
-                        〒 <input type="text" v-model="form.rep_zip1" class="input-short" maxlength="3"> - 
-                        <input type="text" v-model="form.rep_zip2" class="input-short" maxlength="4">
+                        〒 <input type="text" v-model="form.rep_zip1" class="input-short" maxlength="3" pattern="\d{3}"> - 
+                        <input type="text" v-model="form.rep_zip2" class="input-short" maxlength="4" pattern="\d{4}">
                         <button type="button" class="btn-secondary btn-sm" @click="searchAddress('home')">住所検索</button>
                     </div>
-                    <input type="text" v-model="form.rep_address" style="width: 100%; margin-bottom: 5px;" placeholder="住所" required>
-                    <input type="text" v-model="form.rep_address2" style="width: 100%;" placeholder="マンション名等">
+                    <input type="text" v-model="form.rep_address" style="width: 100%; margin-bottom: 5px;" placeholder="住所" required maxlength="100">
+                    <input type="text" v-model="form.rep_address2" style="width: 100%;" placeholder="マンション名等" maxlength="100">
                 </div>
             </div>
             <div class="form-group">
@@ -251,9 +259,9 @@
                     <label><input type="radio" value="1" v-model="form.rep_tel_exists"> あり</label>
                     <label><input type="radio" value="0" v-model="form.rep_tel_exists"> なし</label>
                     <div v-if="form.rep_tel_exists == '1'" class="flex-row">
-                        <input type="text" v-model="form.rep_tel1" class="input-short"> - 
-                        <input type="text" v-model="form.rep_tel2" class="input-short"> - 
-                        <input type="text" v-model="form.rep_tel3" class="input-short">
+                        <input type="text" v-model="form.rep_tel1" class="input-short" maxlength="5"> - 
+                        <input type="text" v-model="form.rep_tel2" class="input-short" maxlength="4"> - 
+                        <input type="text" v-model="form.rep_tel3" class="input-short" maxlength="4">
                     </div>
                 </div>
             </div>
@@ -277,13 +285,13 @@
             <div class="form-group">
                  <label class="form-label">国税利用者識別番号</label>
                  <div class="form-control-wrapper">
-                     <input type="text" v-model="form.national_tax_id" class="input-mid" maxlength="16" placeholder="数値16桁">
+                     <input type="text" v-model="form.national_tax_id" class="input-mid" maxlength="16" pattern="\d{16}" placeholder="数値16桁">
                  </div>
             </div>
             <div class="form-group">
                  <label class="form-label">国税暗証番号</label>
                  <div class="form-control-wrapper">
-                     <input type="text" v-model="form.national_tax_pw" class="input-mid" placeholder="英数字8~50桁">
+                     <input type="text" v-model="form.national_tax_pw" class="input-mid" placeholder="英数字8~50桁" maxlength="50">
                  </div>
             </div>
             <div class="form-group">
@@ -295,7 +303,7 @@
            <div class="form-group">
                 <label class="form-label">地方税暗証番号</label>
                 <div class="form-control-wrapper">
-                    <input type="text" v-model="form.local_tax_pw" class="input-mid" placeholder="英数字8~16桁">
+                    <input type="text" v-model="form.local_tax_pw" class="input-mid" placeholder="英数字8~16桁" maxlength="16">
                 </div>
            </div>
         </div>
@@ -379,7 +387,7 @@
                     <label><input type="radio" value="5" v-model="form.self_accounting"> 原始記録のみ(未整理)</label>
                     <div class="flex-row">
                         <label><input type="radio" value="9" v-model="form.self_accounting"> その他</label>
-                        <input type="text" v-model="form.self_accounting_others" v-if="form.self_accounting == '9'" placeholder="内容" class="input-mid">
+                        <input type="text" v-model="form.self_accounting_others" v-if="form.self_accounting == '9'" placeholder="内容" class="input-mid" maxlength="50">
                     </div>
                 </div>
             </div>
@@ -394,7 +402,7 @@
                     <label><input type="radio" value="8" v-model="form.accounting_soft"> 未利用</label>
                     <div class="flex-row" style="display:inline-flex;">
                         <label><input type="radio" value="9" v-model="form.accounting_soft"> その他</label>
-                        <input type="text" v-model="form.accounting_soft_others" v-if="form.accounting_soft == '9'" placeholder="ソフト名" class="input-mid">
+                        <input type="text" v-model="form.accounting_soft_others" v-if="form.accounting_soft == '9'" placeholder="ソフト名" class="input-mid" maxlength="100">
                     </div>
                 </div>
             </div>
@@ -407,7 +415,7 @@
                     </label>
                     <div class="flex-row full-width">
                         <label><input type="checkbox" value="99" v-model="form.books"> その他</label>
-                        <input type="text" v-model="form.books_others" :disabled="!form.books.includes(99)" placeholder="その他の帳簿" class="input-mid">
+                        <input type="text" v-model="form.books_others" :disabled="!form.books.includes(99)" placeholder="その他の帳簿" class="input-mid" maxlength="100">
                     </div>
                 </div>
             </div>
@@ -446,7 +454,7 @@
                          <label><input type="radio" value="3" v-model="form.pre_accountant_status"> 新規開業</label>
                     </div>
                     <div v-if="form.pre_accountant_status == '1'" style="margin-top: 10px; width: 100%;">
-                        <input type="text" v-model="form.pre_accountant_name" placeholder="事務所名" style="margin-bottom:5px; width: 100%;">
+                        <input type="text" v-model="form.pre_accountant_name" placeholder="事務所名" style="margin-bottom:5px; width: 100%;" maxlength="50">
                         <div class="flex-row">
                             <select v-model="form.pre_account_type" class="input-mid">
                                 <option value="1">毎月</option>
@@ -480,18 +488,18 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label required">担当者・紹介者</label>
+                <label class="form-label required">担当er・紹介者</label>
                 <div class="form-control-wrapper flex-column" style="width: 100%;">
                     <div class="flex-row">
-                        <input type="text" v-model="form.incharge_begin" placeholder="開拓担当者" class="input-mid" required>
-                        <input type="text" v-model="form.incharge_close" placeholder="クロージング担当者" class="input-mid">
+                        <input type="text" v-model="form.incharge_begin" placeholder="開拓担当者" class="input-mid" required maxlength="50">
+                        <input type="text" v-model="form.incharge_close" placeholder="クロージング担当者" class="input-mid" maxlength="50">
                         <select v-model="form.incharge_id" class="input-mid" required>
                             <option value="">顧客担当者を選択</option>
                             <option v-for="u in users" :value="u.id">{{ u.id }}: {{ u.name }}</option>
                         </select>
                     </div>
                     <div class="flex-row" style="margin-top: 10px;">
-                        <input type="text" v-model="form.introducer_name" placeholder="紹介者名" class="input-mid">
+                        <input type="text" v-model="form.introducer_name" placeholder="紹介者名" class="input-mid" maxlength="50">
                         <select v-model="form.introducer_type" class="input-mid">
                             <option value="0">紹介者区分：なし</option>
                             <option value="1">顧問先</option>
@@ -500,7 +508,7 @@
                             <option value="4">紹介会社</option>
                             <option value="9">その他</option>
                         </select>
-                        <input type="text" v-model="form.introducer_type_others" v-if="form.introducer_type == '9'" placeholder="その他区分内容" class="input-mid">
+                        <input type="text" v-model="form.introducer_type_others" v-if="form.introducer_type == '9'" placeholder="その他区分内容" class="input-mid" maxlength="50">
                     </div>
                 </div>
             </div>
