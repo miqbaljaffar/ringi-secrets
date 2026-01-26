@@ -44,7 +44,7 @@ class OtherContract extends BaseModel {
                 'n_pre_income' => (int)str_replace(',', '', $data['n_pre_income'] ?? 0),
                 'n_pre_workers' => (int)str_replace(',', '', $data['n_pre_workers'] ?? 0),
                 
-                'n_consumption_tax' => $data['n_consumption_tax'] ?? 1,
+                'n_comsumption_tax' => $data['n_comsumption_tax'] ?? 1,
                 'n_trade' => $data['n_trade'] ?? 0,
                 'n_affiliated_company' => $data['n_affiliated_company'] ?? 0,
                 
