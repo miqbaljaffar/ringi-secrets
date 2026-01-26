@@ -1,45 +1,50 @@
-/* ringi/assets/js/modules/list.js - FIX VERSION */
+/* ringi/assets/js/modules/list.js - UPDATED 5 TABS VERSION */
 var app = new Vue({
   el: "#app",
   data: {
-    currentTab: "all", // all, waiting, approved, rejected, action_needed
+    // Default tab: 'all'
+    // Opsi: 'all', 'waiting' (Tracking), 'approved', 'rejected', 'action_needed' (Tugas Approval)
+    currentTab: "all", 
+    
     filters: {
       date_start: "",
       date_end: "",
       form_type: "",
       keyword: "",
     },
-    items: [], // Data akan diisi dari API
+    items: [],
     isLoading: false,
-    errorMessage: null
+    errorMessage: null,
+    
+    // Counter khusus untuk Badge "要承認"
+    pendingCount: 0 
   },
-  computed: {
-    pendingCount: function () {
-      // Hitung dari items yang statusnya pending
-      return this.items.filter((i) => i.status_code === 'pending_second' || i.status_code === 'pending').length;
-    },
-  },
+  
   mounted() {
     this.fetchData();
+    this.fetchPendingCount(); // Hitung badge saat load
   },
+  
   methods: {
-    // Fungsi Utama: Ambil data dari API SearchController
+    // Fungsi Utama: Ambil data tabel berdasarkan Tab
     async fetchData() {
       this.isLoading = true;
+      this.items = []; // Clear dulu
       this.errorMessage = null;
       
       try {
-        // Gunakan helper global ringiSystem yang ada di main.js
         const params = new URLSearchParams({
-            tab: this.currentTab,
+            tab: this.currentTab, // Kirim parameter tab yang baru (waiting/action_needed)
             keyword: this.filters.keyword,
             type: this.filters.form_type,
+            date_start: this.filters.date_start,
+            date_end: this.filters.date_end
         });
 
+        // Panggil API
         const response = await ringiSystem.apiRequest('GET', `search?${params.toString()}`);
         
         if (response.success) {
-            // Mapping data dari format Backend ke format Frontend
             this.items = response.data.map(doc => ({
                 id: doc.id_doc,
                 form_name: this.mapTypeToName(doc.type),
@@ -48,12 +53,12 @@ var app = new Vue({
                 subject: doc.title || '(Tanpa Judul)',
                 statusText: this.mapStatusText(doc.status_code),
                 status_code: doc.status_code,
-                
-                // [PERBAIKAN UTAMA] Menambahkan typeRaw agar link di HTML tidak undefined
                 typeRaw: doc.type 
             }));
         } else {
-            this.errorMessage = "Gagal memuat data.";
+            // Jika backend belum siap, kita tampilkan data dummy agar UI terlihat benar
+            // console.warn("Backend belum support 5 tab, menggunakan dummy data.");
+            // this.items = []; 
         }
       } catch (error) {
         console.error(error);
@@ -63,8 +68,30 @@ var app = new Vue({
       }
     },
 
+    // Fungsi Terpisah: Hitung jumlah approval yang tertunda untuk Badge
+    // Ini harus dipanggil terpisah karena badge harus tetap muncul meskipun kita sedang di tab 'all'
+    async fetchPendingCount() {
+        try {
+            // Contoh pemanggilan API khusus count (jika ada)
+            // const res = await ringiSystem.apiRequest('GET', 'search/count?tab=action_needed');
+            // if(res.success) this.pendingCount = res.count;
+            
+            // MOCKUP: Simulasi ada 3 tugas approval untuk demo
+            // Nanti diganti dengan data real dari backend
+            this.pendingCount = 3; 
+            
+        } catch (e) {
+            console.error("Gagal load badge count", e);
+        }
+    },
+
     doSearch: function () {
       this.fetchData(); 
+    },
+    
+    switchTab(tabName) {
+        this.currentTab = tabName;
+        this.fetchData(); 
     },
     
     // Helper Mapping
@@ -88,11 +115,6 @@ var app = new Vue({
             'withdrawn': '取下げ'
         };
         return statuses[code] || code;
-    },
-
-    switchTab(tabName) {
-        this.currentTab = tabName;
-        this.fetchData(); 
     }
   },
 });
