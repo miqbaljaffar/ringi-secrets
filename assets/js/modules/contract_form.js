@@ -1,10 +1,11 @@
+/* ringi/assets/js/modules/contract_form.js - VALIDATION UPDATE */
 var app = new Vue({
     el: '#app',
     data: {
         form: {
             // Default Values
             applied_date: new Date().toISOString().slice(0, 10),
-            doc_type: 'tax', 
+            doc_type: 'contract', 
             corp_type: '1',
             company_name: '',
             company_kana: '',
@@ -154,22 +155,69 @@ var app = new Vue({
             return val;
         },
 
+        // VALIDASI UPDATED: Sesuai PDF Hal 14-17 (Red=Required, Purple=Corp Only)
         validateForm: function() {
             const f = this.form;
             const errors = [];
+            const isReq = (val) => val && val.toString().trim() !== '';
 
-            if (f.zip1.length !== 3 || f.zip2.length !== 4) errors.push("郵便番号は3桁と4桁で入力してください。");
-            if (f.tax_number.length !== 8) errors.push("納税Noは数値8桁で入力してください。");
-            // Cek Kode Industri (A-T)
-            if (!/^[A-T]$/.test(f.industry_cat_1)) errors.push("業種コード(大)はA~Tで入力してください。");
+            // 1. Basic Info (Red)
+            if(!isReq(f.company_name)) errors.push("商号・屋号は必須です。");
+            if(!isReq(f.company_kana)) errors.push("フリガナは必須です。");
+
+            // 2. Corporate Specific (Purple)
+            if (this.isCorporate) {
+                if(!isReq(f.establishment_date)) errors.push("設立年月日は必須です（法人）。");
+            }
+
+            // 3. Industry & Tax (Red)
+            if(!isReq(f.industry_name)) errors.push("業種名は必須です。");
+            // Industry Codes
+            if(!/^[A-T]$/.test(f.industry_cat_1)) errors.push("業種コード(大)はA~Tで入力してください。");
+            if(!/^\d{2}$/.test(f.industry_cat_2)) errors.push("業種コード(中)は2桁の数値で入力してください。");
+            if(!/^\d{1}$/.test(f.industry_cat_3)) errors.push("業種コード(小)は1桁の数値で入力してください。");
+            if(!/^\d{4}$/.test(f.industry_oms)) errors.push("業種コード(OMS)は4桁の数値で入力してください。");
+
+            if(!isReq(f.tax_office_name)) errors.push("管轄税務署は必須です。");
+            if(!/^\d{8}$/.test(f.tax_number)) errors.push("納税Noは数値8桁で入力してください。");
+
+            // 4. Address (Red)
+            if(!/^\d{3}$/.test(f.zip1) || !/^\d{4}$/.test(f.zip2)) errors.push("事業所郵便番号は3桁-4桁で入力してください。");
+            if(!isReq(f.address)) errors.push("事業所住所は必須です。");
+            if(!isReq(f.tel1) || !isReq(f.tel2) || !isReq(f.tel3)) errors.push("事業所電話番号は必須です。");
             
-            // Validasi Mandatory Basic
-            if(!f.company_name) errors.push("商号・屋号を入力してください。");
-            if(!f.tax_office_name) errors.push("管轄税務署を入力してください。");
-            if(!f.incharge_id) errors.push("顧客担当者を選択してください。");
+            // Conditional: Send To Others
+            if(f.send_to === '9' && !isReq(f.send_to_others)) errors.push("郵送先（その他）を入力してください。");
+
+            // 5. Representative (Red)
+            if(!isReq(f.rep_name_sei) || !isReq(f.rep_name_mei)) errors.push("代表者氏名は必須です。");
+            if(!isReq(f.rep_kana_sei) || !isReq(f.rep_kana_mei)) errors.push("代表者フリガナは必須です。");
+            if(f.rep_title === '9' && !isReq(f.rep_title_others)) errors.push("代表者肩書き（その他）を入力してください。");
+            if(!isReq(f.rep_birth)) errors.push("代表者生年月日は必須です。");
+            
+            if(!/^\d{3}$/.test(f.rep_zip1) || !/^\d{4}$/.test(f.rep_zip2)) errors.push("代表者自宅郵便番号は3桁-4桁で入力してください。");
+            if(!isReq(f.rep_address)) errors.push("代表者自宅住所は必須です。");
+
+            // 6. E-Filing & IDs (Hal 16 Merah - Wajib)
+            // Sesuai spec, ID & PW diberi warna merah, artinya wajib diisi
+            if(!/^\d{16}$/.test(f.national_tax_id)) errors.push("国税利用者識別番号は数値16桁で入力してください。");
+            if(!isReq(f.national_tax_pw)) errors.push("国税暗証番号は必須です。");
+
+            // 7. Others (Conditional)
+            if(f.self_accounting === '9' && !isReq(f.self_accounting_others)) errors.push("自計化状況（その他）を入力してください。");
+            if(f.accounting_soft === '9' && !isReq(f.accounting_soft_others)) errors.push("会計ソフト（その他）を入力してください。");
+            if(f.books.includes('99') && !isReq(f.books_others)) errors.push("帳簿（その他）を入力してください。");
+
+            // 8. Contract (Red)
+            if(!isReq(f.start_date)) errors.push("関与開始日は必須です。");
+            if(!isReq(f.incharge_begin)) errors.push("開拓担当者は必須です。");
+            if(!isReq(f.incharge_id)) errors.push("顧客担当者を選択してください。");
+            if(f.introducer_type === '9' && !isReq(f.introducer_type_others)) errors.push("紹介者区分（その他）を入力してください。");
+            if(!isReq(f.background)) errors.push("きっかけ（経緯）は必須です。");
 
             if (errors.length > 0) {
-                ringiSystem.showNotification(errors.join("\n"), 'error');
+                // Tampilkan semua error dalam satu notifikasi (dipisah baris baru)
+                ringiSystem.showNotification(errors.join("<br>"), 'error');
                 return false;
             }
             return true;
