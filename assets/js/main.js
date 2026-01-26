@@ -1,37 +1,44 @@
-// Global System Object
-const ringiSystem = {
-    // Determine API Base URL intelligently
+// Best Practice: Namespace Pattern
+// Menggunakan window.ringiSystem memastikan objek ini bisa diakses dari file JS manapun
+// tanpa terhalang oleh block-scope dari 'const' atau 'let'.
+
+window.ringiSystem = {
+    // 1. Centralized Config
+    // Logic penentuan URL API yang cerdas
     apiBaseUrl: (function() {
+        // Mendapatkan path root aplikasi secara dinamis
+        // Jika sedang di folder /pages/, mundur satu langkah
         const path = window.location.pathname;
-        // Adjust this logic based on your folder structure
-        // If current page is /pages/login.html, API is at /api/index.php
         if (path.includes('/pages/')) {
             return '../api/index.php';
         }
         return 'api/index.php';
     })(),
 
+    // 2. State Management Sederhana
+    // Mengambil data user sekali saja saat inisialisasi
     user: JSON.parse(sessionStorage.getItem('user') || 'null'),
 
+    // 3. Helper Functions (Reusable Code)
     // --- GENERIC API REQUESTER ---
     apiRequest: async function(method, endpoint, data = null, isMultipart = false) {
         const url = `${this.apiBaseUrl}/${endpoint}`;
         
         const headers = {};
         
-        // Only set Content-Type if NOT multipart (FormData handles its own boundary)
+        // Content-Type otomatis kecuali Multipart (karena boundary dihandle browser)
         if (!isMultipart) {
             headers['Content-Type'] = 'application/json';
         }
 
-        // Add Auth Token if available (Mock Session)
+        // Token Injection (Centralized Auth Header)
         const token = localStorage.getItem('auth_token');
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
         const config = {
-            method: method, // Ensure method matches 'POST', 'GET', etc.
+            method: method,
             headers: headers
         };
 
@@ -40,11 +47,12 @@ const ringiSystem = {
         }
 
         try {
-            console.log(`[API] ${method} ${url}`, data); // Debug Log
+            // Debugging yang rapi (Opsional: bisa dimatikan di production)
+            // console.log(`[API] ${method} ${url}`, data); 
             
             const response = await fetch(url, config);
             
-            // Handle non-200 responses safely
+            // Handle response text sebelum parse JSON untuk error handling yang lebih baik
             const text = await response.text();
             let json;
             
@@ -63,53 +71,69 @@ const ringiSystem = {
 
         } catch (error) {
             console.error("API Request Error:", error);
-            throw error;
+            throw error; // Re-throw agar bisa di-catch di UI level
         }
     },
 
+    // UI Helper: Notifikasi Global
     showNotification: function(message, type = 'info') {
+        // Mencegah duplikasi notifikasi (Opsional best practice)
+        const existing = document.querySelector('.notification');
+        if(existing) existing.remove();
+
         const div = document.createElement('div');
         div.className = `notification notification-${type}`;
         div.textContent = message;
-        div.style.position = 'fixed';
-        div.style.top = '20px';
-        div.style.right = '20px';
-        div.style.padding = '15px 25px';
-        div.style.backgroundColor = type === 'success' ? '#4CAF50' : (type === 'error' ? '#f44336' : '#2196F3');
-        div.style.color = 'white';
-        div.style.borderRadius = '4px';
-        div.style.zIndex = '9999';
-        div.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+        
+        // Inline styles untuk memastikan tampilan konsisten
+        Object.assign(div.style, {
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            padding: '15px 25px',
+            backgroundColor: type === 'success' ? '#4CAF50' : (type === 'error' ? '#f44336' : '#2196F3'),
+            color: 'white',
+            borderRadius: '4px',
+            zIndex: '9999',
+            boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+            animation: 'fadeIn 0.3s'
+        });
 
         document.body.appendChild(div);
 
         setTimeout(() => {
-            div.remove();
+            div.style.opacity = '0';
+            setTimeout(() => div.remove(), 300); // Wait for fade out
         }, 3000);
     },
     
     logout: function() {
         sessionStorage.removeItem('user');
         localStorage.removeItem('auth_token');
-        window.location.href = 'login.html';
+        // Gunakan absolute path agar aman dipanggil dari mana saja
+        window.location.href = '../pages/login.html'; 
     }
 };
 
-// --- AUTH CHECKER ---
+// --- GLOBAL INIT & AUTH GUARD ---
+// Menjalankan logic umum segera setelah DOM siap
 document.addEventListener('DOMContentLoaded', () => {
-    // Skip auth check for login page
+    // 1. Skip check untuk halaman login
     if (window.location.pathname.endsWith('login.html')) {
         return;
     }
 
-    if (!ringiSystem.user) {
+    // 2. Auth Guard
+    if (!window.ringiSystem.user) {
         console.warn("Unauthorized access. Redirecting to login.");
+        // Sesuaikan redirect path
         window.location.href = 'login.html';
-    } else {
-        // Show User Name if element exists
-        const userNameEl = document.getElementById('user-name-display');
-        if (userNameEl) {
-            userNameEl.textContent = `Login: ${ringiSystem.user.name}`;
-        }
+        return;
+    }
+
+    // 3. Global UI Updates (misal: Menampilkan nama user di Navbar)
+    const userNameEl = document.getElementById('user-name-display');
+    if (userNameEl) {
+        userNameEl.textContent = `Login: ${window.ringiSystem.user.name}`;
     }
 });

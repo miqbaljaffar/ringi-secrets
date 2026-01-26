@@ -1,56 +1,54 @@
 /**
- * Detail Document Module - FIX VERSION
- * Handles displaying details of a specific Ringi document
+ * Detail Document Module
+ * Best Practice:
+ * 1. Gunakan 'window.ringiSystem' untuk akses global.
+ * 2. Lakukan pengecekan dependensi di awal (Guard Clause).
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // [PERBAIKAN 1] Sesuaikan ID dengan yang ada di detail.html (<div id="app">)
+    // 1. Guard Clause: Pastikan elemen mount point ada
     if (!document.getElementById('app')) return;
+
+    // 2. Dependency Check: Pastikan Core System sudah dimuat
+    if (!window.ringiSystem) {
+        console.error("CRITICAL ERROR: RingiSystem core not loaded. Check script order in HTML.");
+        alert("Sistem gagal dimuat. Silakan refresh halaman.");
+        return;
+    }
 
     new Vue({
         el: '#app',
         data: {
             id: '',
-            docType: '', // 'common', 'tax', 'vendor', 'others'
-            
-            // [PERBAIKAN 2] Gunakan 'form' agar sesuai dengan HTML {{ form.xxx }}
+            docType: '', 
             form: {}, 
-            
             loading: true,
             error: null,
             currentUser: null,
-            
             canApprove: false, 
             isOwner: false,
-            
-            // UI States
-            showRejectModal: false,
-            rejectReason: ''
         },
-        // [PERBAIKAN 3] Tambahkan Filter untuk {{ x | currency }}
         filters: {
             currency(value) {
                 if (!value) return '0';
-                // Format Yen Jepang
                 return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(value);
             }
         },
-        // [PERBAIKAN 4] Tambahkan Computed Property 'approvalRoute' untuk menghilangkan warning Vue
-        // dan merender tabel approval secara dinamis berdasarkan data form
         computed: {
             approvalRoute() {
                 if (!this.form || Object.keys(this.form).length === 0) return [];
                 
                 const route = [];
-                const fmtDate = this.formatDate; // Gunakan method helper
+                // Helper internal untuk akses method
+                const fmtDate = this.formatDate; 
 
-                // 1. Applicant (Pemohon)
+                // Logic Approval Route (Sama seperti sebelumnya, disederhanakan untuk contoh best practice)
                 let applicantName = this.form.applicant_info ? this.form.applicant_info.s_name : (this.form.applicant_name || this.form.s_applied);
                 
                 route.push({
-                    role: '申請者', // Applicant
+                    role: '申請者',
                     name: applicantName,
-                    statusText: '申請済', // Applied
+                    statusText: '申請済',
                     statusColor: '#333',
                     date: fmtDate(this.form.ts_applied)
                 });
@@ -117,11 +115,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         async mounted() {
-            // 1. Get ID from URL Query Parameters
+            // Ambil ID dari URL
             const urlParams = new URLSearchParams(window.location.search);
             this.id = urlParams.get('id');
-
-            console.log("Loading Doc ID:", this.id);
 
             if (!this.id) {
                 this.error = 'Document ID is missing.';
@@ -129,15 +125,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // [PERBAIKAN 5] Akses user dari instance global 'ringiSystem' (bukan class static)
-            // ringiSystem didefinisikan di main.js sebagai: window.ringiSystem = new RingiSystem();
-            if (window.ringiSystem) {
-                this.currentUser = window.ringiSystem.user;
-            } else {
-                console.error("RingiSystem core not loaded");
-            }
+            // AKSES GLOBAL VARIABEL DENGAN AMAN
+            this.currentUser = window.ringiSystem.user;
 
-            // 3. Load Document Data
             await this.loadDocument();
         },
         methods: {
@@ -149,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'AR': return 'common';
                     case 'CT': return 'tax';
                     case 'CV': return 'vendor';
-                    case 'CO': return 'others'; // CO maps to 'others' route
+                    case 'CO': return 'others';
                     default: return 'common';
                 }
             },
@@ -172,10 +162,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         throw new Error("Invalid Document ID or Type.");
                     }
 
-                    console.log(`Fetching: /${this.docType}/${this.id}`);
-
-                    // [PERBAIKAN 6] Gunakan instance 'ringiSystem' (huruf kecil)
-                    const response = await ringiSystem.apiRequest('GET', `${this.docType}/${this.id}`);
+                    // Panggil API menggunakan Global Helper
+                    const response = await window.ringiSystem.apiRequest('GET', `${this.docType}/${this.id}`);
                     
                     if (response.success) {
                         this.form = response.data;
@@ -196,40 +184,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!this.currentUser || !this.form) return;
 
                 const creatorId = this.form.id_draft_writer || this.form.id_applicant || this.form.s_applied;
+                // Pastikan perbandingan string vs string / int vs int
                 this.isOwner = (String(this.currentUser.id) === String(creatorId));
 
-                // Logika Approval Sederhana
-                // Cek apakah user adalah approver 1 atau 2 dan belum melakukan approval
+                // Cek Approver
                 let isApprover1 = (String(this.form.s_approved_1) === String(this.currentUser.id) && !this.form.dt_approved_1);
                 let isApprover2 = (String(this.form.s_approved_2) === String(this.currentUser.id) && !this.form.dt_approved_2);
                 
-                // Approver 2 biasanya menunggu Approver 1
                 if(isApprover2 && !this.form.dt_approved_1) isApprover2 = false;
 
-                if (this.currentUser.role > 0 || isApprover1 || isApprover2) { 
+                // Role > 0 dianggap admin/manager yang bisa override (Business Logic)
+                if ((this.currentUser.role && parseInt(this.currentUser.role) > 0) || isApprover1 || isApprover2) { 
                     this.canApprove = true; 
                 } else {
                     this.canApprove = false;
                 }
             },
 
-            // [PERBAIKAN 7] Implementasi Helper lokal untuk mencegah error jika RingiSystem static method tidak ada
             formatDate(dateStr) {
                 if (!dateStr) return '';
                 const d = new Date(dateStr);
+                // Validasi date object
+                if (isNaN(d.getTime())) return '-';
                 return d.toLocaleDateString('ja-JP');
             },
 
-            formatCurrency(amount) {
-                if (!amount) return '0';
-                return new Intl.NumberFormat('ja-JP').format(amount);
-            },
-            
             async doApprove() {
                 if (!confirm('承認しますか？ (Approve?)')) return;
                 
                 try {
-                    const response = await ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/approve`, {
+                    const response = await window.ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/approve`, {
                         doc_id: this.id,
                         action: 'approve',
                         comment: ''
@@ -242,14 +226,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         alert('Error: ' + response.error);
                     }
                 } catch (e) {
-                    alert('System Error');
+                    alert('System Error: ' + e.message);
                 }
             },
 
             async doReject() {
                 if (!confirm('否認しますか？ (Reject?)')) return;
                  try {
-                    const response = await ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/approve`, {
+                    const response = await window.ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/approve`, {
                         doc_id: this.id,
                         action: 'reject',
                         comment: 'Rejected by User'
@@ -262,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         alert('Error: ' + response.error);
                     }
                 } catch (e) {
-                    alert('System Error');
+                    alert('System Error: ' + e.message);
                 }
             }
         }
