@@ -104,3 +104,8 @@ class TaxFormHandler {
 
 // Global exposure agar bisa dipanggil main.js
 window.TaxFormHandler = TaxFormHandler;
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('tax-form')) {
+        new TaxFormHandler();
+    }
+});

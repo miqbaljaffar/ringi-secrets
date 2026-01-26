@@ -1,171 +1,115 @@
-class RingiSystem {
-    constructor() {
-        this.user = null;
-        this.init();
-        this.createNotificationContainer();
-    }
-    
-    // PERBAIKAN: Deteksi Path API yang lebih robust untuk XAMPP
-    get apiBaseUrl() {
-        // Ambil path saat ini
+// Global System Object
+const ringiSystem = {
+    // Determine API Base URL intelligently
+    apiBaseUrl: (function() {
         const path = window.location.pathname;
-        
-        // Cari posisi folder "pages" untuk menentukan root project
-        const pagesIndex = path.indexOf('/pages/');
-        
-        if (pagesIndex !== -1) {
-            // Jika kita ada di dalam folder /pages/, maka root project adalah string sebelum /pages/
-            // Contoh: /project/New folder/pages/list.html -> Root: /project/New folder
-            const rootPath = path.substring(0, pagesIndex);
-            
-            // Return full path ke index.php di folder api
-            // Kita pakai index.php secara eksplisit untuk menghindari masalah rewrite rule di XAMPP
-            return `${rootPath}/api/index.php`; 
+        // Adjust this logic based on your folder structure
+        // If current page is /pages/login.html, API is at /api/index.php
+        if (path.includes('/pages/')) {
+            return '../api/index.php';
         }
+        return 'api/index.php';
+    })(),
+
+    user: JSON.parse(sessionStorage.getItem('user') || 'null'),
+
+    // --- GENERIC API REQUESTER ---
+    apiRequest: async function(method, endpoint, data = null, isMultipart = false) {
+        const url = `${this.apiBaseUrl}/${endpoint}`;
         
-        // Fallback jika tidak di folder pages (misal di root)
-        return 'api/index.php'; 
-    }
-
-    async init() {
-        const userSession = sessionStorage.getItem('user');
-        const token = localStorage.getItem('auth_token');
-        
-        if (token && userSession) {
-            try {
-                this.user = JSON.parse(userSession);
-            } catch (e) {
-                console.error("Session corrupted");
-                this.logout();
-            }
-        } else {
-            // Matikan redirect paksa saat debugging localhost agar tidak loop
-            // if (!window.location.pathname.includes('login.html')) {
-            //     console.warn("User belum login.");
-            // }
-        }
-    }
-
-    createNotificationContainer() {
-        if (!document.getElementById('notification-container')) {
-            const container = document.createElement('div');
-            container.id = 'notification-container';
-            container.style.cssText = `
-                position: fixed; top: 20px; right: 20px; z-index: 9999;
-                display: flex; flex-direction: column; gap: 10px;
-            `;
-            document.body.appendChild(container);
-        }
-    }
-
-    showNotification(message, type = 'info') {
-        const container = document.getElementById('notification-container');
-        if (!container) return;
-
-        const notif = document.createElement('div');
-        
-        let bgColor = '#333';
-        if (type === 'success') bgColor = '#28a745'; 
-        if (type === 'error') bgColor = '#dc3545';   
-        if (type === 'warning') bgColor = '#ffc107'; 
-
-        notif.style.cssText = `
-            background-color: ${bgColor}; color: white; padding: 15px 20px;
-            border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            min-width: 300px; font-size: 14px; opacity: 0; transform: translateX(20px);
-            transition: all 0.3s ease; display: flex; align-items: center; justify-content: space-between;
-        `;
-        
-        let displayMessage = message;
-        if (Array.isArray(message)) {
-            displayMessage = message.join('<br>');
-        } else if (typeof message === 'object') {
-            displayMessage = Object.values(message).flat().join('<br>');
-        }
-
-        notif.innerHTML = `<span>${displayMessage}</span>`;
-        container.appendChild(notif);
-
-        requestAnimationFrame(() => {
-            notif.style.opacity = '1';
-            notif.style.transform = 'translateX(0)';
-        });
-
-        setTimeout(() => {
-            notif.style.opacity = '0';
-            notif.style.transform = 'translateX(20px)';
-            setTimeout(() => notif.remove(), 300);
-        }, 5000);
-    }
-    
-    async apiRequest(method, endpoint, data = null, isFormData = false) {
-        // PERBAIKAN: Cara menyusun URL
-        // Endpoint yang dikirim biasanya "search?tab=all"
-        // Kita harus mengubahnya menjadi format query string PHP: index.php?/search?tab=all
-        // ATAU index.php/search?tab=all (tergantung konfigurasi server)
-        
-        // Cara paling aman untuk PHP Native tanpa .htaccess kompleks adalah PATH_INFO
-        // URL: .../api/index.php/endpoint
-        
-        let url = `${this.apiBaseUrl}/${endpoint}`;
-        
-        // Hapus double slash jika ada (misal index.php//search)
-        url = url.replace(/([^:]\/)\/+/g, "$1");
-
         const headers = {};
-        const token = localStorage.getItem('auth_token');
-        if (token) headers['Authorization'] = `Bearer ${token}`;
         
-        const options = { method, headers };
-        
-        if (data) {
-            if (isFormData) {
-                options.body = data;
-            } else {
-                headers['Content-Type'] = 'application/json';
-                options.body = JSON.stringify(data);
-            }
+        // Only set Content-Type if NOT multipart (FormData handles its own boundary)
+        if (!isMultipart) {
+            headers['Content-Type'] = 'application/json';
         }
-        
+
+        // Add Auth Token if available (Mock Session)
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const config = {
+            method: method, // Ensure method matches 'POST', 'GET', etc.
+            headers: headers
+        };
+
+        if (data) {
+            config.body = isMultipart ? data : JSON.stringify(data);
+        }
+
         try {
-            const response = await fetch(url, options);
+            console.log(`[API] ${method} ${url}`, data); // Debug Log
             
-            if (response.status === 401) {
-                this.showNotification("Sesi habis. Silakan login ulang.", 'error');
-                // setTimeout(() => window.location.href = '../login.html', 1500);
-                return { success: false, error: 'Unauthorized' };
+            const response = await fetch(url, config);
+            
+            // Handle non-200 responses safely
+            const text = await response.text();
+            let json;
+            
+            try {
+                json = JSON.parse(text);
+            } catch (e) {
+                console.error("Invalid JSON Response:", text);
+                throw new Error(`Server Error (${response.status}): Invalid JSON response`);
             }
 
             if (!response.ok) {
-                // Handle 404 secara spesifik untuk debugging path
-                if (response.status === 404) {
-                    console.error("API Path Not Found:", url);
-                    throw new Error(`Endpoint tidak ditemukan (404). Cek URL: ${url}`);
-                }
-                
-                const text = await response.text();
-                try {
-                    const jsonErr = JSON.parse(text);
-                    throw new Error(jsonErr.error || jsonErr.message || text);
-                } catch(e) {
-                    throw new Error(`Server Error (${response.status}): ${text.substring(0, 100)}...`);
-                }
+                throw new Error(json.error || `Server Error (${response.status})`);
             }
 
-            return await response.json();
-            
+            return json;
+
         } catch (error) {
-            console.error('API Request Error:', error);
-            this.showNotification(error.message, 'error');
-            return { success: false, error: error.message };
+            console.error("API Request Error:", error);
+            throw error;
+        }
+    },
+
+    showNotification: function(message, type = 'info') {
+        const div = document.createElement('div');
+        div.className = `notification notification-${type}`;
+        div.textContent = message;
+        div.style.position = 'fixed';
+        div.style.top = '20px';
+        div.style.right = '20px';
+        div.style.padding = '15px 25px';
+        div.style.backgroundColor = type === 'success' ? '#4CAF50' : (type === 'error' ? '#f44336' : '#2196F3');
+        div.style.color = 'white';
+        div.style.borderRadius = '4px';
+        div.style.zIndex = '9999';
+        div.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+
+        document.body.appendChild(div);
+
+        setTimeout(() => {
+            div.remove();
+        }, 3000);
+    },
+    
+    logout: function() {
+        sessionStorage.removeItem('user');
+        localStorage.removeItem('auth_token');
+        window.location.href = 'login.html';
+    }
+};
+
+// --- AUTH CHECKER ---
+document.addEventListener('DOMContentLoaded', () => {
+    // Skip auth check for login page
+    if (window.location.pathname.endsWith('login.html')) {
+        return;
+    }
+
+    if (!ringiSystem.user) {
+        console.warn("Unauthorized access. Redirecting to login.");
+        window.location.href = 'login.html';
+    } else {
+        // Show User Name if element exists
+        const userNameEl = document.getElementById('user-name-display');
+        if (userNameEl) {
+            userNameEl.textContent = `Login: ${ringiSystem.user.name}`;
         }
     }
-
-    logout() {
-        localStorage.removeItem('auth_token');
-        sessionStorage.removeItem('user');
-        window.location.href = '../login.html';
-    }
-}
-
-window.ringiSystem = new RingiSystem();
+});

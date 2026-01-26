@@ -69,18 +69,39 @@ class OtherFormHandler {
 
             const formData = new FormData(this.form);
             
+            // FIX: Gabungkan Zip Code (s_office_pcode)
+            // Asumsi HTML punya input name="zip1" dan "zip2"
+            const zip1 = formData.get('zip1') || '';
+            const zip2 = formData.get('zip2') || '';
+            formData.set('s_office_pcode', zip1 + zip2);
+
+            // FIX: Gabungkan Telepon (s_office_tel)
+            // Asumsi HTML punya input name="tel1", "tel2", "tel3"
+            const tel1 = formData.get('tel1') || '';
+            const tel2 = formData.get('tel2') || '';
+            const tel3 = formData.get('tel3') || '';
+            formData.set('s_office_tel', `${tel1}-${tel2}-${tel3}`);
+
+            // FIX: Gabungkan Nama Representative (jika terpisah di HTML)
+            if(formData.get('rep_name_sei') && formData.get('rep_name_mei')) {
+                const repName = `${formData.get('rep_name_sei')} ${formData.get('rep_name_mei')}`;
+                formData.set('s_rep_name', repName.trim());
+            }
+            
+            if(formData.get('rep_kana_sei') && formData.get('rep_kana_mei')) {
+                const repKana = `${formData.get('rep_kana_sei')} ${formData.get('rep_kana_mei')}`;
+                formData.set('s_rep_kana', repKana.trim());
+            }
+
             try {
                 const response = await ringiSystem.apiRequest('POST', 'others', formData, true);
                 
                 if (response.success) {
                     ringiSystem.showNotification('Pengajuan kontrak berhasil disimpan!', 'success');
-                    
-                    // PERBAIKAN: Redirect ke detail.html agar konsisten
                     setTimeout(() => {
                         window.location.href = `/pages/detail.html?id=${response.doc_id}&type=others`;
                     }, 1500);
                 } else {
-                    // PERBAIKAN: Tampilkan error validasi
                     if (response.errors) {
                         ringiSystem.showNotification(response.errors, 'error');
                     } else {

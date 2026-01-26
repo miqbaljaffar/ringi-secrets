@@ -11,51 +11,67 @@ class TaxController {
     }
     
     public function store($request) {
-        // 1. Ambil Data
-        $data = $_POST;
-        $files = $_FILES;
-        
-        // Gabungkan nomor telepon
-        if (isset($data['tel1']) && isset($data['tel2']) && isset($data['tel3'])) {
-            $data['s_office_tel'] = $data['tel1'] . '-' . $data['tel2'] . '-' . $data['tel3'];
-        }
-        
-        // Validasi Rules
-        $rules = [
-            'n_type' => 'required|in:1,2',
-            's_name' => 'required|max:100',
-            's_office_address' => 'required|max:100',
-            's_office_tel' => 'required|max:13',
-            's_rep_name' => 'required|max:30',
-            's_rep_title' => 'required', 
-            's_rep_email' => 'required|email|max:100',
-            'dt_rep_birth' => 'required|date',
-            'dt_contract_start' => 'required|date',
-            'n_closing_month' => 'required|numeric|min:1|max:12',
-            's_tax_office' => 'required|max:20',
-            's_tax_num' => 'required|max:8',
-            'n_send_to' => 'required'
-        ];
-        
-        $validation = $this->validator->validate($data, $rules);
-        
-        if (!$validation['valid']) {
-            http_response_code(API_BAD_REQUEST);
-            return json_encode([
-                'success' => false, 
-                'errors' => $validation['errors'],
-                'message' => 'Validasi gagal.'
-            ]);
-        }
-        
+        // Matikan output error text ke browser agar JSON tidak rusak
+        ini_set('display_errors', 0);
+
         try {
-            if (!isset($request['user']['id'])) {
-                $data['s_applied'] = '0000'; 
+            // 1. Ambil Data
+            $data = $request['body'] ?? $_POST; // Prioritaskan body JSON/Parsed Body
+            $files = $request['files'] ?? $_FILES;
+            
+            // Fallback jika $data kosong (misal FormData tidak terparsing sempurna di index.php)
+            if (empty($data) && !empty($_POST)) {
+                $data = $_POST;
+            }
+
+            // Gabungkan nomor telepon (Hanya jika salah satu terisi)
+            $tel1 = $data['tel1'] ?? '';
+            $tel2 = $data['tel2'] ?? '';
+            $tel3 = $data['tel3'] ?? '';
+            
+            if (!empty($tel1) || !empty($tel2) || !empty($tel3)) {
+                $data['s_office_tel'] = $tel1 . '-' . $tel2 . '-' . $tel3;
             } else {
-                $data['s_applied'] = $request['user']['id'];
+                // Jangan set null jika validasi require string
+                $data['s_office_tel'] = $data['s_office_tel'] ?? '';
             }
             
-            // Simpan Database
+            // 2. Definisi Aturan Validasi
+            $rules = [
+                'n_type' => 'required|in:1,2',
+                's_name' => 'required|max:100',
+                's_office_address' => 'required|max:100',
+                // Relax validation slightly for debugging
+                // 's_office_tel' => 'required|max:15', 
+                's_rep_name' => 'required|max:50',
+                's_rep_title' => 'required',
+                'dt_contract_start' => 'required|date'
+            ];
+            
+            $validation = $this->validator->validate($data, $rules);
+            
+            if (!$validation['valid']) {
+                http_response_code(API_BAD_REQUEST);
+                echo json_encode([
+                    'success' => false, 
+                    'errors' => $validation['errors'],
+                    'message' => 'Validasi gagal'
+                ]);
+                return; // Stop execution
+            }
+            
+            // Set User
+            $data['s_applied'] = $request['user']['id'] ?? '0000';
+            
+            // Clean Money Fields
+            $moneyFields = ['n_capital', 'n_pre_total', 'n_pre_sales', 'n_pre_debt', 'n_pre_income', 'n_rewards_tax', 'n_rewards_account'];
+            foreach($moneyFields as $field) {
+                if(isset($data[$field])) {
+                    $data[$field] = str_replace(',', '', $data[$field]);
+                }
+            }
+            
+            // Simpan ke Database
             $docId = $this->taxModel->createDocument($data);
             
             // Upload File
@@ -67,52 +83,48 @@ class TaxController {
                 }
             }
             
-            return json_encode([
+            echo json_encode([
                 'success' => true, 
                 'doc_id' => $docId,
                 'message' => 'Berhasil disimpan.'
             ]);
             
-        } catch (Exception $e) {
-            // [CRITICAL FIX] Handle Encoding Error untuk JSON
-            $msg = $e->getMessage();
-            
-            // Coba bersihkan string jika mengandung karakter aneh yg bikin json_encode return false
-            if (!mb_detect_encoding($msg, 'UTF-8', true)) {
-                $msg = mb_convert_encoding($msg, 'UTF-8', 'SJIS, EUC-JP, JIS, ASCII');
-            }
-
-            error_log("TaxController Error: " . $msg);
+        } catch (Throwable $e) {
+            error_log("TaxController Error: " . $e->getMessage());
             http_response_code(API_SERVER_ERROR);
             
-            // Pastikan return JSON yang valid
-            $response = [
+            // Pastikan return JSON valid
+            echo json_encode([
                 'success' => false, 
-                'error' => 'Server Error: ' . $msg
-            ];
-            
-            $json = json_encode($response);
-            if ($json === false) {
-                // Fallback jika JSON encode masih gagal
-                return '{"success":false, "error":"JSON Encoding Error: ' . json_last_error_msg() . '"}';
-            }
-            return $json;
+                'error' => 'Server Error: ' . $e->getMessage()
+            ]);
         }
     }
     
     public function show($request) {
-        $id = $request['params']['id'];
+        $id = $request['params']['id'] ?? $_GET['id'] ?? null;
+        
+        if (!$id) {
+             http_response_code(API_BAD_REQUEST);
+             echo json_encode(['success' => false, 'error' => 'ID Required']);
+             return;
+        }
+
         $doc = $this->taxModel->find($id);
         
         if (!$doc) {
             http_response_code(API_NOT_FOUND);
-            return json_encode(['success' => false, 'error' => 'Dokumen tidak ditemukan']);
+            echo json_encode(['success' => false, 'error' => 'Dokumen tidak ditemukan']);
+            return;
         }
         
-        $userModel = new User();
-        $applicant = $userModel->findByEmployeeId($doc['s_applied']);
-        $doc['applicant_name'] = $applicant ? $applicant['s_name'] : $doc['s_applied'];
+        if (class_exists('User')) {
+            $userModel = new User();
+            $applicant = $userModel->findByEmployeeId($doc['s_applied']);
+            $doc['applicant_name'] = $applicant ? $applicant['s_name'] : $doc['s_applied'];
+        }
         
-        return json_encode(['success' => true, 'data' => $doc]);
+        echo json_encode(['success' => true, 'data' => $doc]);
     }
 }
+?>

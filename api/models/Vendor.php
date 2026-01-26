@@ -11,21 +11,40 @@ class Vendor extends BaseModel {
         try {
             // 1. Generate ID (CV + YYMMDD + 00)
             $docId = IdGenerator::generate('CV', $this->table);
-            $data['id_doc'] = $docId;
             
-            // 2. Default Values
-            $defaults = [
-                'n_send_to' => 1, // Default ke kantor
-                'ts_applied' => date('Y-m-d H:i:s')
+            // 2. Mapping Explicit (Agar aman)
+            $dbData = [
+                'id_doc' => $docId,
+                's_name' => $data['s_name'],
+                's_kana' => $data['s_kana'] ?? '',
+                
+                // Address & Contact
+                's_office_pcode' => $data['s_office_pcode'] ?? ($data['zip1'].$data['zip2'] ?? ''),
+                's_office_address' => $data['s_office_address'] ?? '',
+                's_office_address2' => $data['s_office_address2'] ?? '',
+                's_office_tel' => $data['s_office_tel'] ?? '',
+                
+                'n_send_to' => $data['n_send_to'] ?? 1,
+                's_send_to_others' => $data['s_send_to_others'] ?? '',
+                
+                // Representative
+                's_rep_name' => $data['s_rep_name'] ?? '',
+                's_rep_kana' => $data['s_rep_kana'] ?? '',
+                's_rep_title' => $data['s_rep_title'] ?? 1,
+                's_rep_title_others' => $data['s_rep_title_others'] ?? '',
+                
+                's_contract_overview' => $data['s_contract_overview'] ?? '',
+                's_situation' => $data['s_situation'] ?? '',
+                's_memo' => $data['s_memo'] ?? '',
+                
+                'ts_applied' => date('Y-m-d H:i:s'),
+                's_applied' => $data['s_applied']
             ];
-            $data = array_merge($defaults, $data);
             
             // 3. Insert Data
-            $this->db->insert($this->table, $data);
+            $this->db->insert($this->table, $dbData);
             
             // 4. Set Approval Route
-            // PDF Hal 21: t_approval_route.n_doc_cat = 5 (Sama dengan Others)
-            // Fixed receiver '0036'
             $this->setApprovalRoute($docId);
             
             $this->commit();
@@ -33,6 +52,7 @@ class Vendor extends BaseModel {
             
         } catch (Exception $e) {
             $this->rollback();
+            error_log("Vendor Insert Error: " . $e->getMessage());
             throw $e;
         }
     }
