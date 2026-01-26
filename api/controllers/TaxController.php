@@ -45,7 +45,10 @@ class TaxController {
                 // 's_office_tel' => 'required|max:15', 
                 's_rep_name' => 'required|max:50',
                 's_rep_title' => 'required',
-                'dt_contract_start' => 'required|date'
+                'dt_contract_start' => 'required|date',
+                's_industry_type' => 'required|regex:/^[A-T][0-9]{2}[0-9]$/', // Format A011
+                's_office_pcode' => 'required|regex:/^[0-9]{7}$/',
+                's_tax_num' => 'required|regex:/^[0-9]{8}$/'
             ];
             
             $validation = $this->validator->validate($data, $rules);
