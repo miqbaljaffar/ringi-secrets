@@ -3,7 +3,6 @@ class Common extends BaseModel {
     protected $table = 't_common';
     protected $primaryKey = 'id_doc';
     
-    // Biasanya Ringi Umum (Common)
     public function createDocument($data) {
         $this->beginTransaction();
         
@@ -22,7 +21,6 @@ class Common extends BaseModel {
                 'ts_applied' => date('Y-m-d H:i:s')
             ];
             
-            // Optional Fields
             if (isset($data['s_file'])) $mainData['s_file'] = $data['s_file'];
             if (isset($data['s_memo'])) $mainData['s_memo'] = $data['s_memo'];
             
@@ -38,6 +36,8 @@ class Common extends BaseModel {
             }
             
             // 4. Set Approval Route
+            // [FIX No. 4] Jika fungsi ini gagal (throw Exception), blok catch di bawah akan dieksekusi
+            // dan transaksi akan di-rollback.
             $this->setApprovalRoute($docId, $data['n_type']);
             
             $this->commit();
@@ -45,6 +45,8 @@ class Common extends BaseModel {
             
         } catch (Exception $e) {
             $this->rollback();
+            // Log error spesifik untuk debugging
+            error_log("Common Create Document Failed: " . $e->getMessage());
             throw $e;
         }
     }
@@ -64,11 +66,9 @@ class Common extends BaseModel {
         return $prefix . $date . str_pad($sequence, 2, '0', STR_PAD_LEFT);
     }
     
-    // PERBAIKAN: Mapping n_type ke n_doc_cat
     private function setApprovalRoute($docId, $nType) {
         $userModel = new User();
         
-        // Sesuai PDF Halaman 13:
         // n_type = 1 (部課/Departemen) -> Gunakan Rute Kategori 5
         // n_type = 2 (委員会/Komite)   -> Gunakan Rute Kategori 6
         $docCategoryMap = [
@@ -76,7 +76,6 @@ class Common extends BaseModel {
             2 => 6
         ];
         
-        // Default ke n_type jika tidak ada di map
         $targetCategory = $docCategoryMap[$nType] ?? $nType;
         
         $approvers = $userModel->getApprovers($targetCategory);
@@ -95,10 +94,13 @@ class Common extends BaseModel {
             if (!empty($updateData)) {
                 $this->update($docId, $updateData);
             }
+        } else {
+            // [FIX No. 4] Lempar exception jika rute approval tidak ditemukan
+            // Ini akan memicu rollback di createDocument
+            throw new Exception("Rute persetujuan (Approval Route) tidak ditemukan untuk tipe dokumen ini. Transaksi dibatalkan.");
         }
     }
     
-    // 検索機能
     public function search($filters, $user) {
         $sql = "SELECT c.*, 
                 (SELECT SUM(n_amount) FROM t_common_details WHERE n_doc = c.id_doc) as total_amount,
@@ -110,14 +112,11 @@ class Common extends BaseModel {
         $params = [];
         $conditions = [];
         
-        // 権限によるフィルタリング
         if ($user['role'] < ROLE_ADMIN) {
-            // 一般ユーザーは自分の申請と承認対象のみ
             $sql .= " AND (c.s_applied = :user_id OR c.s_approved_1 = :user_id OR c.s_approved_2 = :user_id)";
             $params[':user_id'] = $user['id'];
         }
         
-        // 検索条件
         if (!empty($filters['type'])) {
             $conditions[] = "c.n_type = :type";
             $params[':type'] = $filters['type'];
@@ -162,9 +161,6 @@ class Common extends BaseModel {
         return $this->db->fetchAll($sql, $params);
     }
     
-    // [REMOVED] approve() method - Moved to BaseModel
-    
-    // 取下げ処理
     public function withdraw($docId, $userId) {
         $document = $this->find($docId);
         
@@ -179,24 +175,19 @@ class Common extends BaseModel {
         return $this->delete($docId);
     }
     
-    // ステータス取得
     public function getStatus($document) {
         if ($document['dt_deleted'] !== null) {
             return 'withdrawn';
         }
-        
         if ($document['dt_rejected'] !== null) {
             return 'rejected';
         }
-        
         if ($document['dt_approved_2'] !== null) {
             return 'approved';
         }
-        
         if ($document['dt_approved_1'] !== null) {
             return 'pending_second';
         }
-        
         return 'pending';
     }
 }

@@ -25,7 +25,8 @@ class VendorController {
         
         if (!$validation['valid']) {
             http_response_code(API_BAD_REQUEST);
-            return json_encode(['success' => false, 'errors' => $validation['errors']]);
+            // [FIX No. 1] Return array
+            return ['success' => false, 'errors' => $validation['errors']];
         }
         
         try {
@@ -39,15 +40,16 @@ class VendorController {
                 $this->fileUpload->save($files['estimate_file'], $docId, '見積書');
             }
             
-            return json_encode([
+            // [FIX No. 1] Return array
+            return [
                 'success' => true, 
                 'doc_id' => $docId,
                 'message' => 'Pengajuan vendor berhasil disimpan'
-            ]);
+            ];
             
         } catch (Exception $e) {
             http_response_code(API_SERVER_ERROR);
-            return json_encode(['success' => false, 'error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
         }
     }
 
@@ -57,14 +59,14 @@ class VendorController {
         
         if (!$doc) {
             http_response_code(API_NOT_FOUND);
-            return json_encode(['success' => false, 'error' => 'Dokumen tidak ditemukan']);
+            return ['success' => false, 'error' => 'Dokumen tidak ditemukan'];
         }
         
         $userModel = new User();
         $applicant = $userModel->findByEmployeeId($doc['s_applied']);
         $doc['applicant_name'] = $applicant ? $applicant['s_name'] : $doc['s_applied'];
         
-        return json_encode(['success' => true, 'data' => $doc]);
+        return ['success' => true, 'data' => $doc];
     }
 }
 ?>

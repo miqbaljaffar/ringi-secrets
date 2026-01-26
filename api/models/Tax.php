@@ -1,14 +1,10 @@
 <?php
-// HAPUS BARIS INI: require_once __DIR__ . '/../utils/IdGenerator.php'; 
-
 class Tax extends BaseModel {
     protected $table = 't_tax';
     protected $primaryKey = 'id_doc';
     
-    // Helper aman untuk substring (Mencegah error jika input null/array)
     private function safeSubstr($str, $start, $length) {
-        $str = (string)($str ?? ''); // Paksa jadi string
-        
+        $str = (string)($str ?? '');
         if (function_exists('mb_substr')) {
             return mb_substr($str, $start, $length);
         }
@@ -19,15 +15,9 @@ class Tax extends BaseModel {
         $this->beginTransaction();
         
         try {
-            // [FIX UTAMA] Panggil IdGenerator secara aman
-            if (!class_exists('IdGenerator')) {
-                $utilsPath = __DIR__ . '/../utils/IdGenerator.php';
-                if (file_exists($utilsPath)) {
-                    require_once $utilsPath;
-                } else {
-                    throw new Exception("Class IdGenerator not found at $utilsPath");
-                }
-            }
+            // [FIX No. 2] Gunakan Autoloading sepenuhnya.
+            // Tidak perlu checking file_exists manual. Jika IdGenerator tidak ada, 
+            // Autoloader di index.php akan melempar error atau Class Not Found yang natural.
             
             $docId = IdGenerator::generate('CT', $this->table);
             
@@ -41,23 +31,20 @@ class Tax extends BaseModel {
                 }
             }
             
-            // Helper: Declaration Type
             $declarationType = '1'; 
             if (isset($data['s_declaration_type'])) {
                 $val = strtolower($data['s_declaration_type']);
                 if ($val === 'white' || $val === '2' || $val === 'w') $declarationType = '2';
             }
 
-            // [FIX TIPE DATA] Sanitasi Integer
             $capital = isset($data['n_capital']) && $data['n_capital'] !== '' ? (int)str_replace(',', '', $data['n_capital']) : 0;
             $before  = isset($data['n_before']) && $data['n_before'] !== '' ? (int)str_replace(',', '', $data['n_before']) : 0;
             $closing = isset($data['n_closing_month']) && $data['n_closing_month'] !== '' ? (int)$data['n_closing_month'] : 3;
 
-            // --- [FIX SQL ERROR 1364] AMBIL APPROVAL ROUTE SEBELUM INSERT ---
-            // Kita butuh nilai s_approved_1 agar insert tidak gagal
+            // Ambil Approval Route
             $approverData = $this->getInitialApprovers();
 
-            // Mapping Data Aman
+            // Mapping Data
             $dbData = [
                 'id_doc' => $docId,
                 'n_type' => $data['n_type'] ?? 1,
@@ -105,20 +92,16 @@ class Tax extends BaseModel {
                 's_local_tax_id' => $this->safeSubstr($data['s_local_tax_id'] ?? '', 0, 11),
                 's_local_tax_pw' => $data['s_local_tax_pw'] ?? '',
                 
-                // Financials (Sanitasi Int)
                 'n_pre_total' => (isset($data['n_pre_total']) && $data['n_pre_total'] !== '') ? (int)str_replace(',', '', $data['n_pre_total']) : 0,
                 'n_pre_sales' => (isset($data['n_pre_sales']) && $data['n_pre_sales'] !== '') ? (int)str_replace(',', '', $data['n_pre_sales']) : 0,
                 'n_pre_debt'  => (isset($data['n_pre_debt']) && $data['n_pre_debt'] !== '') ? (int)str_replace(',', '', $data['n_pre_debt']) : 0,
                 'n_pre_income'=> (isset($data['n_pre_income']) && $data['n_pre_income'] !== '') ? (int)str_replace(',', '', $data['n_pre_income']) : 0,
                 'n_pre_workers'=> (isset($data['n_pre_workers']) && $data['n_pre_workers'] !== '') ? (int)str_replace(',', '', $data['n_pre_workers']) : 0,
                 
-                // Typo Column (Sesuai Spec PDF)
                 'n_comsumption_tax' => $data['n_comsumption_tax'] ?? 1,
-                
                 'n_trade' => $data['n_trade'] ?? 0,
                 'n_affiliated_company' => $data['n_affiliated_company'] ?? 0,
                 
-                // Accounting
                 'n_self_accounting' => $data['n_self_accounting'] ?? 1,
                 's_self_accounting_others' => $this->safeSubstr($data['s_self_accounting_others'] ?? '', 0, 50), 
                 'n_accounting_apps' => $data['n_accounting_apps'] ?? 1,
@@ -128,14 +111,12 @@ class Tax extends BaseModel {
                 'n_slip_count' => (isset($data['n_slip_count']) && $data['n_slip_count'] !== '') ? (int)str_replace(',', '', $data['n_slip_count']) : 0,
                 'n_accounting_staff' => $data['n_accounting_staff'] ?? 0, 
                 
-                // Previous Accountant
                 's_pre_accountant' => $this->safeSubstr($data['s_pre_accountant'] ?? '', 0, 50),
                 'n_pre_account_type' => !empty($data['n_pre_account_type']) ? (int)$data['n_pre_account_type'] : null,
                 'n_rewards_account' => (isset($data['n_rewards_account']) && $data['n_rewards_account'] !== '') ? (int)str_replace(',', '', $data['n_rewards_account']) : 0,
                 'n_rewards_tax' => (isset($data['n_rewards_tax']) && $data['n_rewards_tax'] !== '') ? (int)str_replace(',', '', $data['n_rewards_tax']) : 0,
                 'n_rewards_yearly' => (isset($data['n_rewards_yearly']) && $data['n_rewards_yearly'] !== '') ? (int)str_replace(',', '', $data['n_rewards_yearly']) : 0,
 
-                // Contract
                 'n_account_type' => $data['n_account_type'] ?? 1, 
                 's_contract_overview' => $data['s_contract_overview'] ?? '', 
                 'dt_contract_start' => !empty($data['dt_contract_start']) ? $data['dt_contract_start'] : date('Y-m-d'),
@@ -152,10 +133,9 @@ class Tax extends BaseModel {
                 'ts_applied' => date('Y-m-d H:i:s'),
                 's_applied' => $this->safeSubstr($data['s_applied'] ?? '0000', 0, 4),
 
-                // [FIX DATA APPROVER] Masukkan data approver ke sini agar tidak error SQL 1364
-                's_approved_1' => $approverData['s_approved_1'] ?? '0000', // Default fallback '0000' jika kosong
+                's_approved_1' => $approverData['s_approved_1'] ?? '0000', 
                 's_approved_2' => $approverData['s_approved_2'] ?? null,
-                's_confirmed' => '0036' // Default Confirmer
+                's_confirmed' => '0036' 
             ];
 
             $this->db->insert($this->table, $dbData);
@@ -164,26 +144,16 @@ class Tax extends BaseModel {
             return $docId;
             
         } catch (Throwable $e) { 
-            // Jika terjadi error SQL, rollback transaksi
             $this->rollback();
-            
-            // LOG ERROR LENGKAP KE SERVER (php_error.log)
+            // Logging detail
             error_log("Tax Create Error: " . $e->getMessage());
-            error_log("Trace: " . $e->getTraceAsString());
-            
-            // LEMPAR ULANG EXCEPTION
             throw new Exception("Database Error: " . $e->getMessage());
         }
     }
 
-    // --- Helper Baru untuk mengambil Approver sebelum Insert ---
     private function getInitialApprovers() {
-        if (!class_exists('User')) {
-            require_once __DIR__ . '/User.php'; // Pastikan User model ada
-        }
-        
+        // [FIX No. 2] Gunakan autoloader
         $userModel = new User();
-        // Ambil rute approval untuk kategori 5 (Tax - sesuai spec halaman 17/20)
         $approvers = $userModel->getApprovers(5); 
         
         $result = [];

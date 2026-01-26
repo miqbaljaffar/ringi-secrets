@@ -6,11 +6,6 @@ class CommonController {
     private $fileUpload;
     
     public function __construct() {
-        // Pastikan model dimuat. Jika autoloader tidak ada, uncomment baris di bawah:
-        // require_once __DIR__ . '/../models/Common.php';
-        // require_once __DIR__ . '/../models/CommonDetail.php';
-        // require_once __DIR__ . '/../models/User.php';
-        
         $this->commonModel = new Common();
         $this->detailModel = new CommonDetail();
         $this->validator = new Validator();
@@ -37,18 +32,19 @@ class CommonController {
                 });
             }
             
-            return json_encode([
+            // [FIX No. 1] Return Array
+            return [
                 'success' => true,
                 'data' => array_values($documents),
                 'count' => count($documents)
-            ]);
+            ];
             
-        } catch (Throwable $e) { // Ubah Exception ke Throwable untuk menangkap Error PHP 7+
+        } catch (Throwable $e) { 
             http_response_code(API_SERVER_ERROR);
-            return json_encode([
+            return [
                 'success' => false,
                 'error' => $e->getMessage()
-            ]);
+            ];
         }
     }
     
@@ -56,67 +52,57 @@ class CommonController {
         $status = $this->commonModel->getStatus($document);
         
         switch ($tab) {
-            case 'all':
-                return true;
-            case 'pending':
-                return $status === 'pending' || $status === 'pending_second';
-            case 'approved':
-                return $status === 'approved';
-            case 'rejected':
-                return $status === 'rejected' || $status === 'withdrawn';
+            case 'all': return true;
+            case 'pending': return $status === 'pending' || $status === 'pending_second';
+            case 'approved': return $status === 'approved';
+            case 'rejected': return $status === 'rejected' || $status === 'withdrawn';
             case 'to_approve':
                 return ($document['s_approved_1'] === $user['id'] && empty($document['dt_approved_1'])) ||
                        ($document['s_approved_2'] === $user['id'] && empty($document['dt_approved_2']));
-            default:
-                return true;
+            default: return true;
         }
     }
     
     public function show($request) {
-        // [PERBAIKAN] Ambil ID dari params routing, bukan $_GET
         $docId = $request['params']['id'] ?? $_GET['id'] ?? null;
 
         if (!$docId) {
             http_response_code(API_BAD_REQUEST);
-            return json_encode(['success' => false, 'error' => 'Document ID is required']);
+            return ['success' => false, 'error' => 'Document ID is required'];
         }
         
         try {
             $document = $this->commonModel->find($docId);
             if (!$document) {
                 http_response_code(API_NOT_FOUND);
-                return json_encode(['success' => false, 'error' => 'Document not found']);
+                return ['success' => false, 'error' => 'Document not found'];
             }
             
-            // Ambil Detail Barang/Jasa
             $details = $this->detailModel->getByDocument($docId);
             $document['details'] = $details;
             
-            // Ambil Info User terkait
-            // Pastikan class User tersedia
             if (class_exists('User')) {
                 $userModel = new User();
                 $document['applicant_info'] = $userModel->findByEmployeeId($document['s_applied']);
                 $document['approver1_info'] = $document['s_approved_1'] ? $userModel->findByEmployeeId($document['s_approved_1']) : null;
                 $document['approver2_info'] = $document['s_approved_2'] ? $userModel->findByEmployeeId($document['s_approved_2']) : null;
             } else {
-                // Fallback jika class User tidak terload
                 $document['applicant_info'] = ['s_name' => $document['s_applied']];
                 $document['approver1_info'] = ['s_name' => $document['s_approved_1']];
                 $document['approver2_info'] = ['s_name' => $document['s_approved_2']];
             }
             
-            return json_encode([
+            return [
                 'success' => true,
                 'data' => $document
-            ]);
+            ];
             
-        } catch (Throwable $e) { // Gunakan Throwable untuk menangkap Fatal Error
+        } catch (Throwable $e) {
             http_response_code(API_SERVER_ERROR);
-            return json_encode([
+            return [
                 'success' => false,
-                'error' => 'Server Error (500): ' . $e->getMessage()
-            ]);
+                'error' => 'Server Error: ' . $e->getMessage()
+            ];
         }
     }
     
@@ -140,10 +126,10 @@ class CommonController {
         
         if (!$validation['valid']) {
             http_response_code(API_BAD_REQUEST);
-            return json_encode([
+            return [
                 'success' => false,
                 'errors' => $validation['errors']
-            ]);
+            ];
         }
         
         try {
@@ -159,18 +145,18 @@ class CommonController {
             
             $docId = $this->commonModel->createDocument($data);
             
-            return json_encode([
+            return [
                 'success' => true,
                 'doc_id' => $docId,
                 'message' => 'Application submitted successfully'
-            ]);
+            ];
             
         } catch (Throwable $e) {
             http_response_code(API_SERVER_ERROR);
-            return json_encode([
+            return [
                 'success' => false,
                 'error' => $e->getMessage()
-            ]);
+            ];
         }
     }
     
@@ -179,7 +165,7 @@ class CommonController {
 
         if (!$docId) {
             http_response_code(API_BAD_REQUEST);
-            return json_encode(['success' => false, 'error' => 'Document ID is required']);
+            return ['success' => false, 'error' => 'Document ID is required'];
         }
         
         $data = json_decode(file_get_contents('php://input'), true);
@@ -190,13 +176,13 @@ class CommonController {
         try {
             $result = $this->commonModel->update($docId, $data);
             if ($result) {
-                return json_encode(['success' => true, 'message' => 'Update successful']);
+                return ['success' => true, 'message' => 'Update successful'];
             } else {
-                return json_encode(['success' => false, 'error' => 'Update failed']);
+                return ['success' => false, 'error' => 'Update failed'];
             }
         } catch (Throwable $e) {
             http_response_code(API_SERVER_ERROR);
-            return json_encode(['success' => false, 'error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
         }
     }
     
@@ -205,7 +191,7 @@ class CommonController {
         
         if (!isset($data['doc_id']) || !isset($data['action'])) {
             http_response_code(API_BAD_REQUEST);
-            return json_encode(['success' => false, 'error' => 'Missing parameters (doc_id, action)']);
+            return ['success' => false, 'error' => 'Missing parameters (doc_id, action)'];
         }
         
         try {
@@ -213,7 +199,6 @@ class CommonController {
             $prefix = strtoupper(substr($docId, 0, 2));
             $targetModel = null;
             
-            // Pastikan class-class ini diload di index.php atau gunakan require_once jika perlu
             switch ($prefix) {
                 case 'AR': $targetModel = $this->commonModel; break;
                 case 'CT': $targetModel = new Tax(); break;
@@ -230,14 +215,14 @@ class CommonController {
             );
             
             if ($result) {
-                return json_encode(['success' => true, 'message' => 'Approval processed successfully']);
+                return ['success' => true, 'message' => 'Approval processed successfully'];
             } else {
-                return json_encode(['success' => false, 'error' => 'Failed to process approval']);
+                return ['success' => false, 'error' => 'Failed to process approval'];
             }
             
         } catch (Throwable $e) {
             http_response_code(API_SERVER_ERROR);
-            return json_encode(['success' => false, 'error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
         }
     }
     
@@ -246,7 +231,7 @@ class CommonController {
         
         if (!$docId) {
             http_response_code(API_BAD_REQUEST);
-            return json_encode(['success' => false, 'error' => 'Document ID is required']);
+            return ['success' => false, 'error' => 'Document ID is required'];
         }
         
         try {
@@ -269,14 +254,14 @@ class CommonController {
             }
             
             if ($result) {
-                return json_encode(['success' => true, 'message' => 'Application withdrawn']);
+                return ['success' => true, 'message' => 'Application withdrawn'];
             } else {
-                return json_encode(['success' => false, 'error' => 'Failed to withdraw']);
+                return ['success' => false, 'error' => 'Failed to withdraw'];
             }
             
         } catch (Throwable $e) {
             http_response_code(API_SERVER_ERROR);
-            return json_encode(['success' => false, 'error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
         }
     }
     
@@ -286,12 +271,12 @@ class CommonController {
             $sql = "SELECT * FROM tm_category WHERE dt_delete IS NULL ORDER BY s_category";
             $categories = $db->fetchAll($sql);
             
-            return json_encode([
+            return [
                 'success' => true,
                 'data' => $categories
-            ]);
+            ];
         } catch (Throwable $e) {
-            return json_encode(['success' => false, 'error' => $e->getMessage()]);
+            return ['success' => false, 'error' => $e->getMessage()];
         }
     }
 }

@@ -1,11 +1,11 @@
 <?php
-// Start Output Buffering
-// Ini MENAHAN semua output agar tidak langsung dikirim ke browser
+// Start Output Buffering - MENAHAN semua output agar tidak bocor
 ob_start();
 
 // Error Reporting
 error_reporting(E_ALL);
-ini_set('display_errors', 0); // Matikan display error ke output
+// PENTING: Matikan display_errors agar error PHP tidak merusak format JSON
+ini_set('display_errors', 0); 
 ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/../logs/php_error.log');
 
@@ -21,7 +21,7 @@ function sendCors() {
 sendCors();
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    ob_end_clean(); // Bersihkan buffer sebelum exit
+    ob_end_clean();
     http_response_code(200);
     exit();
 }
@@ -31,16 +31,20 @@ try {
     if (file_exists(__DIR__ . '/config/constants.php')) {
         require_once __DIR__ . '/config/constants.php';
     } else {
+        // Fallback constants jika file hilang (Safety)
         define('API_NOT_FOUND', 404);
         define('API_SERVER_ERROR', 500);
         define('API_BAD_REQUEST', 400);
+        define('API_UNAUTHORIZED', 401);
+        define('ROLE_ADMIN', 2);
     }
 
     require_once __DIR__ . '/config/env.php';
     require_once __DIR__ . '/config/database.php';
     require_once __DIR__ . '/utils/Database.php';
 
-    // --- AUTOLOADER ---
+    // --- AUTOLOADER (Solusi Masalah No. 2) ---
+    // Memastikan IdGenerator, Model, dan Controller ter-load otomatis
     spl_autoload_register(function ($class) {
         $paths = [
             __DIR__ . '/controllers/',
@@ -90,7 +94,8 @@ try {
         'endpoint' => $endpoint,
         'query' => $_GET,
         'body' => [],
-        'files' => $_FILES
+        'files' => $_FILES,
+        'params' => []
     ];
 
     if ($requestMethod === 'POST' || $requestMethod === 'PUT') {
@@ -131,9 +136,7 @@ try {
     
     // --- 404 HANDLING ---
     if (!$matchedRoute) {
-        // CLEAN BUFFER: Hapus semua output text/warning sebelumnya
         ob_clean(); 
-        
         http_response_code(404); 
         echo json_encode([
             'success' => false,
@@ -143,7 +146,7 @@ try {
         exit();
     }
     
-    // --- EXECUTE ---
+    // --- EXECUTE CONTROLLER ---
     list($controllerName, $methodName) = explode('@', $matchedRoute);
     
     if (!class_exists($controllerName)) {
@@ -156,22 +159,29 @@ try {
         throw new Exception("Method {$methodName} not found.");
     }
     
-    // Tangkap Output dari Controller
-    // Kita gunakan output buffering controller juga jika dia 'echo' langsung
+    // Solusi Masalah No. 1: Menangkap return value (Array) dari Controller
     $response = $controller->$methodName($requestData);
     
     // CLEAN BUFFER SEBELUM OUTPUT FINAL
-    // Ini adalah kunci: membuang semua warning PHP yang tidak diinginkan
     ob_clean();
     
+    // Standarisasi Output
     if (is_array($response)) {
+        // Jika array, encode ke JSON
         echo json_encode($response);
-    } else {
+    } elseif (is_string($response)) {
+        // Jika string (JSON manual), echo langsung
         echo $response;
+    } elseif ($response === null) {
+        // Jika null (void), kirim empty response (misal 204) atau default success
+        echo json_encode(['success' => true]);
+    } else {
+        // Tipe lain
+        echo json_encode(['success' => true, 'data' => $response]);
     }
 
 } catch (Exception $e) {
-    // Log error asli ke file
+    // Log error asli ke file server
     error_log("API Error: " . $e->getMessage());
     
     // CLEAN BUFFER
@@ -181,7 +191,7 @@ try {
     echo json_encode([
         'success' => false,
         'error' => 'Server Error',
-        'message' => $e->getMessage()
+        'message' => (defined('DEBUG_MODE') && DEBUG_MODE) ? $e->getMessage() : 'Internal Server Error'
     ]);
 }
 
