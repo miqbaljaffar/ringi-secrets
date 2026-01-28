@@ -15,13 +15,11 @@
         </a>
       </div>
 
-      <!-- Stamp Status -->
       <div v-if="form.dt_approved_2" class="stamp stamp-approved"></div>
       <div v-if="form.dt_rejected" class="stamp stamp-rejected"></div>
 
       <h1>稟議書詳細: {{ form.id_doc }}</h1>
 
-      <!-- --- TAMPILAN KHUSUS TAX CONTRACT --- -->
       <div v-if="docType === 'tax'">
           <h2>基本情報 (Basic Info)</h2>
           <table class="detail-table">
@@ -33,7 +31,6 @@
                   <th>代表者 (Rep)</th>
                   <td>
                       {{ form.s_rep_name }}<br>
-                      <!-- Tampilkan Alamat Rumah -->
                       <span style="font-size: 0.9em; color: #666;">
                           自宅: 〒{{ form.s_rep_pcode }} {{ form.s_rep_address }} {{ form.s_rep_address2 }}
                       </span>
@@ -72,7 +69,6 @@
           </div>
       </div>
 
-      <!-- --- TAMPILAN KHUSUS COMMON RINGI --- -->
       <div v-else-if="docType === 'common'">
           <div class="section">
              <div class="form-group">
@@ -83,7 +79,6 @@
                 <label class="form-label">概要</label>
                 <div class="form-control-wrapper" style="white-space: pre-wrap;">{{ form.s_overview }}</div>
              </div>
-             <!-- List Detail Barang/Jasa -->
              <table class="approval-table" v-if="form.details && form.details.length">
                  <thead><tr><th>分類</th><th>支払先</th><th>金額</th></tr></thead>
                  <tbody>
@@ -97,7 +92,6 @@
           </div>
       </div>
 
-      <!-- --- APPROVAL ROUTE (Global) --- -->
       <h2>承認ルート</h2>
       <div class="section">
             <table class="approval-table">

@@ -6,7 +6,6 @@
     <title>申請書一覧 | 稟議書管理システム</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
-    <!-- Path relatif ke CSS -->
     <link rel="stylesheet" href="../assets/css/list.css">
 </head>
 <body>
@@ -14,7 +13,6 @@
 <div id="app" class="list-wrapper">
     <h1 class="page-title">申請書一覧</h1>
 
-    <!-- Search Container -->
     <div class="search-container">
         <div class="search-form">
             <div class="form-item">
@@ -49,37 +47,29 @@
         </div>
     </div>
 
-    <!-- Tab Container (UPDATED: 5 TABS SESUAI SPEK HAL 11) -->
     <div class="tab-container">
-        <!-- 1. Semua Data -->
         <button :class="['tab-item', { active: currentTab === 'all' }]" @click="switchTab('all')">
             すべて
         </button>
         
-        <!-- 2. Tracking Pengajuan Saya (Waiting) -->
         <button :class="['tab-item', { active: currentTab === 'waiting' }]" @click="switchTab('waiting')">
             承認待ち
         </button>
         
-        <!-- 3. Sudah Disetujui -->
         <button :class="['tab-item', { active: currentTab === 'approved' }]" @click="switchTab('approved')">
             承認済み
         </button>
         
-        <!-- 4. Ditolak / Ditarik -->
         <button :class="['tab-item', { active: currentTab === 'rejected' }]" @click="switchTab('rejected')">
             否認・取下
         </button>
 
-        <!-- 5. Tugas Saya (Action Needed) -->
-        <!-- Tambahan Badge Merah untuk jumlah tugas -->
         <button :class="['tab-item', { active: currentTab === 'action_needed' }]" @click="switchTab('action_needed')">
             要承認
             <span class="badge" v-if="pendingCount > 0">{{ pendingCount }}</span>
         </button>
     </div>
 
-    <!-- Table Container -->
     <div class="table-container">
         <div class="pc-only">
             <table class="custom-table">
@@ -117,7 +107,6 @@
             </table>
         </div>
         
-        <!-- Mobile View (Card Style) -->
         <div class="sp-only">
             <div v-for="item in items" :key="item.id" class="card-item">
                 <div class="card-header">
@@ -145,7 +134,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
 
-<!-- Scripts -->
 <script src="../assets/js/main.js"></script>
 <script src="../assets/js/modules/list.js"></script>
 
