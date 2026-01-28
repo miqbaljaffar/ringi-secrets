@@ -5,15 +5,13 @@ class OtherContract extends BaseModel {
     protected $table = 't_others';
     protected $primaryKey = 'id_doc';
     
+    // 新しいその他契約書ドキュメントを作成する (Create new other contract document)
     public function createDocument($data) {
         $this->beginTransaction();
         
         try {
-            // 1. Generate ID (CO + YYMMDD + 00)
             $docId = IdGenerator::generate('CO', $this->table);
             
-            // 2. Mapping Data Secara Eksplisit (Agar aman dari field sampah di $_POST)
-            // Sesuai struktur tabel t_others
             $dbData = [
                 'id_doc' => $docId,
                 's_name' => $data['s_name'],
@@ -22,7 +20,6 @@ class OtherContract extends BaseModel {
                 's_industry' => $data['s_industry'] ?? '',
                 's_industry_type' => $data['s_industry_type'] ?? '',
                 
-                // Gabungan Alamat/Telp (Ditangani Frontend, tapi fallback disini aman)
                 's_office_pcode' => $data['s_office_pcode'] ?? ($data['zip1'].$data['zip2'] ?? ''),
                 's_office_address' => $data['s_office_address'] ?? '',
                 's_office_address2' => $data['s_office_address2'] ?? '',
@@ -37,7 +34,6 @@ class OtherContract extends BaseModel {
                 's_rep_title_others' => $data['s_rep_title_others'] ?? '',
                 's_rep_email' => $data['s_rep_email'] ?? '',
                 
-                // Financials (Hapus koma jika ada)
                 'n_pre_total' => (int)str_replace(',', '', $data['n_pre_total'] ?? 0),
                 'n_pre_sales' => (int)str_replace(',', '', $data['n_pre_sales'] ?? 0),
                 'n_pre_debt' => (int)str_replace(',', '', $data['n_pre_debt'] ?? 0),
@@ -61,10 +57,8 @@ class OtherContract extends BaseModel {
                 's_applied' => $data['s_applied']
             ];
             
-            // 3. Insert Data
             $this->db->insert($this->table, $dbData);
             
-            // 4. Set Approval Route
             $this->setApprovalRoute($docId);
             
             $this->commit();
@@ -72,12 +66,12 @@ class OtherContract extends BaseModel {
             
         } catch (Exception $e) {
             $this->rollback();
-            // Log error agar mudah didebug
             error_log("OtherContract Insert Error: " . $e->getMessage());
             throw $e;
         }
     }
 
+    // 承認ルートを設定する (Set approval route)
     private function setApprovalRoute($docId) {
         $userModel = new User();
         $approvers = $userModel->getApprovers(5); 

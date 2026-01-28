@@ -3,6 +3,7 @@ class Tax extends BaseModel {
     protected $table = 't_tax';
     protected $primaryKey = 'id_doc';
     
+    // 企業税務ドキュメントを作成する (Create tax document)
     private function safeSubstr($str, $start, $length) {
         $str = (string)($str ?? '');
         if (function_exists('mb_substr')) {
@@ -11,17 +12,13 @@ class Tax extends BaseModel {
         return substr($str, $start, $length);
     }
 
+    // 新しい税務ドキュメントを作成する (Create new tax document)
     public function createDocument($data) {
         $this->beginTransaction();
         
         try {
-            // [FIX No. 2] Gunakan Autoloading sepenuhnya.
-            // Tidak perlu checking file_exists manual. Jika IdGenerator tidak ada, 
-            // Autoloader di index.php akan melempar error atau Class Not Found yang natural.
-            
             $docId = IdGenerator::generate('CT', $this->table);
             
-            // Helper: Gabungkan Kode Pos
             $postalCode = $data['s_office_pcode'] ?? '';
             if (empty($postalCode)) {
                 $z1 = $data['zip1'] ?? '';
@@ -41,10 +38,8 @@ class Tax extends BaseModel {
             $before  = isset($data['n_before']) && $data['n_before'] !== '' ? (int)str_replace(',', '', $data['n_before']) : 0;
             $closing = isset($data['n_closing_month']) && $data['n_closing_month'] !== '' ? (int)$data['n_closing_month'] : 3;
 
-            // Ambil Approval Route
             $approverData = $this->getInitialApprovers();
 
-            // Mapping Data
             $dbData = [
                 'id_doc' => $docId,
                 'n_type' => $data['n_type'] ?? 1,
@@ -145,14 +140,13 @@ class Tax extends BaseModel {
             
         } catch (Throwable $e) { 
             $this->rollback();
-            // Logging detail
             error_log("Tax Create Error: " . $e->getMessage());
             throw new Exception("Database Error: " . $e->getMessage());
         }
     }
 
+    // 初期承認者を取得する (Get initial approvers)
     private function getInitialApprovers() {
-        // [FIX No. 2] Gunakan autoloader
         $userModel = new User();
         $approvers = $userModel->getApprovers(5); 
         

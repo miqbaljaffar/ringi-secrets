@@ -3,6 +3,7 @@ class Validator {
     private $errors = [];
     private $data = [];
     
+    // データをバリデートするメソッド (Method to validate data)
     public function validate($data, $rules) {
         $this->errors = [];
         $this->data = $data;
@@ -21,6 +22,7 @@ class Validator {
         ];
     }
     
+    // 各ルールを適用するメソッド (Method to apply each rule)
     private function applyRule($field, $rule) {
         $value = $this->getValue($field);
         
@@ -95,6 +97,7 @@ class Validator {
         }
     }
     
+    // フィールドの値を取得するメソッド (Method to get field value)
     private function getValue($field) {
         // 配列表記のフィールドに対応 (例: details[0][amount])
         if (strpos($field, '[') !== false) {
@@ -111,6 +114,7 @@ class Validator {
         return $this->data[$field] ?? null;
     }
     
+    // エラーメッセージを追加するメソッド (Method to add error message)
     private function addError($field, $message) {
         if (!isset($this->errors[$field])) {
             $this->errors[$field] = [];

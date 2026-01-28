@@ -5,14 +5,13 @@ class Vendor extends BaseModel {
     protected $table = 't_vendors';
     protected $primaryKey = 'id_doc';
     
+    // 新しい仕入先ドキュメントを作成する (Create new vendor document)
     public function createDocument($data) {
         $this->beginTransaction();
         
         try {
-            // 1. Generate ID (CV + YYMMDD + 00)
             $docId = IdGenerator::generate('CV', $this->table);
             
-            // 2. Mapping Explicit (Agar aman)
             $dbData = [
                 'id_doc' => $docId,
                 's_name' => $data['s_name'],
@@ -41,10 +40,8 @@ class Vendor extends BaseModel {
                 's_applied' => $data['s_applied']
             ];
             
-            // 3. Insert Data
             $this->db->insert($this->table, $dbData);
             
-            // 4. Set Approval Route
             $this->setApprovalRoute($docId);
             
             $this->commit();
@@ -57,6 +54,7 @@ class Vendor extends BaseModel {
         }
     }
 
+    // 承認ルートを設定する (Set approval route)
     private function setApprovalRoute($docId) {
         $userModel = new User();
         $approvers = $userModel->getApprovers(5); 

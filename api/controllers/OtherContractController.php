@@ -2,12 +2,14 @@
 class OtherContractController {
     private $validator;
     private $model;
-    
+
+    // その他契約書の新規申請を処理する (Handle new other contract application)
     public function __construct() {
         $this->validator = new Validator();
         $this->model = new OtherContract();
     }
     
+    // その他契約書の新規申請を保存する (Store new other contract application)
     public function store($request) {
         $data = $_POST;
         
@@ -44,6 +46,7 @@ class OtherContractController {
         }
     }
 
+    // その他契約書の詳細を取得する (Get details of other contract)
     public function show($request) {
         $id = $request['params']['id'] ?? $_GET['id'] ?? null;
         

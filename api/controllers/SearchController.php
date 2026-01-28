@@ -2,18 +2,18 @@
 class SearchController {
     private $db;
 
+    // 検索コントローラーのコンストラクタ (Constructor for SearchController)
     public function __construct() {
         $this->db = DB::getInstance(); 
     }
 
+    // ドキュメントの検索を処理する (Handle document search)
     public function search($request) {
         try {
-            // 1. Ambil Parameter
             $tab = $_GET['tab'] ?? 'all';
             $keyword = $_GET['keyword'] ?? '';
-            $type = $_GET['type'] ?? ''; // tax, contract, vendor, common
+            $type = $_GET['type'] ?? '';
             
-            // Pagination Params
             $page = isset($_GET['page']) ? (int)$$_GET['page'] : 1;
             if ($page < 1) $page = 1;
             $perPage = 20;
@@ -21,13 +21,9 @@ class SearchController {
 
             $userId = $request['user']['id'];
 
-            // 2. Bangun Query UNION ALL
-            // Kita membangun sub-query untuk setiap tabel dengan kolom yang distandarisasi
-            
             $params = [];
             $subQueries = [];
 
-            // --- Sub-Query A: Common Ringi ---
             if (empty($type) || $type === 'common') {
                 $sqlCommon = "SELECT 
                                 c.id_doc, 
@@ -52,7 +48,6 @@ class SearchController {
                 $subQueries[] = $sqlCommon;
             }
 
-            // --- Sub-Query B: Tax ---
             if (empty($type) || $type === 'tax') {
                 $sqlTax = "SELECT 
                             t.id_doc, 
@@ -77,7 +72,6 @@ class SearchController {
                 $subQueries[] = $sqlTax;
             }
 
-            // --- Sub-Query C: Others (Contract) ---
             if (empty($type) || $type === 'contract' || $type === 'others') {
                 $sqlOther = "SELECT 
                                 o.id_doc, 
@@ -102,7 +96,6 @@ class SearchController {
                 $subQueries[] = $sqlOther;
             }
 
-            // --- Sub-Query D: Vendor ---
             if (empty($type) || $type === 'vendor') {
                 $sqlVendor = "SELECT 
                                 v.id_doc, 
@@ -127,17 +120,10 @@ class SearchController {
                 $subQueries[] = $sqlVendor;
             }
 
-            // Gabungkan semua sub-query dengan UNION ALL
             $unionSql = implode(" UNION ALL ", $subQueries);
-
-            // 3. Terapkan Filter Tab pada Outer Query
-            // Kita bungkus UNION ALL sebagai tabel virtual 'u'
             $whereClauses = [];
-            
-            // Filter Tab Logic (Translasi dari PHP ke SQL)
             switch ($tab) {
                 case 'to_approve':
-                    // User adalah approver 1/2 DAN belum approve DAN dokumen belum reject/delete
                     $whereClauses[] = "
                         (
                             (u.s_approved_1 = :uid AND u.dt_approved_1 IS NULL) 
@@ -150,33 +136,24 @@ class SearchController {
                     $params[':uid'] = $userId;
                     break;
                 case 'approved':
-                    // Sudah di-approve final (Approver 2 sudah ttd)
                     $whereClauses[] = "u.dt_approved_2 IS NOT NULL AND u.dt_deleted IS NULL";
                     break;
                 case 'rejected':
-                    // Ditolak atau Ditarik
                     $whereClauses[] = "(u.dt_rejected IS NOT NULL OR u.dt_deleted IS NOT NULL)";
                     break;
                 case 'pending':
-                    // Belum selesai approve tapi juga belum reject
                     $whereClauses[] = "u.dt_approved_2 IS NULL AND u.dt_rejected IS NULL AND u.dt_deleted IS NULL";
                     break;
                 default: // 'all'
-                    // Tampilkan semua kecuali yang dihapus (opsional, sesuaikan spec)
-                    // Biasanya 'all' tetap menampilkan history, tapi kita exclude deleted fisik jika perlu
                     $whereClauses[] = "1=1"; 
                     break;
             }
 
             $whereSql = implode(' AND ', $whereClauses);
-
-            // 4. Hitung Total Data (Untuk Pagination Frontend)
-            // Query Count harus dijalankan terpisah karena LIMIT memotong hasil
             $countSql = "SELECT COUNT(*) as total FROM ($unionSql) as u WHERE $whereSql";
             $totalResult = $this->db->fetch($countSql, $params);
             $totalCount = $totalResult['total'];
 
-            // 5. Query Data Sebenarnya dengan Limit Offset
             $mainSql = "SELECT * FROM ($unionSql) as u 
                         WHERE $whereSql 
                         ORDER BY u.ts_applied DESC 
@@ -184,9 +161,7 @@ class SearchController {
             
             $rows = $this->db->fetchAll($mainSql, $params);
 
-            // 6. Formatting Output
             $formattedData = array_map(function($row) use ($userId) {
-                // Kalkulasi status code untuk frontend
                 $status = 'pending';
                 if ($row['dt_deleted']) $status = 'withdrawn';
                 elseif ($row['dt_rejected']) $status = 'rejected';
@@ -203,7 +178,6 @@ class SearchController {
                     'dt_approved_2' => $row['dt_approved_2'],
                     'dt_rejected' => $row['dt_rejected'],
                     'status_code' => $status,
-                    // Info tambahan jika perlu
                     'is_my_approval' => ($row['s_approved_1'] == $userId && !$row['dt_approved_1']) || 
                                         ($row['s_approved_2'] == $userId && !$row['dt_approved_2'])
                 ];
@@ -221,7 +195,7 @@ class SearchController {
         } catch (Exception $e) {
             error_log("Search Error: " . $e->getMessage());
             http_response_code(500);
-            return json_encode(['success' => false, 'error' => 'Terjadi kesalahan server saat pencarian.']);
+            return json_encode(['success' => false, 'error' => '検索中にエラーが発生しました。']);
         }
     }
 }

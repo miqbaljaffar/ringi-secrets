@@ -11,10 +11,8 @@ class TaxController {
     }
     
     public function store($request) {
-        // [FIX No. 2] Hapus ini_set('display_errors', 0); biarkan index.php yang handle.
 
         try {
-            // 1. Ambil Data
             $data = $request['body'] ?? $_POST; 
             $files = $request['files'] ?? $_FILES;
             
@@ -22,7 +20,6 @@ class TaxController {
                 $data = $_POST;
             }
 
-            // Gabungkan nomor telepon
             $tel1 = $data['tel1'] ?? '';
             $tel2 = $data['tel2'] ?? '';
             $tel3 = $data['tel3'] ?? '';
@@ -33,7 +30,6 @@ class TaxController {
                 $data['s_office_tel'] = $data['s_office_tel'] ?? '';
             }
             
-            // [FIX No. 3] Validasi Strict Diaktifkan Kembali (Sesuai PDF Hal 15)
             $rules = [
                 'n_type' => 'required|in:1,2',
                 's_name' => 'required|max:100',
@@ -41,31 +37,25 @@ class TaxController {
                 's_rep_name' => 'required|max:50',
                 's_rep_title' => 'required',
                 'dt_contract_start' => 'required|date',
-                
-                // Validasi Ketat (Regex)
-                's_industry_type' => 'required|regex:/^[A-T][0-9]{2}[0-9]$/', // Format A011
-                's_office_pcode' => 'required|regex:/^[0-9]{7}$/', // 7 digit angka tanpa strip
-                's_tax_num' => 'required|regex:/^[0-9]{8}$/' // 8 digit angka
+                's_industry_type' => 'required|regex:/^[A-T][0-9]{2}[0-9]$/', 
+                's_office_pcode' => 'required|regex:/^[0-9]{7}$/', 
+                's_tax_num' => 'required|regex:/^[0-9]{8}$/' 
             ];
             
-            // Validasi tambahan untuk Telepon (Format angka dengan strip)
-            // 's_office_tel' => 'required|regex:/^[0-9]{2,5}-[0-9]{1,4}-[0-9]{4}$/'
             
             $validation = $this->validator->validate($data, $rules);
             
             if (!$validation['valid']) {
                 http_response_code(API_BAD_REQUEST);
-                // [FIX No. 1] Return array, jangan echo
                 return [
                     'success' => false, 
                     'errors' => $validation['errors'],
-                    'message' => 'Validasi gagal'
+                    'message' => 'Validation failed'
                 ];
             }
             
             $data['s_applied'] = $request['user']['id'] ?? '0000';
             
-            // Clean Money Fields
             $moneyFields = ['n_capital', 'n_pre_total', 'n_pre_sales', 'n_pre_debt', 'n_pre_income', 'n_rewards_tax', 'n_rewards_account'];
             foreach($moneyFields as $field) {
                 if(isset($data[$field])) {
@@ -73,10 +63,8 @@ class TaxController {
                 }
             }
             
-            // Simpan ke Database
             $docId = $this->taxModel->createDocument($data);
             
-            // Upload File
             if (!empty($files['estimate_file']) && $files['estimate_file']['error'] === UPLOAD_ERR_OK) {
                 try {
                     $this->fileUpload->save($files['estimate_file'], $docId, '見積書');
@@ -85,15 +73,13 @@ class TaxController {
                 }
             }
             
-            // [FIX No. 1] Return Array
             return [
                 'success' => true, 
                 'doc_id' => $docId,
-                'message' => 'Berhasil disimpan.'
+                'message' => 'Tax document application submitted successfully'
             ];
             
         } catch (Throwable $e) {
-            // Biarkan index.php menangkap Exception global, atau return format error khusus disini
             http_response_code(API_SERVER_ERROR);
             return [
                 'success' => false, 
@@ -102,6 +88,7 @@ class TaxController {
         }
     }
     
+    // その他契約書の詳細を取得する (Get details of tax document)
     public function show($request) {
         $id = $request['params']['id'] ?? $_GET['id'] ?? null;
         
@@ -114,7 +101,7 @@ class TaxController {
         
         if (!$doc) {
             http_response_code(API_NOT_FOUND);
-            return ['success' => false, 'error' => 'Dokumen tidak ditemukan'];
+            return ['success' => false, 'error' => 'Document not found'];
         }
         
         if (class_exists('User')) {

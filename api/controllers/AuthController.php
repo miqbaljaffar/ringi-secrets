@@ -10,7 +10,8 @@ class AuthController {
         }
         return $this->userModel;
     }
-    
+
+    // 社員IDでログインし、セッションと権限情報を設定する (Handle login by employee ID and initialize session data)
     public function login($request) {
         if ($request['method'] === 'POST') {
             $body = $request['body'];
@@ -18,7 +19,7 @@ class AuthController {
             $employeeId = $body['username'] ?? '';
 
             if (empty($employeeId)) {
-                return ['success' => false, 'error' => 'Employee ID (User ID) wajib diisi'];
+                return ['success' => false, 'error' => '社員ID（ユーザーID）を入力してください。'];
             }
 
             $userModel = $this->getUserModel();
@@ -55,20 +56,22 @@ class AuthController {
             
             return [
                 'success' => false, 
-                'error' => 'Login Gagal. ID Karyawan ' . $employeeId . ' tidak ditemukan di database.'
+                'error' => 'ログインに失敗しました。社員ID「' . $employeeId . '」は登録されていません。'
             ];
         }
 
-        return ['success' => false, 'error' => 'Method not allowed'];
+        return ['success' => false, 'error' => '許可されていないリクエストです。'];
     }
 
+    // ログアウトしてセッションを破棄する (Handle logout and destroy session)
     public function logout() {
         if (session_status() === PHP_SESSION_NONE) session_start();
         session_unset();
         session_destroy();
-        return ['success' => true, 'message' => 'Berhasil logout'];
+        return ['success' => true, 'message' => 'ログアウトしました。'];
     }
     
+    // ログインユーザー情報を取得する (Get logged-in user information)
     public function getUserInfo($request) {
         return [
             'success' => true,
@@ -76,12 +79,13 @@ class AuthController {
         ];
     }
 
+    // トークンの有効性を検証する (Validate the session token)
     public function validateToken($request) {
         if (isset($_SESSION['user_id'])) {
             return ['success' => true];
         }
         http_response_code(401);
-        return ['success' => false, 'error' => 'Invalid Token'];
+        return ['success' => false, 'error' => '認証が無効です。再度ログインしてください。'];
     }
 }
 ?>

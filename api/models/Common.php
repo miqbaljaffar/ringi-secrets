@@ -3,14 +3,13 @@ class Common extends BaseModel {
     protected $table = 't_common';
     protected $primaryKey = 'id_doc';
     
+    // 新しいその他契約書ドキュメントを作成する (Create new other contract document)
     public function createDocument($data) {
         $this->beginTransaction();
         
         try {
-            // 1. Generate Doc ID
             $docId = $this->generateDocId();
             
-            // 2. Prepare Main Data
             $mainData = [
                 'id_doc' => $docId,
                 'n_type' => $data['n_type'],
@@ -26,7 +25,6 @@ class Common extends BaseModel {
             
             $this->db->insert($this->table, $mainData);
             
-            // 3. Save Details
             if (isset($data['details']) && is_array($data['details'])) {
                 $detailModel = new CommonDetail();
                 foreach ($data['details'] as $detail) {
@@ -35,9 +33,6 @@ class Common extends BaseModel {
                 }
             }
             
-            // 4. Set Approval Route
-            // [FIX No. 4] Jika fungsi ini gagal (throw Exception), blok catch di bawah akan dieksekusi
-            // dan transaksi akan di-rollback.
             $this->setApprovalRoute($docId, $data['n_type']);
             
             $this->commit();
@@ -45,12 +40,12 @@ class Common extends BaseModel {
             
         } catch (Exception $e) {
             $this->rollback();
-            // Log error spesifik untuk debugging
             error_log("Common Create Document Failed: " . $e->getMessage());
             throw $e;
         }
     }
     
+    // ドキュメントIDを生成する (Generate Document ID)
     public function generateDocId() {
         $prefix = 'AR';
         $date = date('ymd');
@@ -66,11 +61,10 @@ class Common extends BaseModel {
         return $prefix . $date . str_pad($sequence, 2, '0', STR_PAD_LEFT);
     }
     
+    // 承認ルートを設定する (Set Approval Route)
     private function setApprovalRoute($docId, $nType) {
         $userModel = new User();
         
-        // n_type = 1 (部課/Departemen) -> Gunakan Rute Kategori 5
-        // n_type = 2 (委員会/Komite)   -> Gunakan Rute Kategori 6
         $docCategoryMap = [
             1 => 5,
             2 => 6
@@ -95,12 +89,11 @@ class Common extends BaseModel {
                 $this->update($docId, $updateData);
             }
         } else {
-            // [FIX No. 4] Lempar exception jika rute approval tidak ditemukan
-            // Ini akan memicu rollback di createDocument
-            throw new Exception("Rute persetujuan (Approval Route) tidak ditemukan untuk tipe dokumen ini. Transaksi dibatalkan.");
+            throw new Exception("承認ルート (Approval Route) が見つかりません。トランザクションはキャンセルされました。");
         }
     }
     
+    // その他契約書の新規作成を処理する (Handle new other contract creation)
     public function search($filters, $user) {
         $sql = "SELECT c.*, 
                 (SELECT SUM(n_amount) FROM t_common_details WHERE n_doc = c.id_doc) as total_amount,
@@ -161,6 +154,7 @@ class Common extends BaseModel {
         return $this->db->fetchAll($sql, $params);
     }
     
+    // 取下げ処理 (Handle withdrawal)
     public function withdraw($docId, $userId) {
         $document = $this->find($docId);
         
@@ -175,6 +169,7 @@ class Common extends BaseModel {
         return $this->delete($docId);
     }
     
+    // ドキュメントのステータスを取得する (Get document status)
     public function getStatus($document) {
         if ($document['dt_deleted'] !== null) {
             return 'withdrawn';

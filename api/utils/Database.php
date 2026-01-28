@@ -3,12 +3,12 @@ class DB {
     private $pdo;
     private static $instance = null;
     
+    // シングルトンパターンの実装 (Singleton pattern implementation)
     private function __construct() {
-        // PERBAIKAN: Gunakan DatabaseConfig, bukan Database::getInstance()
-        // Pastikan DatabaseConfig sudah diload (kita akan load manual di index.php)
         $this->pdo = DatabaseConfig::getConnection();
     }
     
+    // インスタンス取得メソッド (Get instance method)
     public static function getInstance() {
         if (self::$instance === null) {
             self::$instance = new self();
@@ -16,7 +16,7 @@ class DB {
         return self::$instance;
     }
     
-    // クエリ実行メソッド
+    // クエリ実行メソッド (Execute query method)
     public function query($sql, $params = []) {
         try {
             $stmt = $this->pdo->prepare($sql);
@@ -25,30 +25,27 @@ class DB {
         } catch (PDOException $e) {
             error_log("Query failed: " . $e->getMessage() . " SQL: " . $sql);
             
-            // [PERBAIKAN DEBUGGING]
-            // Tampilkan pesan error asli SQL agar kita tahu tabel mana yang hilang/salah
             if (defined('DEBUG_MODE') && DEBUG_MODE) {
                 throw new Exception("SQL Error: " . $e->getMessage());
             } else {
-                // Fallback untuk production
                 throw new Exception("Database Error: " . $e->getMessage());
             }
         }
     }
     
-    // SELECT - 単一行取得
+    // フェッチメソッド (Fetch method)
     public function fetch($sql, $params = []) {
         $stmt = $this->query($sql, $params);
-        return $stmt->fetch(PDO::FETCH_ASSOC); // Tambahkan FETCH_ASSOC agar lebih aman
+        return $stmt->fetch(PDO::FETCH_ASSOC); // added FETCH_ASSOC for clarity
     }
     
-    // SELECT - 全行取得
+    // フェッチオールメソッド (Fetch all method)
     public function fetchAll($sql, $params = []) {
         $stmt = $this->query($sql, $params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC); // Tambahkan FETCH_ASSOC
+        return $stmt->fetchAll(PDO::FETCH_ASSOC); // added FETCH_ASSOC for clarity
     }
     
-    // INSERT
+    // INSERT メソッド (Insert method)
     public function insert($table, $data) {
         $columns = implode(', ', array_keys($data));
         $placeholders = ':' . implode(', :', array_keys($data));
@@ -59,7 +56,7 @@ class DB {
         return $this->pdo->lastInsertId();
     }
     
-    // UPDATE
+    // UPDATE メソッド (Update method)
     public function update($table, $data, $where, $whereParams = []) {
         $setClause = [];
         foreach ($data as $key => $value) {
@@ -79,17 +76,17 @@ class DB {
         return $this->query($sql, [':id' => $id])->rowCount();
     }
     
-    // トランザクション開始
+    // トランザクション開始 (Begin transaction)
     public function beginTransaction() {
         $this->pdo->beginTransaction();
     }
     
-    // コミット
+    // コミット (Commit)
     public function commit() {
         $this->pdo->commit();
     }
     
-    // ロールバック
+    // ロールバック (Rollback)
     public function rollback() {
         $this->pdo->rollback();
     }
