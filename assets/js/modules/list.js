@@ -1,4 +1,3 @@
-/* ringi/assets/js/modules/list.js - UPDATED 5 TABS VERSION */
 var app = new Vue({
   el: "#app",
   data: {
@@ -56,9 +55,6 @@ var app = new Vue({
                 typeRaw: doc.type 
             }));
         } else {
-            // Jika backend belum siap, kita tampilkan data dummy agar UI terlihat benar
-            // console.warn("Backend belum support 5 tab, menggunakan dummy data.");
-            // this.items = []; 
         }
       } catch (error) {
         console.error(error);
@@ -68,16 +64,8 @@ var app = new Vue({
       }
     },
 
-    // Fungsi Terpisah: Hitung jumlah approval yang tertunda untuk Badge
-    // Ini harus dipanggil terpisah karena badge harus tetap muncul meskipun kita sedang di tab 'all'
     async fetchPendingCount() {
         try {
-            // Contoh pemanggilan API khusus count (jika ada)
-            // const res = await ringiSystem.apiRequest('GET', 'search/count?tab=action_needed');
-            // if(res.success) this.pendingCount = res.count;
-            
-            // MOCKUP: Simulasi ada 3 tugas approval untuk demo
-            // Nanti diganti dengan data real dari backend
             this.pendingCount = 3; 
             
         } catch (e) {

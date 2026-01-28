@@ -1,10 +1,3 @@
-/**
- * Detail Document Module
- * Best Practice:
- * 1. Gunakan 'window.ringiSystem' untuk akses global.
- * 2. Lakukan pengecekan dependensi di awal (Guard Clause).
- */
-
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Guard Clause: Pastikan elemen mount point ada
     if (!document.getElementById('app')) return;

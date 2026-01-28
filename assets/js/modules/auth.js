@@ -1,4 +1,3 @@
-// 認証モジュール
 class AuthModule {
     constructor() {
         this.initAuth();

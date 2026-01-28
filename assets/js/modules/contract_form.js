@@ -1,4 +1,3 @@
-/* ringi/assets/js/modules/contract_form.js - VALIDATION UPDATE */
 var app = new Vue({
     el: '#app',
     data: {
@@ -155,7 +154,6 @@ var app = new Vue({
             return val;
         },
 
-        // VALIDASI UPDATED: Sesuai PDF Hal 14-17 (Red=Required, Purple=Corp Only)
         validateForm: function() {
             const f = this.form;
             const errors = [];
@@ -198,8 +196,6 @@ var app = new Vue({
             if(!/^\d{3}$/.test(f.rep_zip1) || !/^\d{4}$/.test(f.rep_zip2)) errors.push("代表者自宅郵便番号は3桁-4桁で入力してください。");
             if(!isReq(f.rep_address)) errors.push("代表者自宅住所は必須です。");
 
-            // 6. E-Filing & IDs (Hal 16 Merah - Wajib)
-            // Sesuai spec, ID & PW diberi warna merah, artinya wajib diisi
             if(!/^\d{16}$/.test(f.national_tax_id)) errors.push("国税利用者識別番号は数値16桁で入力してください。");
             if(!isReq(f.national_tax_pw)) errors.push("国税暗証番号は必須です。");
 
@@ -231,16 +227,11 @@ var app = new Vue({
             const f = this.form;
             const getInt = this.getInt; // Shortcut helper
             
-            // --- FIX ERROR 500: Hapus Pengiriman id_doc manual ---
-            // formData.append('id_doc', this.generatedDocNo); // <- JANGAN DIKIRIM, Biarkan Backend generate.
-
             // --- Mapping Data ---
             formData.append('n_type', f.corp_type);
             formData.append('s_name', f.company_name);
             formData.append('s_kana', f.company_kana);
-            formData.append('dt_establishment', f.establishment_date || ''); // Kirim string kosong jika null (MySQL date kadang terima, atau 0000-00-00)
-            
-            // --- FIX ERROR 500: Pastikan Field Angka tidak string kosong ---
+            formData.append('dt_establishment', f.establishment_date || ''); 
             formData.append('n_capital', getInt(f.capital));
             formData.append('n_before', getInt(f.n_before)); 
             

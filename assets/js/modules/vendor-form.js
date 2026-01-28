@@ -42,7 +42,6 @@ class VendorFormHandler {
                 if (response.success) {
                     ringiSystem.showNotification('Pengajuan berhasil! ID: ' + response.doc_id, 'success');
                     
-                    // PERBAIKAN: Redirect ke detail.html
                     setTimeout(() => {
                         window.location.href = `/pages/detail.html?id=${response.doc_id}&type=vendor`;
                     }, 1500);

@@ -9,6 +9,7 @@ class CommonFormHandler {
         this.init();
     }
     
+    // 初期化 (Initialization)
     init() {
         if (!this.form) return;
         
@@ -283,7 +284,6 @@ class CommonFormHandler {
         const details = this.collectDetails();
         formData.append('details', JSON.stringify(details));
         
-        // NOTE: total_amount tidak disimpan di DB t_common, tapi dikirim untuk validasi server-side
         formData.append('total_amount', this.getTotalAmount());
         
         try {

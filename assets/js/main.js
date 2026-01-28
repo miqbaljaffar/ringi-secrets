@@ -1,7 +1,3 @@
-// Best Practice: Namespace Pattern
-// Menggunakan window.ringiSystem memastikan objek ini bisa diakses dari file JS manapun
-// tanpa terhalang oleh block-scope dari 'const' atau 'let'.
-
 window.ringiSystem = {
     // 1. Centralized Config
     // Logic penentuan URL API yang cerdas
@@ -47,8 +43,6 @@ window.ringiSystem = {
         }
 
         try {
-            // Debugging yang rapi (Opsional: bisa dimatikan di production)
-            // console.log(`[API] ${method} ${url}`, data); 
             
             const response = await fetch(url, config);
             
