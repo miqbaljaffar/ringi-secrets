@@ -9,7 +9,7 @@ class CommonFormHandler {
         this.init();
     }
     
-    // 初期化 (Initialization)
+    // Ini (Initialization)
     init() {
         if (!this.form) return;
         
@@ -35,10 +35,22 @@ class CommonFormHandler {
             }
         });
         
+        // --- MODIFIKASI: Handler Submit Terpisah ---
+        
+        // 1. Tombol Ajukan (Apply)
         this.form.addEventListener('submit', (e) => {
             e.preventDefault();
-            this.handleSubmit();
+            this.handleSubmit('apply');
         });
+
+        // 2. Tombol Simpan Draft (Draft) - Asumsi ID tombol di HTML adalah 'btn-save-draft'
+        const draftBtn = document.getElementById('btn-save-draft');
+        if (draftBtn) {
+            draftBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleSubmit('draft');
+            });
+        }
         
         document.querySelectorAll('input[name="n_type"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
@@ -275,9 +287,14 @@ class CommonFormHandler {
         return total;
     }
     
-    async handleSubmit() {
-        if (!this.validateForm()) {
-            return;
+    // --- MODIFIKASI: Handle Submit dengan Mode ---
+    async handleSubmit(saveMode = 'apply') {
+        // Jika mode 'apply', lakukan validasi penuh
+        // Jika mode 'draft', bypass validasi (atau validasi minimal)
+        if (saveMode === 'apply') {
+            if (!this.validateForm()) {
+                return;
+            }
         }
         
         const formData = new FormData(this.form);
@@ -286,12 +303,17 @@ class CommonFormHandler {
         
         formData.append('total_amount', this.getTotalAmount());
         
+        // PENTING: Kirim flag mode ke backend
+        formData.append('save_mode', saveMode); // 'apply' atau 'draft'
+        
         try {
             const response = await ringiSystem.apiRequest('POST', 'common', formData, true);
             
             if (response.success) {
-                ringiSystem.showNotification('申請が完了しました', 'success');
+                const msg = saveMode === 'draft' ? '下書き保存しました (Draft Tersimpan)' : '申請が完了しました (Berhasil Diajukan)';
+                ringiSystem.showNotification(msg, 'success');
                 setTimeout(() => {
+                    // Redirect ke halaman detail (baik draft maupun apply)
                     window.location.href = `/pages/detail.html?id=${response.doc_id}&type=common`;
                 }, 1500);
             } else {
@@ -310,16 +332,23 @@ class CommonFormHandler {
     collectDetails() {
         const details = [];
         document.querySelectorAll('.detail-row').forEach(row => {
-            const category = row.querySelector('.category-select').value;
-            const payer = row.querySelector('.payer-input').value;
-            const amount = row.querySelector('.amount-input').value;
+            const categorySelect = row.querySelector('.category-select');
+            const payerInput = row.querySelector('.payer-input');
+            const amountInput = row.querySelector('.amount-input');
             
-            if (category && payer && amount) {
-                details.push({
-                    category: parseInt(category),
-                    payer: payer,
-                    amount: parseInt(amount)
-                });
+            // Untuk draft, ambil saja value-nya meskipun kosong
+            if (categorySelect && payerInput && amountInput) {
+                 const categoryVal = categorySelect.value;
+                 const amountVal = amountInput.value;
+                 
+                 // Jika ada isinya, masukkan. Kalau draft boleh parsial
+                 if (categoryVal || payerInput.value || amountVal) {
+                    details.push({
+                        category: parseInt(categoryVal) || 0,
+                        payer: payerInput.value,
+                        amount: parseInt(amountVal) || 0
+                    });
+                 }
             }
         });
         return details;

@@ -63,51 +63,76 @@ class OtherFormHandler {
     }
 
     bindEvents() {
-        this.form.addEventListener('submit', async (e) => {
+        // --- MODIFIKASI: Event Listener Apply ---
+        this.form.addEventListener('submit', (e) => {
             e.preventDefault();
-            this.combineFields();
-
-            const formData = new FormData(this.form);
-            
-            const zip1 = formData.get('zip1') || '';
-            const zip2 = formData.get('zip2') || '';
-            formData.set('s_office_pcode', zip1 + zip2);
-
-            const tel1 = formData.get('tel1') || '';
-            const tel2 = formData.get('tel2') || '';
-            const tel3 = formData.get('tel3') || '';
-            formData.set('s_office_tel', `${tel1}-${tel2}-${tel3}`);
-
-            if(formData.get('rep_name_sei') && formData.get('rep_name_mei')) {
-                const repName = `${formData.get('rep_name_sei')} ${formData.get('rep_name_mei')}`;
-                formData.set('s_rep_name', repName.trim());
-            }
-            
-            if(formData.get('rep_kana_sei') && formData.get('rep_kana_mei')) {
-                const repKana = `${formData.get('rep_kana_sei')} ${formData.get('rep_kana_mei')}`;
-                formData.set('s_rep_kana', repKana.trim());
-            }
-
-            try {
-                const response = await ringiSystem.apiRequest('POST', 'others', formData, true);
-                
-                if (response.success) {
-                    ringiSystem.showNotification('Pengajuan kontrak berhasil disimpan!', 'success');
-                    setTimeout(() => {
-                        window.location.href = `/pages/detail.html?id=${response.doc_id}&type=others`;
-                    }, 1500);
-                } else {
-                    if (response.errors) {
-                        ringiSystem.showNotification(response.errors, 'error');
-                    } else {
-                        ringiSystem.showNotification(response.error, 'error');
-                    }
-                }
-            } catch (error) {
-                console.error('Error submit:', error);
-                ringiSystem.showNotification(error.message || 'Gagal mengirim data.', 'error');
-            }
+            this.handleSubmit('apply');
         });
+
+        // --- MODIFIKASI: Event Listener Draft ---
+        const draftBtn = document.getElementById('btn-save-draft');
+        if(draftBtn) {
+            draftBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleSubmit('draft');
+            });
+        }
+    }
+
+    // --- MODIFIKASI: Fungsi Submit Reusable ---
+    async handleSubmit(saveMode) {
+        // Validasi HTML5 hanya jika apply
+        if (saveMode === 'apply') {
+             if (!this.form.checkValidity()) {
+                this.form.reportValidity();
+                return;
+            }
+        }
+
+        this.combineFields();
+
+        const formData = new FormData(this.form);
+        formData.append('save_mode', saveMode); // PENTING
+        
+        const zip1 = formData.get('zip1') || '';
+        const zip2 = formData.get('zip2') || '';
+        formData.set('s_office_pcode', zip1 + zip2);
+
+        const tel1 = formData.get('tel1') || '';
+        const tel2 = formData.get('tel2') || '';
+        const tel3 = formData.get('tel3') || '';
+        formData.set('s_office_tel', `${tel1}-${tel2}-${tel3}`);
+
+        if(formData.get('rep_name_sei') && formData.get('rep_name_mei')) {
+            const repName = `${formData.get('rep_name_sei')} ${formData.get('rep_name_mei')}`;
+            formData.set('s_rep_name', repName.trim());
+        }
+        
+        if(formData.get('rep_kana_sei') && formData.get('rep_kana_mei')) {
+            const repKana = `${formData.get('rep_kana_sei')} ${formData.get('rep_kana_mei')}`;
+            formData.set('s_rep_kana', repKana.trim());
+        }
+
+        try {
+            const response = await ringiSystem.apiRequest('POST', 'others', formData, true);
+            
+            if (response.success) {
+                const msg = saveMode === 'draft' ? '下書き保存しました (Draft Tersimpan)' : '申請が完了しました (Berhasil Diajukan)';
+                ringiSystem.showNotification(msg, 'success');
+                setTimeout(() => {
+                    window.location.href = `/pages/detail.html?id=${response.doc_id}&type=others`;
+                }, 1500);
+            } else {
+                if (response.errors) {
+                    ringiSystem.showNotification(response.errors, 'error');
+                } else {
+                    ringiSystem.showNotification(response.error, 'error');
+                }
+            }
+        } catch (error) {
+            console.error('Error submit:', error);
+            ringiSystem.showNotification(error.message || 'Gagal mengirim data.', 'error');
+        }
     }
 
     combineFields() {

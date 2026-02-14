@@ -1,15 +1,17 @@
 <?php
+require_once __DIR__ . '/../utils/Mailer.php';
+
 class OtherContractController {
     private $validator;
     private $model;
+    private $mailer; // Property Mailer
 
-    // その他契約書の新規申請を処理する (Handle new other contract application)
     public function __construct() {
         $this->validator = new Validator();
         $this->model = new OtherContract();
+        $this->mailer = new Mailer(); // Inisialisasi Mailer
     }
     
-    // その他契約書の新規申請を保存する (Store new other contract application)
     public function store($request) {
         $data = $_POST;
         
@@ -34,10 +36,22 @@ class OtherContractController {
             
             $docId = $this->model->createDocument($data);
             
+            // --- NOTIFIKASI EMAIL START ---
+            $newDoc = $this->model->find($docId);
+            if ($newDoc && !empty($newDoc['s_approved_1'])) {
+                $this->mailer->sendRequestNotification(
+                    $docId,
+                    $newDoc['s_approved_1'],      // Ke Approver 1
+                    $request['user']['name'],     // Dari Pemohon
+                    $data['s_name']               // Judul (Nama Perusahaan)
+                );
+            }
+            // --- NOTIFIKASI EMAIL END ---
+            
             return [
                 'success' => true, 
                 'doc_id' => $docId,
-                'message' => 'Other contract application submitted successfully'
+                'message' => 'Aplikasi kontrak berhasil dikirim'
             ];
             
         } catch (Exception $e) {
@@ -46,7 +60,7 @@ class OtherContractController {
         }
     }
 
-    // その他契約書の詳細を取得する (Get details of other contract)
+    // ... (Method show tetap sama) ...
     public function show($request) {
         $id = $request['params']['id'] ?? $_GET['id'] ?? null;
         

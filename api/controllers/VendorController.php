@@ -1,17 +1,19 @@
 <?php
+require_once __DIR__ . '/../utils/Mailer.php';
+
 class VendorController {
     private $validator;
     private $fileUpload;
     private $model;
+    private $mailer; // Property Mailer
     
-    // ベンダーの新規申請を処理する (Handle new vendor application)
     public function __construct() {
         $this->validator = new Validator();
         $this->fileUpload = new FileUpload('cv'); 
         $this->model = new Vendor();
+        $this->mailer = new Mailer(); // Inisialisasi Mailer
     }
     
-    // ベンダーの新規申請を保存する (Store new vendor application)
     public function store($request) {
         $data = $_POST;
         $files = $_FILES;
@@ -38,11 +40,23 @@ class VendorController {
             if (!empty($files['estimate_file'])) {
                 $this->fileUpload->save($files['estimate_file'], $docId, '見積書');
             }
+
+            // --- NOTIFIKASI EMAIL START ---
+            $newDoc = $this->model->find($docId);
+            if ($newDoc && !empty($newDoc['s_approved_1'])) {
+                $this->mailer->sendRequestNotification(
+                    $docId,
+                    $newDoc['s_approved_1'],      // Ke Approver 1
+                    $request['user']['name'],     // Dari Pemohon
+                    $data['s_name']               // Judul (Nama Vendor)
+                );
+            }
+            // --- NOTIFIKASI EMAIL END ---
             
             return [
                 'success' => true, 
                 'doc_id' => $docId,
-                'message' => 'Vendor application submitted successfully'
+                'message' => 'Aplikasi vendor berhasil dikirim'
             ];
             
         } catch (Exception $e) {
@@ -51,7 +65,7 @@ class VendorController {
         }
     }
 
-    // ベンダーの詳細を取得する (Get details of vendor)
+    // ... (Method show tetap sama) ...
     public function show($request) {
         $id = $request['params']['id'];
         $doc = $this->model->find($id);

@@ -1,17 +1,21 @@
 <?php
+// Pastikan Mailer di-load
+require_once __DIR__ . '/../utils/Mailer.php';
+
 class TaxController {
     private $validator;
     private $fileUpload;
     private $taxModel;
+    private $mailer; // Property Mailer
     
     public function __construct() {
         $this->validator = new Validator();
         $this->fileUpload = new FileUpload('ct'); 
         $this->taxModel = new Tax();
+        $this->mailer = new Mailer(); // Inisialisasi Mailer
     }
     
     public function store($request) {
-
         try {
             $data = $request['body'] ?? $_POST; 
             $files = $request['files'] ?? $_FILES;
@@ -20,16 +24,17 @@ class TaxController {
                 $data = $_POST;
             }
 
+            // ... (Logika manipulasi data telp dll tetap sama) ...
             $tel1 = $data['tel1'] ?? '';
             $tel2 = $data['tel2'] ?? '';
             $tel3 = $data['tel3'] ?? '';
-            
             if (!empty($tel1) || !empty($tel2) || !empty($tel3)) {
                 $data['s_office_tel'] = $tel1 . '-' . $tel2 . '-' . $tel3;
             } else {
                 $data['s_office_tel'] = $data['s_office_tel'] ?? '';
             }
             
+            // ... (Validasi tetap sama) ...
             $rules = [
                 'n_type' => 'required|in:1,2',
                 's_name' => 'required|max:100',
@@ -42,16 +47,10 @@ class TaxController {
                 's_tax_num' => 'required|regex:/^[0-9]{8}$/' 
             ];
             
-            
             $validation = $this->validator->validate($data, $rules);
-            
             if (!$validation['valid']) {
                 http_response_code(API_BAD_REQUEST);
-                return [
-                    'success' => false, 
-                    'errors' => $validation['errors'],
-                    'message' => 'Validation failed'
-                ];
+                return ['success' => false, 'errors' => $validation['errors'], 'message' => 'Validation failed'];
             }
             
             $data['s_applied'] = $request['user']['id'] ?? '0000';
@@ -72,6 +71,18 @@ class TaxController {
                     error_log("File upload warning: " . $fileEx->getMessage());
                 }
             }
+
+            // --- EMAIL TRIGGER START (TAX) ---
+            $newDoc = $this->taxModel->find($docId);
+            if ($newDoc && !empty($newDoc['s_approved_1'])) {
+                $this->mailer->sendRequestNotification(
+                    $docId,
+                    $newDoc['s_approved_1'],
+                    $request['user']['name'],
+                    $data['s_name'] // Menggunakan Nama Perusahaan/Client sebagai judul untuk Tax Doc
+                );
+            }
+            // --- EMAIL TRIGGER END ---
             
             return [
                 'success' => true, 
@@ -81,35 +92,22 @@ class TaxController {
             
         } catch (Throwable $e) {
             http_response_code(API_SERVER_ERROR);
-            return [
-                'success' => false, 
-                'error' => 'Server Error: ' . $e->getMessage()
-            ];
+            return ['success' => false, 'error' => 'Server Error: ' . $e->getMessage()];
         }
     }
     
-    // その他契約書の詳細を取得する (Get details of tax document)
+    // ... (Show method tetap sama) ...
     public function show($request) {
         $id = $request['params']['id'] ?? $_GET['id'] ?? null;
-        
-        if (!$id) {
-             http_response_code(API_BAD_REQUEST);
-             return ['success' => false, 'error' => 'ID Required'];
-        }
-
+        if (!$id) { http_response_code(API_BAD_REQUEST); return ['success' => false, 'error' => 'ID Required']; }
         $doc = $this->taxModel->find($id);
-        
-        if (!$doc) {
-            http_response_code(API_NOT_FOUND);
-            return ['success' => false, 'error' => 'Document not found'];
-        }
+        if (!$doc) { http_response_code(API_NOT_FOUND); return ['success' => false, 'error' => 'Document not found']; }
         
         if (class_exists('User')) {
             $userModel = new User();
             $applicant = $userModel->findByEmployeeId($doc['s_applied']);
             $doc['applicant_name'] = $applicant ? $applicant['s_name'] : $doc['s_applied'];
         }
-        
         return ['success' => true, 'data' => $doc];
     }
 }

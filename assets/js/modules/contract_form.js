@@ -144,8 +144,37 @@ var app = new Vue({
             this.form[field] = val;
             this.$forceUpdate();
         },
+        
+        // --- UPDATED: Validasi File (Tipe PDF & Ukuran Max 5MB) ---
         handleFileUpload: function(event, fieldName) {
-            this.form[fieldName] = event.target.files[0];
+            const file = event.target.files[0];
+            
+            // Jika user cancel dialog file, jangan lakukan apa-apa
+            if (!file) return;
+
+            // 1. Validasi Ukuran (Max 5MB)
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            if (file.size > maxSize) {
+                ringiSystem.showNotification('ファイルサイズは5MB以下にしてください (Ukuran file maks 5MB)', 'error');
+                event.target.value = ''; // Reset input file
+                this.form[fieldName] = null;
+                return;
+            }
+
+            // 2. Validasi Tipe (PDF Only)
+            if (file.type !== 'application/pdf') {
+                ringiSystem.showNotification('PDFファイルのみアップロード可能です (Hanya file PDF yang diperbolehkan)', 'error');
+                event.target.value = ''; // Reset input file
+                this.form[fieldName] = null;
+                return;
+            }
+
+            // Jika valid
+            this.form[fieldName] = file;
+            
+            // Tampilkan nama file (Opsional, jika ada elemen display)
+            // const displayEl = document.getElementById(fieldName + '_display');
+            // if(displayEl) displayEl.textContent = file.name;
         },
         
         // Helper untuk membersihkan data angka (mencegah error DB integer kosong)
@@ -211,6 +240,12 @@ var app = new Vue({
             if(f.introducer_type === '9' && !isReq(f.introducer_type_others)) errors.push("紹介者区分（その他）を入力してください。");
             if(!isReq(f.background)) errors.push("きっかけ（経緯）は必須です。");
 
+            // --- UPDATED: Validasi File Wajib (Estimasi) ---
+            // Sesuai PDF Spec Item 68 (NULL = NO), artinya Wajib
+            if(!f.file_estimate) {
+                errors.push("見積書(PDF)の添付は必須です。(File Estimasi Wajib)");
+            }
+
             if (errors.length > 0) {
                 // Tampilkan semua error dalam satu notifikasi (dipisah baris baru)
                 ringiSystem.showNotification(errors.join("<br>"), 'error');
@@ -219,15 +254,32 @@ var app = new Vue({
             return true;
         },
 
+        // --- NEW: Save Draft Function ---
+        saveDraft: function() {
+            // Bypass strict validation
+            // Minimal check: Company Name agar bisa dicari
+            if (!this.form.company_name) {
+                return ringiSystem.showNotification("下書き保存の場合も、商号（会社名）は必須です。", 'warning');
+            }
+            this.sendData('draft');
+        },
+
+        // --- Modified: Submit Application ---
         submitForm: function() {
             if (!this.validateForm()) return;
+            this.sendData('apply');
+        },
 
+        // --- Core Logic Sending Data ---
+        sendData: function(mode) {
             this.isSubmitting = true;
             const formData = new FormData();
             const f = this.form;
             const getInt = this.getInt; // Shortcut helper
             
             // --- Mapping Data ---
+            formData.append('save_mode', mode); // 'draft' or 'apply'
+
             formData.append('n_type', f.corp_type);
             formData.append('s_name', f.company_name);
             formData.append('s_kana', f.company_kana);
@@ -274,7 +326,7 @@ var app = new Vue({
             formData.append('n_pre_debt', getInt(f.fin_debt));
             formData.append('n_pre_income', getInt(f.fin_income));
             formData.append('n_pre_workers', getInt(f.fin_workers));
-            formData.append('n_comsumption_tax', getInt(f.consumption_tax)); // Typo sesuai PDF
+            formData.append('n_comsumption_tax', getInt(f.consumption_tax)); 
             formData.append('n_trade', getInt(f.trade_type));
             formData.append('n_affiliated_company', getInt(f.affiliated_company));
 
@@ -310,7 +362,8 @@ var app = new Vue({
             ringiSystem.apiRequest('POST', 'tax', formData, true)
                 .then(res => {
                     if (res.success) {
-                        ringiSystem.showNotification("申請が完了しました", 'success');
+                        const msg = mode === 'draft' ? "下書き保存しました (Draft Tersimpan)" : "申請が完了しました (Berhasil Diajukan)";
+                        ringiSystem.showNotification(msg, 'success');
                         setTimeout(() => {
                             window.location.href = 'detail.html?id=' + res.doc_id + '&type=tax';
                         }, 1500);

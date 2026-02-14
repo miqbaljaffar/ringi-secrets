@@ -18,8 +18,16 @@ document.addEventListener('DOMContentLoaded', () => {
             loading: true,
             error: null,
             currentUser: null,
+            
+            // Permissions
             canApprove: false, 
             isOwner: false,
+            canWithdraw: false,
+
+            // --- FITUR BARU: Admin Memo (Bikou) ---
+            canEditMemo: false,   // Izin untuk mengedit memo
+            isMemoEditing: false, // State toggle mode edit
+            memoInput: ''         // Model untuk input memo
         },
         filters: {
             currency(value) {
@@ -35,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Helper internal untuk akses method
                 const fmtDate = this.formatDate; 
 
-                // Logic Approval Route (Sama seperti sebelumnya, disederhanakan untuk contoh best practice)
+                // Logic Approval Route
                 let applicantName = this.form.applicant_info ? this.form.applicant_info.s_name : (this.form.applicant_name || this.form.s_applied);
                 
                 route.push({
@@ -192,16 +200,73 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     this.canApprove = false;
                 }
+
+                // Logic Withdraw (Torisage)
+                if (this.isOwner && !this.form.dt_deleted && !this.form.dt_rejected && !this.form.dt_approved_2) {
+                    this.canWithdraw = true;
+                } else {
+                    this.canWithdraw = false;
+                }
+
+                // --- NEW: Logic Admin Memo ---
+                // Sesuai spesifikasi: "Admin (jumlah tetap) input備考欄"
+                // Kita asumsikan role > 0 (Manager/Admin) atau ID tertentu memiliki hak ini.
+                // Hak ini aktif SETELAH aplikasi diajukan.
+                const isAdmin = (this.currentUser.role && parseInt(this.currentUser.role) > 0);
+                
+                // Admin bisa edit memo kapan saja selama dokumen belum dihapus
+                if (isAdmin && !this.form.dt_deleted) {
+                    this.canEditMemo = true;
+                } else {
+                    this.canEditMemo = false;
+                }
             },
 
             formatDate(dateStr) {
                 if (!dateStr) return '';
                 const d = new Date(dateStr);
-                // Validasi date object
                 if (isNaN(d.getTime())) return '-';
                 return d.toLocaleDateString('ja-JP');
             },
 
+            // --- Admin Memo Actions (NEW) ---
+            startMemoEdit() {
+                // Salin nilai saat ini ke buffer input
+                this.memoInput = this.form.s_memo || '';
+                this.isMemoEditing = true;
+            },
+
+            cancelMemoEdit() {
+                this.isMemoEditing = false;
+                this.memoInput = '';
+            },
+
+            async saveMemo() {
+                if (this.memoInput.length > 255) {
+                    alert('備考は255文字以内で入力してください。(Maksimal 255 karakter)');
+                    return;
+                }
+
+                try {
+                    // Endpoint baru khusus untuk update memo: POST /api/{type}/{id}/memo
+                    const response = await window.ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/memo`, {
+                        memo: this.memoInput
+                    });
+
+                    if (response.success) {
+                        this.form.s_memo = this.memoInput; // Update tampilan lokal
+                        this.isMemoEditing = false;
+                        alert('備考を更新しました (Memo Updated)');
+                    } else {
+                        alert('Error: ' + response.error);
+                    }
+                } catch (e) {
+                    console.error("Memo Update Error:", e);
+                    alert('System Error: ' + e.message);
+                }
+            },
+
+            // --- Approval Actions ---
             async doApprove() {
                 if (!confirm('承認しますか？ (Approve?)')) return;
                 
@@ -239,6 +304,28 @@ document.addEventListener('DOMContentLoaded', () => {
                         alert('Error: ' + response.error);
                     }
                 } catch (e) {
+                    alert('System Error: ' + e.message);
+                }
+            },
+
+            async doWithdraw() {
+                if (!confirm('申請を取り下げますか？ (Withdraw application?)')) return;
+
+                try {
+                    const response = await window.ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/approve`, {
+                        doc_id: this.id,
+                        action: 'withdraw', 
+                        comment: 'Withdrawn by Applicant'
+                    });
+
+                    if (response.success) {
+                        alert('申請を取り下げました (Application Withdrawn)');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (response.error || 'Failed to withdraw'));
+                    }
+                } catch (e) {
+                    console.error("Withdraw Error:", e);
                     alert('System Error: ' + e.message);
                 }
             }
