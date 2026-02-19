@@ -1,133 +1,97 @@
-window.ringiSystem = {
-    // 1. Centralized Config
-    // Logic penentuan URL API yang cerdas
-    apiBaseUrl: (function() {
-        // Mendapatkan path root aplikasi secara dinamis
-        // Jika sedang di folder /pages/, mundur satu langkah
-        const path = window.location.pathname;
-        if (path.includes('/pages/')) {
-            return '../api/index.php';
-        }
-        return 'api/index.php';
-    })(),
+/**
+ * Main Javascript untuk UI & Helper General
+ */
 
-    // 2. State Management Sederhana
-    // Mengambil data user sekali saja saat inisialisasi
-    user: JSON.parse(sessionStorage.getItem('user') || 'null'),
-
-    // 3. Helper Functions (Reusable Code)
-    // --- GENERIC API REQUESTER ---
-    apiRequest: async function(method, endpoint, data = null, isMultipart = false) {
-        const url = `${this.apiBaseUrl}/${endpoint}`;
+const ringiSystem = {
+    // --- Helper Notifikasi ---
+    showNotification: function(message, type = 'success') {
+        $('.notification').remove();
         
-        const headers = {};
+        const notif = $('<div class="notification"></div>')
+            .addClass(`notif-${type}`)
+            .text(message)
+            .appendTo('body');
+            
+        setTimeout(() => notif.addClass('show'), 100);
         
-        // Content-Type otomatis kecuali Multipart (karena boundary dihandle browser)
-        if (!isMultipart) {
-            headers['Content-Type'] = 'application/json';
-        }
+        setTimeout(() => {
+            notif.removeClass('show');
+            setTimeout(() => notif.remove(), 300);
+        }, 3000);
+    },
 
-        // Token Injection (Centralized Auth Header)
-        const token = localStorage.getItem('auth_token');
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        const config = {
+    // --- Helper Fetch API ---
+    apiRequest: async function(method, endpoint, data = null, isFormData = false) {
+        // PERBAIKAN: Menggunakan relative path '../api' 
+        // Karena script ini dipanggil dari file di dalam folder /pages/
+        const BASE_URL = '../api/index.php'; 
+        const url = `${BASE_URL}/${endpoint}`;
+        
+        const options = {
             method: method,
-            headers: headers
+            // SANGAT PENTING: credentials 'same-origin' memastikan cookie PHPSESSID 
+            // dikirim ke backend, sehingga AuthMiddleware PHP bisa membaca $_SESSION
+            credentials: 'same-origin', 
+            headers: {}
         };
 
+        // Jika pakai Token Bearer opsional (meski backend pakai Session)
+        const token = sessionStorage.getItem('token');
+        if (token) {
+            options.headers['Authorization'] = `Bearer ${token}`;
+        }
+
         if (data) {
-            config.body = isMultipart ? data : JSON.stringify(data);
+            if (isFormData) {
+                options.body = data;
+                // Jangan set Content-Type untuk FormData
+            } else {
+                options.headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(data);
+            }
         }
 
         try {
+            const response = await fetch(url, options);
             
-            const response = await fetch(url, config);
-            
-            // Handle response text sebelum parse JSON untuk error handling yang lebih baik
-            const text = await response.text();
-            let json;
-            
-            try {
-                json = JSON.parse(text);
-            } catch (e) {
-                console.error("Invalid JSON Response:", text);
-                throw new Error(`Server Error (${response.status}): Invalid JSON response`);
-            }
-
             if (!response.ok) {
-                throw new Error(json.error || `Server Error (${response.status})`);
+                if (response.status === 401) {
+                    sessionStorage.removeItem('user');
+                    sessionStorage.removeItem('token');
+                    window.location.href = 'login.html?error=session_expired';
+                    return { success: false, error: 'Sesi berakhir. Silakan login kembali.' };
+                }
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Terjadi kesalahan pada server');
             }
-
-            return json;
-
+            return await response.json();
         } catch (error) {
-            console.error("API Request Error:", error);
-            throw error; // Re-throw agar bisa di-catch di UI level
+            console.error('API Error:', error);
+            throw error;
         }
     },
-
-    // UI Helper: Notifikasi Global
-    showNotification: function(message, type = 'info') {
-        // Mencegah duplikasi notifikasi (Opsional best practice)
-        const existing = document.querySelector('.notification');
-        if(existing) existing.remove();
-
-        const div = document.createElement('div');
-        div.className = `notification notification-${type}`;
-        div.textContent = message;
-        
-        // Inline styles untuk memastikan tampilan konsisten
-        Object.assign(div.style, {
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            padding: '15px 25px',
-            backgroundColor: type === 'success' ? '#4CAF50' : (type === 'error' ? '#f44336' : '#2196F3'),
-            color: 'white',
-            borderRadius: '4px',
-            zIndex: '9999',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
-            animation: 'fadeIn 0.3s'
-        });
-
-        document.body.appendChild(div);
-
-        setTimeout(() => {
-            div.style.opacity = '0';
-            setTimeout(() => div.remove(), 300); // Wait for fade out
-        }, 3000);
-    },
     
-    logout: function() {
-        sessionStorage.removeItem('user');
-        localStorage.removeItem('auth_token');
-        // Gunakan absolute path agar aman dipanggil dari mana saja
-        window.location.href = '../pages/login.html'; 
-    }
+    // Properti global untuk menyimpan data user yang sedang login
+    user: null 
 };
 
-// --- GLOBAL INIT & AUTH GUARD ---
-// Menjalankan logic umum segera setelah DOM siap
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Skip check untuk halaman login
-    if (window.location.pathname.endsWith('login.html')) {
-        return;
-    }
-
-    // 2. Auth Guard
-    if (!window.ringiSystem.user) {
-        console.warn("Unauthorized access. Redirecting to login.");
-        // Sesuaikan redirect path
-        window.location.href = 'login.html';
-        return;
-    }
-
-    // 3. Global UI Updates (misal: Menampilkan nama user di Navbar)
-    const userNameEl = document.getElementById('user-name-display');
-    if (userNameEl) {
-        userNameEl.textContent = `Login: ${window.ringiSystem.user.name}`;
-    }
+$(document).ready(function() {
+    $('.sidebar-toggle').on('click', function() {
+        $('.sidebar').toggleClass('active');
+    });
+    
+    $('.dropdown-toggle').on('click', function(e) {
+        e.preventDefault();
+        $(this).next('.dropdown-menu').slideToggle(200);
+    });
+    
+    $('#btn-logout').on('click', async function(e) {
+        e.preventDefault();
+        // Panggil endpoint logout di backend untuk menghancurkan session PHP
+        await ringiSystem.apiRequest('POST', 'auth/logout');
+        
+        sessionStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        window.location.href = '../pages/login.html'; // Perbaikan path redirect
+    });
 });

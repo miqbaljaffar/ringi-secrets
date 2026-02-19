@@ -120,7 +120,7 @@ class OtherFormHandler {
                 const msg = saveMode === 'draft' ? '下書き保存しました (Draft Tersimpan)' : '申請が完了しました (Berhasil Diajukan)';
                 ringiSystem.showNotification(msg, 'success');
                 setTimeout(() => {
-                    window.location.href = `/pages/detail.html?id=${response.doc_id}&type=others`;
+                    window.location.href = `detail.html?id=${response.doc_id}&type=others`;
                 }, 1500);
             } else {
                 if (response.errors) {

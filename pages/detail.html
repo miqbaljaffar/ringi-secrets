@@ -8,85 +8,87 @@
     <link rel="stylesheet" href="../assets/css/detail.css" />
   </head>
   <body>
-    <div id="app" class="container">
+    <div class="container" id="detail-content" style="display:none;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <a href="list.html" style="text-decoration: none; color: #0088cc; font-size: 14px">
           <i class="fas fa-arrow-left"></i> 一覧に戻る
         </a>
       </div>
 
-      <div v-if="form.dt_approved_2" class="stamp stamp-approved"></div>
-      <div v-if="form.dt_rejected" class="stamp stamp-rejected"></div>
+      <!-- Stamp status dikendalikan display-nya via JS -->
+      <div id="stamp-approved" class="stamp stamp-approved" style="display: none;"></div>
+      <div id="stamp-rejected" class="stamp stamp-rejected" style="display: none;"></div>
+      <div id="stamp-withdrawn" class="stamp stamp-withdrawn" style="display: none;"></div>
 
-      <h1>稟議書詳細: {{ form.id_doc }}</h1>
+      <h1>稟議書詳細: <span id="lbl_id"></span></h1>
+      
+      <p style="text-align:center; font-weight:bold; color: #555;">申請者: <span id="lbl_applicant"></span> | 申請日: <span id="lbl_date"></span></p>
 
-      <div v-if="docType === 'tax'">
+      <!-- BAGIAN FORM PAJAK (Hanya ditampilkan jika docType === tax) -->
+      <div id="tax-section" style="display: none;">
           <h2>基本情報 (Basic Info)</h2>
-          <table class="detail-table">
+          <table class="detail-table" style="width: 100%; text-align: left; line-height: 1.8;">
               <tr>
-                  <th>商号 (Company)</th>
-                  <td>{{ form.s_name }} ({{ form.s_kana }})</td>
+                  <th width="150">商号 (Company)</th>
+                  <td><span id="tax_s_name"></span> (<span id="tax_s_kana"></span>)</td>
               </tr>
               <tr>
                   <th>代表者 (Rep)</th>
                   <td>
-                      {{ form.s_rep_name }}<br>
+                      <span id="tax_s_rep_name"></span><br>
                       <span style="font-size: 0.9em; color: #666;">
-                          自宅: 〒{{ form.s_rep_pcode }} {{ form.s_rep_address }} {{ form.s_rep_address2 }}
+                          自宅: 〒<span id="tax_s_rep_pcode"></span> <span id="tax_s_rep_address"></span> <span id="tax_s_rep_address2"></span>
                       </span>
                   </td>
               </tr>
               <tr>
                   <th>住所 (Address)</th>
-                  <td>〒{{ form.s_office_pcode }}<br>{{ form.s_office_address }} {{ form.s_office_address2 }}</td>
+                  <td>〒<span id="tax_s_office_pcode"></span><br><span id="tax_s_office_address"></span> <span id="tax_s_office_address2"></span></td>
               </tr>
               <tr>
                   <th>電話番号 (Tel)</th>
-                  <td>{{ form.s_office_tel }}</td>
+                  <td><span id="tax_s_office_tel"></span></td>
               </tr>
           </table>
 
           <h2>税務情報 (Tax Info)</h2>
-          <table class="detail-table">
+          <table class="detail-table" style="width: 100%; text-align: left; line-height: 1.8;">
               <tr>
-                  <th>管轄税務署</th><td>{{ form.s_tax_office }}</td>
-                  <th>決算月</th><td>{{ form.n_closing_month }}月</td>
+                  <th width="150">管轄税務署</th><td id="tax_s_tax_office"></td>
+                  <th width="150">決算月</th><td id="tax_n_closing_month"></td>
               </tr>
               <tr>
-                  <th>納税No</th><td>{{ form.s_tax_num }}</td>
+                  <th>納税No</th><td id="tax_s_tax_num"></td>
                   <th>電子申告ID</th>
                   <td>
-                      国税: {{ form.s_national_tax_id || '-' }}<br>
-                      地方税: {{ form.s_local_tax_id || '-' }}
+                      国税: <span id="tax_s_national_tax_id"></span><br>
+                      地方税: <span id="tax_s_local_tax_id"></span>
                   </td>
               </tr>
           </table>
 
           <h2>契約内容 (Contract)</h2>
           <div class="section">
-              <p><strong>経緯:</strong> <br>{{ form.s_situation }}</p>
-              <p><strong>開始日:</strong> {{ form.dt_contract_start }}</p>
+              <p><strong>経緯:</strong> <br><span id="tax_s_situation" style="white-space: pre-wrap;"></span></p>
+              <p><strong>開始日:</strong> <span id="tax_dt_contract_start"></span></p>
           </div>
       </div>
 
-      <div v-else-if="docType === 'common'">
+      <!-- BAGIAN FORM UMUM (Hanya ditampilkan jika docType === common) -->
+      <div id="common-section" style="display: none;">
           <div class="section">
              <div class="form-group">
                 <label class="form-label">件名</label>
-                <div class="form-control-wrapper">{{ form.s_title }}</div>
+                <div class="form-control-wrapper"><span id="common_s_title"></span></div>
              </div>
              <div class="form-group">
                 <label class="form-label">概要</label>
-                <div class="form-control-wrapper" style="white-space: pre-wrap;">{{ form.s_overview }}</div>
+                <div class="form-control-wrapper" style="white-space: pre-wrap;" id="common_s_overview"></div>
              </div>
-             <table class="approval-table" v-if="form.details && form.details.length">
+             <table class="approval-table" style="margin-top:20px;">
                  <thead><tr><th>分類</th><th>支払先</th><th>金額</th></tr></thead>
-                 <tbody>
-                     <tr v-for="d in form.details">
-                         <td>{{ d.s_category }}</td>
-                         <td>{{ d.s_payer }}</td>
-                         <td class="text-right">{{ d.n_amount | currency }}</td>
-                     </tr>
+                 <tbody id="details-tbody">
+                     <!-- Diisi melalui JS jQuery -->
                  </tbody>
              </table>
           </div>
@@ -103,31 +105,29 @@
                         <th>Date</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr v-for="(step, index) in approvalRoute" :key="index">
-                        <td>{{ step.role }}</td>
-                        <td :style="{ color: step.statusColor, fontWeight: 'bold' }">
-                            {{ step.statusText }}
-                        </td>
-                        <td>{{ step.name }}</td>
-                        <td>{{ step.date || '-' }}</td>
-                    </tr>
+                <tbody id="approval-route-tbody">
+                    <!-- Diisi melalui JS jQuery -->
                 </tbody>
             </table>
       </div>
 
-      <div class="btn-area" v-if="canApprove">
-            <button type="button" class="btn btn-danger" @click="doReject">
+      <!-- Tombol Aksi (Hanya ditampilkan sesuai logic js permission) -->
+      <div class="btn-area action-approval" style="display:none;">
+            <button type="button" class="btn btn-danger" id="btn-reject">
               <i class="fas fa-times"></i> 否認 (Reject)
             </button>
-            <button type="button" class="btn btn-primary" @click="doApprove">
+            <button type="button" class="btn btn-primary" id="btn-approve">
               <i class="fas fa-check"></i> 承認 (Approve)
             </button>
       </div>
 
     </div>
     
-    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <div id="detail-loading" style="text-align:center; margin: 50px 0; font-size: 20px;">
+        <i class="fas fa-spinner fa-spin"></i> 読み込み中...
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="../assets/js/main.js"></script>
     <script src="../assets/js/modules/detail.js"></script>
   </body>

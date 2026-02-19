@@ -9,31 +9,24 @@
 </head>
 <body>
 
-<div id="app" class="container">
+<div class="container">
     <h1>新規稟議申請 (税務契約)</h1>
 
-    <form @submit.prevent="submitForm" id="taxContractForm">
+    <form id="contract-form">
         
         <div class="section">
             <div class="form-group">
                 <label class="form-label required">稟議書No</label>
                 <div class="form-control-wrapper">
-                    <input type="text" v-model="generatedDocNo" class="input-mid" readonly style="background-color: #e9ecef; font-weight: bold; color: #0088cc;">
+                    <input type="text" name="id_doc" id="id_doc" class="input-mid" readonly style="background-color: #e9ecef; font-weight: bold; color: #0088cc;" placeholder="自動採番">
                     <span class="note">※自動採番 (Prefix: CT)</span>
                 </div>
             </div>
 
             <div class="form-group">
-                <label class="form-label required">稟議書種別</label>
-                <div class="form-control-wrapper">
-                    <label><input type="radio" name="doc_type" value="contract" checked> 契約稟議 (税務)</label>
-                </div>
-            </div>
-            
-            <div class="form-group">
                 <label class="form-label required">申請日</label>
                 <div class="form-control-wrapper">
-                     <input type="date" v-model="form.applied_date" readonly>
+                     <input type="date" name="ts_applied" id="applied_date" readonly>
                 </div>
             </div>
         </div>
@@ -43,44 +36,44 @@
             <div class="form-group">
                 <label class="form-label required">法人・個人区分</label>
                 <div class="form-control-wrapper">
-                    <label><input type="radio" value="1" v-model="form.corp_type"> 法人</label>
-                    <label><input type="radio" value="2" v-model="form.corp_type"> 個人</label>
+                    <label><input type="radio" name="n_type" value="1" checked> 法人</label>
+                    <label><input type="radio" name="n_type" value="2"> 個人</label>
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label required">商号、屋号</label>
                 <div class="form-control-wrapper">
-                    <input type="text" id="company_name" v-model="form.company_name" placeholder="例：株式会社アイワークス" required maxlength="100">
+                    <input type="text" name="s_name" id="company_name" placeholder="例：株式会社アイワークス" required maxlength="100">
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label required">フリガナ</label>
                 <div class="form-control-wrapper">
-                    <input type="text" id="company_kana" v-model="form.company_kana" placeholder="自動入力" required maxlength="100">
+                    <input type="text" name="s_kana" id="company_kana" placeholder="自動入力" required maxlength="100">
                 </div>
             </div>
             
-            <div v-if="isCorporate">
+            <div class="corporate-only">
                 <div class="form-group">
                     <label class="form-label required" style="color: #800080;">設立年月日</label>
                     <div class="form-control-wrapper">
-                        <input type="date" v-model="form.establishment_date" required>
+                        <input type="date" name="dt_establishment" required>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" style="color: #800080;">資本金</label>
                     <div class="form-control-wrapper">
-                        <input type="text" :value="form.capital | formatNumber" @input="updateNumber($event, 'capital')" class="input-mid text-right"> 円
+                        <input type="text" name="n_capital" class="input-mid text-right money-input"> 円
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" style="color: #800080;">直前期</label>
                     <div class="form-control-wrapper">
-                        <input type="number" v-model="form.n_before" class="input-short text-right"> 期
+                        <input type="number" name="n_before" class="input-short text-right"> 期
                     </div>
                 </div>
             </div>
@@ -90,36 +83,45 @@
             <div class="form-group">
                 <label class="form-label required">業種名</label>
                 <div class="form-control-wrapper">
-                    <input type="text" v-model="form.industry_name" placeholder="例：ソフトウェア開発業" required maxlength="50">
+                    <input type="text" name="s_industry" placeholder="例：ソフトウェア開発業" required maxlength="50">
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label required">業種コード (産業分類)</label>
                 <div class="form-control-wrapper flex-row">
-                    <select v-model="form.industry_cat_1" class="input-short" required>
-                        <option value="" disabled>大</option>
-                        <option v-for="c in 'ABCDEFGHIJKLMNOPQRST'" :value="c">{{c}}</option>
+                    <select name="cat1" class="input-short" required>
+                        <option value="" disabled selected>大</option>
+                        <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+                        <option value="D">D</option><option value="E">E</option><option value="F">F</option>
+                        <option value="G">G</option><option value="H">H</option><option value="I">I</option>
+                        <option value="J">J</option><option value="K">K</option><option value="L">L</option>
+                        <option value="M">M</option><option value="N">N</option><option value="O">O</option>
+                        <option value="P">P</option><option value="Q">Q</option><option value="R">R</option>
+                        <option value="S">S</option><option value="T">T</option>
                     </select>
-                    <input type="text" v-model="form.industry_cat_2" maxlength="2" pattern="\d{2}" class="input-short" placeholder="中(01)" required>
-                    <input type="text" v-model="form.industry_cat_3" maxlength="1" pattern="\d{1}" class="input-short" placeholder="小(1)" required>
+                    <input type="text" name="cat2" maxlength="2" pattern="\d{2}" class="input-short" placeholder="中(01)" required>
+                    <input type="text" name="cat3" maxlength="1" pattern="\d{1}" class="input-short" placeholder="小(1)" required>
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label required">業種コード (OMS)</label>
                 <div class="form-control-wrapper">
-                    <input type="text" v-model="form.industry_oms" maxlength="4" pattern="\d{4}" class="input-mid" placeholder="0000" required>
+                    <input type="text" name="s_industry_oms" maxlength="4" pattern="\d{4}" class="input-mid" placeholder="0000" required>
                 </div>
             </div>
 
             <div class="section-sub-title">税務・住所情報</div>
 
-            <div class="form-group">
-                <label class="form-label required" :style="isCorporate ? 'color:#800080' : ''">決算月</label>
+            <div class="form-group corporate-only">
+                <label class="form-label required" style="color:#800080">決算月</label>
                 <div class="form-control-wrapper">
-                    <select v-model="form.closing_month" class="input-short">
-                        <option v-for="n in 12" :value="n">{{ n }}月</option>
+                    <select name="n_closing_month" class="input-short">
+                        <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+                        <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+                        <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+                        <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
                     </select>
                 </div>
             </div>
@@ -127,30 +129,30 @@
             <div class="form-group">
                 <label class="form-label required">申告区分</label>
                 <div class="form-control-wrapper">
-                    <label><input type="radio" value="A" v-model="form.declaration_type"> 青色</label>
-                    <label><input type="radio" value="B" v-model="form.declaration_type"> 白色</label>
+                    <label><input type="radio" name="s_declaration_type" value="A" checked> 青色</label>
+                    <label><input type="radio" name="s_declaration_type" value="B"> 白色</label>
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label required">納税地区分</label>
                 <div class="form-control-wrapper">
-                    <label><input type="radio" value="1" v-model="form.tax_place"> 事業所</label>
-                    <label><input type="radio" value="2" v-model="form.tax_place"> 自宅</label>
+                    <label><input type="radio" name="n_tax_place" value="1" checked> 事業所</label>
+                    <label><input type="radio" name="n_tax_place" value="2"> 自宅</label>
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label required">管轄税務署</label>
                 <div class="form-control-wrapper">
-                    <input type="text" v-model="form.tax_office_name" required maxlength="20">
+                    <input type="text" name="s_tax_office" required maxlength="20">
                 </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label required">納税No</label>
                 <div class="form-control-wrapper">
-                    <input type="text" v-model="form.tax_number" maxlength="8" pattern="\d{8}" placeholder="数値8桁" required>
+                    <input type="text" name="s_tax_num" maxlength="8" pattern="\d{8}" placeholder="数値8桁" required>
                 </div>
             </div>
 
@@ -158,36 +160,36 @@
                 <label class="form-label required">事業所住所</label>
                 <div class="form-control-wrapper">
                     <div style="width: 100%; margin-bottom: 5px;">
-                        〒 <input type="text" v-model="form.zip1" class="input-short" maxlength="3" pattern="\d{3}"> - 
-                        <input type="text" v-model="form.zip2" class="input-short" maxlength="4" pattern="\d{4}">
-                        <button type="button" class="btn-secondary btn-sm" @click="searchAddress('office')">住所検索</button>
+                        〒 <input type="text" name="zip1" class="input-short" maxlength="3" pattern="\d{3}"> - 
+                        <input type="text" name="zip2" class="input-short" maxlength="4" pattern="\d{4}">
+                        <button type="button" class="btn-secondary btn-sm btn-address-search" data-target="office">住所検索</button>
                     </div>
-                    <input type="text" v-model="form.address" style="width: 100%; margin-bottom: 5px;" placeholder="住所" required maxlength="100">
-                    <input type="text" v-model="form.address2" style="width: 100%;" placeholder="ビル名・階数" maxlength="100">
+                    <input type="text" name="s_office_address" id="address" style="width: 100%; margin-bottom: 5px;" placeholder="住所" required maxlength="100">
+                    <input type="text" name="s_office_address2" style="width: 100%;" placeholder="ビル名・階数" maxlength="100">
                 </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label required">事業所TEL</label>
                 <div class="form-control-wrapper flex-row">
-                    <input type="text" v-model="form.tel1" class="input-short" maxlength="5"> - 
-                    <input type="text" v-model="form.tel2" class="input-short" maxlength="4"> - 
-                    <input type="text" v-model="form.tel3" class="input-short" maxlength="4">
+                    <input type="text" name="tel1" class="input-short" maxlength="5"> - 
+                    <input type="text" name="tel2" class="input-short" maxlength="4"> - 
+                    <input type="text" name="tel3" class="input-short" maxlength="4">
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label required">郵送先</label>
                 <div class="form-control-wrapper">
-                    <label><input type="radio" value="1" v-model="form.send_to"> 事業所</label>
-                    <label><input type="radio" value="2" v-model="form.send_to"> 代表者自宅</label>
-                    <label><input type="radio" value="9" v-model="form.send_to"> その他</label>
+                    <label><input type="radio" name="n_send_to" value="1" checked> 事業所</label>
+                    <label><input type="radio" name="n_send_to" value="2"> 代表者自宅</label>
+                    <label><input type="radio" name="n_send_to" value="9"> その他</label>
                 </div>
             </div>
-            <div class="form-group" v-if="form.send_to == '9'">
+            <div class="form-group send-to-others-group" style="display:none;">
                  <label class="form-label">郵送先 (その他)</label>
                  <div class="form-control-wrapper">
-                     <input type="text" v-model="form.send_to_others" placeholder="その他の郵送先住所" maxlength="100">
+                     <input type="text" name="s_send_to_others" placeholder="その他の郵送先住所" maxlength="100">
                  </div>
             </div>
         </div>
@@ -197,44 +199,46 @@
             <div class="form-group">
                 <label class="form-label required">代表者氏名</label>
                 <div class="form-control-wrapper flex-row">
-                    <input type="text" v-model="form.rep_name_sei" placeholder="姓" class="input-mid" required maxlength="15">
-                    <input type="text" v-model="form.rep_name_mei" placeholder="名" class="input-mid" required maxlength="15">
+                    <!-- Penambahan ID id="rep_name_sei" dan id="rep_name_mei" -->
+                    <input type="text" name="rep_name_sei" id="rep_name_sei" placeholder="姓" class="input-mid" required maxlength="15">
+                    <input type="text" name="rep_name_mei" id="rep_name_mei" placeholder="名" class="input-mid" required maxlength="15">
                 </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label required">代表者フリガナ</label>
                 <div class="form-control-wrapper flex-row">
-                    <input type="text" v-model="form.rep_kana_sei" placeholder="セイ" class="input-mid" required maxlength="15">
-                    <input type="text" v-model="form.rep_kana_mei" placeholder="メイ" class="input-mid" required maxlength="15">
+                    <!-- Penambahan ID id="rep_kana_sei" dan id="rep_kana_mei" -->
+                    <input type="text" name="rep_kana_sei" id="rep_kana_sei" placeholder="セイ" class="input-mid" required maxlength="15">
+                    <input type="text" name="rep_kana_mei" id="rep_kana_mei" placeholder="メイ" class="input-mid" required maxlength="15">
                 </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label required">肩書き</label>
                 <div class="form-control-wrapper">
-                    <label><input type="radio" value="1" v-model="form.rep_title"> 代表取締役</label>
-                    <label><input type="radio" value="2" v-model="form.rep_title"> 取締役</label>
-                    <label><input type="radio" value="3" v-model="form.rep_title"> 理事長</label>
-                    <label><input type="radio" value="4" v-model="form.rep_title"> 代表社員</label>
-                    <label><input type="radio" value="9" v-model="form.rep_title"> その他</label>
-                    <input type="text" v-model="form.rep_title_others" class="input-mid" v-if="form.rep_title == '9'" placeholder="その他肩書き" maxlength="30">
+                    <label><input type="radio" name="s_rep_title" value="1" checked> 代表取締役</label>
+                    <label><input type="radio" name="s_rep_title" value="2"> 取締役</label>
+                    <label><input type="radio" name="s_rep_title" value="3"> 理事長</label>
+                    <label><input type="radio" name="s_rep_title" value="4"> 代表社員</label>
+                    <label><input type="radio" name="s_rep_title" value="9"> その他</label>
+                    <input type="text" name="s_rep_title_others" id="rep_title_others_input" class="input-mid" style="display:none;" placeholder="その他肩書き" maxlength="30">
                 </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label required">メールアドレス</label>
                 <div class="form-control-wrapper">
-                    <label><input type="radio" value="1" v-model="form.rep_email_exists"> あり</label>
-                    <label><input type="radio" value="0" v-model="form.rep_email_exists"> なし</label>
-                    <input type="email" v-model="form.rep_email" placeholder="representative@example.com" v-if="form.rep_email_exists == '1'" style="width: 300px;" maxlength="100">
+                    <label><input type="radio" name="rep_email_exists" value="1" checked> あり</label>
+                    <label><input type="radio" name="rep_email_exists" value="0"> なし</label>
+                    <input type="email" name="s_rep_email" id="rep_email_input" placeholder="representative@example.com" style="width: 300px;" maxlength="100">
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label required">生年月日</label>
                 <div class="form-control-wrapper">
-                    <input type="date" v-model="form.rep_birth" required>
+                    <input type="date" name="dt_rep_birth" required>
                 </div>
             </div>
 
@@ -243,23 +247,23 @@
                 <label class="form-label required">自宅住所</label>
                 <div class="form-control-wrapper">
                     <div style="width: 100%; margin-bottom: 5px;">
-                        〒 <input type="text" v-model="form.rep_zip1" class="input-short" maxlength="3" pattern="\d{3}"> - 
-                        <input type="text" v-model="form.rep_zip2" class="input-short" maxlength="4" pattern="\d{4}">
-                        <button type="button" class="btn-secondary btn-sm" @click="searchAddress('home')">住所検索</button>
+                        〒 <input type="text" name="rep_zip1" class="input-short" maxlength="3" pattern="\d{3}"> - 
+                        <input type="text" name="rep_zip2" class="input-short" maxlength="4" pattern="\d{4}">
+                        <button type="button" class="btn-secondary btn-sm btn-address-search" data-target="rep">住所検索</button>
                     </div>
-                    <input type="text" v-model="form.rep_address" style="width: 100%; margin-bottom: 5px;" placeholder="住所" required maxlength="100">
-                    <input type="text" v-model="form.rep_address2" style="width: 100%;" placeholder="マンション名等" maxlength="100">
+                    <input type="text" name="s_rep_address" id="rep_address" style="width: 100%; margin-bottom: 5px;" placeholder="住所" required maxlength="100">
+                    <input type="text" name="s_rep_address2" style="width: 100%;" placeholder="マンション名等" maxlength="100">
                 </div>
             </div>
             <div class="form-group">
                 <label class="form-label required">自宅TEL</label>
                 <div class="form-control-wrapper">
-                    <label><input type="radio" value="1" v-model="form.rep_tel_exists"> あり</label>
-                    <label><input type="radio" value="0" v-model="form.rep_tel_exists"> なし</label>
-                    <div v-if="form.rep_tel_exists == '1'" class="flex-row">
-                        <input type="text" v-model="form.rep_tel1" class="input-short" maxlength="5"> - 
-                        <input type="text" v-model="form.rep_tel2" class="input-short" maxlength="4"> - 
-                        <input type="text" v-model="form.rep_tel3" class="input-short" maxlength="4">
+                    <label><input type="radio" name="rep_tel_exists" value="1" checked> あり</label>
+                    <label><input type="radio" name="rep_tel_exists" value="0"> なし</label>
+                    <div id="rep_tel_group" class="flex-row">
+                        <input type="text" name="rep_tel1" class="input-short" maxlength="5"> - 
+                        <input type="text" name="rep_tel2" class="input-short" maxlength="4"> - 
+                        <input type="text" name="rep_tel3" class="input-short" maxlength="4">
                     </div>
                 </div>
             </div>
@@ -270,38 +274,38 @@
             <div class="form-group">
                  <label class="form-label required">電子申告開始届</label>
                  <div class="form-control-wrapper">
-                     <label><input type="radio" value="1" v-model="form.e_filing"> 要</label>
-                     <label><input type="radio" value="2" v-model="form.e_filing"> 不要</label>
+                     <label><input type="radio" name="n_e_filing" value="1" checked> 要</label>
+                     <label><input type="radio" name="n_e_filing" value="2"> 不要</label>
                  </div>
             </div>
-            <div class="form-group" v-if="form.e_filing == '1'">
+            <div class="form-group e-filing-reason-group">
                 <label class="form-label">開始届理由</label>
                 <div class="form-control-wrapper">
-                    <textarea v-model="form.e_filing_reason" style="height: 60px;"></textarea>
+                    <textarea name="s_e_filing_reason" style="height: 60px;"></textarea>
                 </div>
             </div>
             <div class="form-group">
                  <label class="form-label">国税利用者識別番号</label>
                  <div class="form-control-wrapper">
-                     <input type="text" v-model="form.national_tax_id" class="input-mid" maxlength="16" pattern="\d{16}" placeholder="数値16桁">
+                     <input type="text" name="s_national_tax_id" class="input-mid" maxlength="16" pattern="\d{16}" placeholder="数値16桁">
                  </div>
             </div>
             <div class="form-group">
                  <label class="form-label">国税暗証番号</label>
                  <div class="form-control-wrapper">
-                     <input type="text" v-model="form.national_tax_pw" class="input-mid" placeholder="英数字8~50桁" maxlength="50">
+                     <input type="text" name="s_national_tax_pw" class="input-mid" placeholder="英数字8~50桁" maxlength="50">
                  </div>
             </div>
             <div class="form-group">
                 <label class="form-label">地方税利用者ID</label>
                 <div class="form-control-wrapper">
-                    <input type="text" v-model="form.local_tax_id" class="input-mid" maxlength="11" placeholder="英3桁+数値8桁">
+                    <input type="text" name="s_local_tax_id" class="input-mid" maxlength="11" placeholder="英3桁+数値8桁">
                 </div>
            </div>
            <div class="form-group">
                 <label class="form-label">地方税暗証番号</label>
                 <div class="form-control-wrapper">
-                    <input type="text" v-model="form.local_tax_pw" class="input-mid" placeholder="英数字8~16桁" maxlength="16">
+                    <input type="text" name="s_local_tax_pw" class="input-mid" placeholder="英数字8~16桁" maxlength="16">
                 </div>
            </div>
         </div>
@@ -314,36 +318,31 @@
                     <div class="fin-item">
                         <label>総資産</label>
                         <div class="input-with-unit">
-                            <input type="text" :value="form.fin_assets | formatNumber" @input="updateNumber($event, 'fin_assets')" class="text-right">
-                            <span>円</span>
+                            <input type="text" name="n_pre_total" class="text-right money-input"><span>円</span>
                         </div>
                     </div>
                     <div class="fin-item">
                         <label>売上高</label>
                         <div class="input-with-unit">
-                             <input type="text" :value="form.fin_sales | formatNumber" @input="updateNumber($event, 'fin_sales')" class="text-right">
-                             <span>円</span>
+                             <input type="text" name="n_pre_sales" class="text-right money-input"><span>円</span>
                         </div>
                     </div>
                     <div class="fin-item">
                         <label>金融債務</label>
                         <div class="input-with-unit">
-                            <input type="text" :value="form.fin_debt | formatNumber" @input="updateNumber($event, 'fin_debt')" class="text-right">
-                            <span>円</span>
+                            <input type="text" name="n_pre_debt" class="text-right money-input"><span>円</span>
                         </div>
                     </div>
                     <div class="fin-item">
                         <label>当期利益</label>
                         <div class="input-with-unit">
-                            <input type="text" :value="form.fin_income | formatNumber" @input="updateNumber($event, 'fin_income')" class="text-right">
-                            <span>円</span>
+                            <input type="text" name="n_pre_income" class="text-right money-input"><span>円</span>
                         </div>
                     </div>
                     <div class="fin-item">
                         <label>従事者数</label>
                         <div class="input-with-unit">
-                            <input type="number" v-model="form.fin_workers" class="text-right">
-                            <span>名</span>
+                            <input type="number" name="n_pre_workers" class="text-right"><span>名</span>
                         </div>
                     </div>
                 </div>
@@ -352,9 +351,9 @@
             <div class="form-group">
                 <label class="form-label">消費税区分</label>
                 <div class="form-control-wrapper">
-                    <label><input type="radio" value="1" v-model="form.consumption_tax"> 本則</label>
-                    <label><input type="radio" value="2" v-model="form.consumption_tax"> 簡易</label>
-                    <label><input type="radio" value="3" v-model="form.consumption_tax"> 免税</label>
+                    <label><input type="radio" name="n_comsumption_tax" value="1" checked> 本則</label>
+                    <label><input type="radio" name="n_comsumption_tax" value="2"> 簡易</label>
+                    <label><input type="radio" name="n_comsumption_tax" value="3"> 免税</label>
                 </div>
             </div>
 
@@ -362,14 +361,14 @@
                 <label class="form-label">貿易・関連会社</label>
                 <div class="form-control-wrapper">
                      <span class="sub-label">貿易:</span>
-                     <label><input type="radio" value="1" v-model="form.trade_type"> 輸入</label>
-                     <label><input type="radio" value="2" v-model="form.trade_type"> 輸出</label>
-                     <label><input type="radio" value="3" v-model="form.trade_type"> 輸出入</label>
-                     <label><input type="radio" value="0" v-model="form.trade_type"> なし</label>
+                     <label><input type="radio" name="n_trade" value="1"> 輸入</label>
+                     <label><input type="radio" name="n_trade" value="2"> 輸出</label>
+                     <label><input type="radio" name="n_trade" value="3"> 輸出入</label>
+                     <label><input type="radio" name="n_trade" value="0" checked> なし</label>
                      
                      <span class="sub-label" style="margin-left: 15px;">関連会社:</span>
-                     <label><input type="radio" value="1" v-model="form.affiliated_company"> あり</label>
-                     <label><input type="radio" value="0" v-model="form.affiliated_company"> なし</label>
+                     <label><input type="radio" name="n_affiliated_company" value="1"> あり</label>
+                     <label><input type="radio" name="n_affiliated_company" value="0" checked> なし</label>
                 </div>
             </div>
 
@@ -378,14 +377,14 @@
             <div class="form-group">
                 <label class="form-label">自計化状況</label>
                 <div class="form-control-wrapper vertical-radio">
-                    <label><input type="radio" value="1" v-model="form.self_accounting"> 自計化</label>
-                    <label><input type="radio" value="2" v-model="form.self_accounting"> 半自計化</label>
-                    <label><input type="radio" value="3" v-model="form.self_accounting"> 伝票・帳簿等作成</label>
-                    <label><input type="radio" value="4" v-model="form.self_accounting"> 原始記録のみ(整理済み)</label>
-                    <label><input type="radio" value="5" v-model="form.self_accounting"> 原始記録のみ(未整理)</label>
+                    <label><input type="radio" name="n_self_accounting" value="1" checked> 自計化</label>
+                    <label><input type="radio" name="n_self_accounting" value="2"> 半自計化</label>
+                    <label><input type="radio" name="n_self_accounting" value="3"> 伝票・帳簿等作成</label>
+                    <label><input type="radio" name="n_self_accounting" value="4"> 原始記録のみ(整理済み)</label>
+                    <label><input type="radio" name="n_self_accounting" value="5"> 原始記録のみ(未整理)</label>
                     <div class="flex-row">
-                        <label><input type="radio" value="9" v-model="form.self_accounting"> その他</label>
-                        <input type="text" v-model="form.self_accounting_others" v-if="form.self_accounting == '9'" placeholder="内容" class="input-mid" maxlength="50">
+                        <label><input type="radio" name="n_self_accounting" value="9"> その他</label>
+                        <input type="text" name="s_self_accounting_others" id="self_accounting_others" style="display:none;" placeholder="内容" class="input-mid" maxlength="50">
                     </div>
                 </div>
             </div>
@@ -393,14 +392,14 @@
             <div class="form-group">
                 <label class="form-label">会計ソフト</label>
                 <div class="form-control-wrapper">
-                    <label><input type="radio" value="1" v-model="form.accounting_soft"> TKC</label>
-                    <label><input type="radio" value="2" v-model="form.accounting_soft"> 弥生会計</label>
-                    <label><input type="radio" value="3" v-model="form.accounting_soft"> 勘定奉行</label>
-                    <label><input type="radio" value="4" v-model="form.accounting_soft"> MoneyForward</label>
-                    <label><input type="radio" value="8" v-model="form.accounting_soft"> 未利用</label>
+                    <label><input type="radio" name="n_accounting_apps" value="1" checked> TKC</label>
+                    <label><input type="radio" name="n_accounting_apps" value="2"> 弥生会計</label>
+                    <label><input type="radio" name="n_accounting_apps" value="3"> 勘定奉行</label>
+                    <label><input type="radio" name="n_accounting_apps" value="4"> MoneyForward</label>
+                    <label><input type="radio" name="n_accounting_apps" value="8"> 未利用</label>
                     <div class="flex-row" style="display:inline-flex;">
-                        <label><input type="radio" value="9" v-model="form.accounting_soft"> その他</label>
-                        <input type="text" v-model="form.accounting_soft_others" v-if="form.accounting_soft == '9'" placeholder="ソフト名" class="input-mid" maxlength="100">
+                        <label><input type="radio" name="n_accounting_apps" value="9"> その他</label>
+                        <input type="text" name="s_accounting_apps_others" id="accounting_soft_others" style="display:none;" placeholder="ソフト名" class="input-mid" maxlength="100">
                     </div>
                 </div>
             </div>
@@ -408,12 +407,20 @@
             <div class="form-group">
                 <label class="form-label">作成している帳簿<span class="note">(複数選択可)</span></label>
                 <div class="form-control-wrapper checkbox-grid">
-                    <label v-for="(book, idx) in bookOptions" :key="idx">
-                        <input type="checkbox" :value="idx+1" v-model="form.books"> {{ book }}
-                    </label>
+                    <label><input type="checkbox" name="s_books[]" value="1"> 現金出納帳</label>
+                    <label><input type="checkbox" name="s_books[]" value="2"> 預金出納帳</label>
+                    <label><input type="checkbox" name="s_books[]" value="3"> 売掛金元帳</label>
+                    <label><input type="checkbox" name="s_books[]" value="4"> 買掛金元帳</label>
+                    <label><input type="checkbox" name="s_books[]" value="5"> 手形記入帳</label>
+                    <label><input type="checkbox" name="s_books[]" value="6"> 固定資産台帳</label>
+                    <label><input type="checkbox" name="s_books[]" value="7"> 賃金台帳</label>
+                    <label><input type="checkbox" name="s_books[]" value="8"> 在庫表</label>
+                    <label><input type="checkbox" name="s_books[]" value="9"> 現金収支日報</label>
+                    <label><input type="checkbox" name="s_books[]" value="10"> 会計日記帳</label>
+                    <label><input type="checkbox" name="s_books[]" value="11"> 入出金伝票</label>
                     <div class="flex-row full-width">
-                        <label><input type="checkbox" value="99" v-model="form.books"> その他</label>
-                        <input type="text" v-model="form.books_others" :disabled="!form.books.includes(99)" placeholder="その他の帳簿" class="input-mid" maxlength="100">
+                        <label><input type="checkbox" name="s_books[]" value="99" id="book_other_check"> その他</label>
+                        <input type="text" name="s_books_others" id="books_others_input" disabled placeholder="その他の帳簿" class="input-mid" maxlength="100">
                     </div>
                 </div>
             </div>
@@ -421,15 +428,15 @@
             <div class="form-group">
                 <label class="form-label">1ヶ月の伝票枚数</label>
                 <div class="form-control-wrapper">
-                    <input type="number" v-model="form.slip_count" class="input-mid text-right"> 枚程度
+                    <input type="number" name="n_slip_count" class="input-mid text-right"> 枚程度
                 </div>
             </div>
             
             <div class="form-group">
                 <label class="form-label">経理担当者の有無</label>
                 <div class="form-control-wrapper">
-                    <label><input type="radio" value="1" v-model="form.accounting_staff"> あり</label>
-                    <label><input type="radio" value="0" v-model="form.accounting_staff"> なし</label>
+                    <label><input type="radio" name="n_accounting_staff" value="1" checked> あり</label>
+                    <label><input type="radio" name="n_accounting_staff" value="0"> なし</label>
                 </div>
             </div>
         </div>
@@ -439,7 +446,7 @@
             <div class="form-group">
                 <label class="form-label required">関与開始日</label>
                 <div class="form-control-wrapper">
-                    <input type="date" v-model="form.start_date" required>
+                    <input type="date" name="dt_contract_start" required>
                 </div>
             </div>
             
@@ -447,22 +454,22 @@
                 <label class="form-label">従前契約 (前関与)</label>
                 <div class="form-control-wrapper flex-column">
                     <div class="flex-row">
-                         <label><input type="radio" value="1" v-model="form.pre_accountant_status"> あり</label>
-                         <label><input type="radio" value="2" v-model="form.pre_accountant_status"> 税理士関与なし</label>
-                         <label><input type="radio" value="3" v-model="form.pre_accountant_status"> 新規開業</label>
+                         <label><input type="radio" name="pre_accountant_status" value="1" checked> あり</label>
+                         <label><input type="radio" name="pre_accountant_status" value="2"> 税理士関与なし</label>
+                         <label><input type="radio" name="pre_accountant_status" value="3"> 新規開業</label>
                     </div>
-                    <div v-if="form.pre_accountant_status == '1'" style="margin-top: 10px; width: 100%;">
-                        <input type="text" v-model="form.pre_accountant_name" placeholder="事務所名" style="margin-bottom:5px; width: 100%;" maxlength="50">
+                    <div class="pre-accountant-group" style="margin-top: 10px; width: 100%;">
+                        <input type="text" name="s_pre_accountant" placeholder="前関与事務所名" style="margin-bottom:5px; width: 100%;" maxlength="50">
                         <div class="flex-row">
-                            <select v-model="form.pre_account_type" class="input-mid">
+                            <select name="n_pre_account_type" class="input-mid">
                                 <option value="1">毎月</option>
                                 <option value="2">隔月(2)</option>
                                 <option value="3">隔月(3)</option>
                                 <option value="4">年一</option>
                             </select>
-                            <input type="text" :value="form.pre_reward_account | formatNumber" @input="updateNumber($event, 'pre_reward_account')" placeholder="前報酬(会計)" class="input-mid text-right">
-                            <input type="text" :value="form.pre_reward_tax | formatNumber" @input="updateNumber($event, 'pre_reward_tax')" placeholder="前報酬(税務)" class="input-mid text-right">
-                            <input type="text" :value="form.pre_reward_yearly | formatNumber" @input="updateNumber($event, 'pre_reward_yearly')" placeholder="年間報酬" class="input-mid text-right">
+                            <input type="text" name="n_rewards_account" placeholder="前報酬(会計)" class="money-input input-mid text-right">
+                            <input type="text" name="n_rewards_tax" placeholder="前報酬(税務)" class="money-input input-mid text-right">
+                            <input type="text" name="n_rewards_yearly" placeholder="年間報酬" class="money-input input-mid text-right">
                         </div>
                     </div>
                 </div>
@@ -471,34 +478,34 @@
             <div class="form-group">
                 <label class="form-label required">今回関与形態</label>
                 <div class="form-control-wrapper">
-                    <label><input type="radio" value="1" v-model="form.contract_type"> 毎月</label>
-                    <label><input type="radio" value="2" v-model="form.contract_type"> 隔月(2)</label>
-                    <label><input type="radio" value="3" v-model="form.contract_type"> 隔月(3)</label>
-                    <label><input type="radio" value="4" v-model="form.contract_type"> 年一</label>
+                    <label><input type="radio" name="n_account_type" value="1" checked> 毎月</label>
+                    <label><input type="radio" name="n_account_type" value="2"> 隔月(2)</label>
+                    <label><input type="radio" name="n_account_type" value="3"> 隔月(3)</label>
+                    <label><input type="radio" name="n_account_type" value="4"> 年一</label>
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label">契約概要</label>
                 <div class="form-control-wrapper">
-                    <textarea v-model="form.contract_overview" placeholder="具体的な契約内容を記入"></textarea>
+                    <textarea name="s_contract_overview" placeholder="具体的な契約内容を記入"></textarea>
                 </div>
             </div>
 
             <div class="form-group">
-                <label class="form-label required">担当er・紹介者</label>
+                <label class="form-label required">担当者・紹介者</label>
                 <div class="form-control-wrapper flex-column" style="width: 100%;">
                     <div class="flex-row">
-                        <input type="text" v-model="form.incharge_begin" placeholder="開拓担当者" class="input-mid" required maxlength="50">
-                        <input type="text" v-model="form.incharge_close" placeholder="クロージング担当者" class="input-mid" maxlength="50">
-                        <select v-model="form.incharge_id" class="input-mid" required>
-                            <option value="">顧客担当者を選択</option>
-                            <option v-for="u in users" :value="u.id">{{ u.id }}: {{ u.name }}</option>
+                        <input type="text" name="s_incharge_bigin" placeholder="開拓担当者" class="input-mid" required maxlength="50">
+                        <input type="text" name="s_incharge_close" placeholder="クロージング担当者" class="input-mid" maxlength="50">
+                        <select name="s_incharge" class="input-mid" required>
+                            <option value="" disabled selected>顧客担当者を選択</option>
+                            <!-- Populated via JS -->
                         </select>
                     </div>
                     <div class="flex-row" style="margin-top: 10px;">
-                        <input type="text" v-model="form.introducer_name" placeholder="紹介者名" class="input-mid" maxlength="50">
-                        <select v-model="form.introducer_type" class="input-mid">
+                        <input type="text" name="s_introducer" placeholder="紹介者名" class="input-mid" maxlength="50">
+                        <select name="n_introducer_type" class="input-mid">
                             <option value="0">紹介者区分：なし</option>
                             <option value="1">顧問先</option>
                             <option value="2">金融機関</option>
@@ -506,7 +513,7 @@
                             <option value="4">紹介会社</option>
                             <option value="9">その他</option>
                         </select>
-                        <input type="text" v-model="form.introducer_type_others" v-if="form.introducer_type == '9'" placeholder="その他区分内容" class="input-mid" maxlength="50">
+                        <input type="text" name="s_introducer_type_others" id="introducer_type_others" style="display:none;" placeholder="その他区分内容" class="input-mid" maxlength="50">
                     </div>
                 </div>
             </div>
@@ -514,7 +521,7 @@
             <div class="form-group">
                 <label class="form-label required">きっかけ (経緯)</label>
                 <div class="form-control-wrapper">
-                    <textarea v-model="form.background" placeholder="契約に至った経緯..." required></textarea>
+                    <textarea name="s_situation" placeholder="契約に至った経緯..." required></textarea>
                 </div>
             </div>
         </div>
@@ -524,19 +531,22 @@
             <div class="form-group">
                 <label class="form-label">見積書 (PDF)</label>
                 <div class="form-control-wrapper">
-                    <input type="file" accept=".pdf" @change="handleFileUpload($event, 'file_estimate')">
+                    <input type="file" name="file_estimate" accept=".pdf">
+                    <span class="file-name-display" style="font-weight: bold; margin-left: 10px;"></span>
                 </div>
             </div>
             <div class="form-group">
                 <label class="form-label">その他資料 (PDF)</label>
                 <div class="form-control-wrapper">
-                    <input type="file" accept=".pdf" @change="handleFileUpload($event, 'file_others')">
+                    <input type="file" name="file_others" accept=".pdf">
+                    <span class="file-name-display" style="font-weight: bold; margin-left: 10px;"></span>
                 </div>
             </div>
         </div>
         
         <div class="btn-area">
-            <button type="submit" class="btn btn-primary" :disabled="isSubmitting">申請する</button>
+            <button type="button" id="btn-save-draft" class="btn btn-secondary">下書き保存 (Draft)</button>
+            <button type="submit" id="btn-submit" class="btn btn-primary">申請する (Apply)</button>
         </div>
 
     </form>
@@ -544,7 +554,6 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://ajaxzip3.github.io/ajaxzip3.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
 <script src="../assets/js/jquery.autoKana.js"></script> 
 <script src="../assets/js/main.js"></script>
 <script src="../assets/js/modules/contract_form.js"></script>

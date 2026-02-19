@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>申請書一覧 | 稟議書管理システム</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
     <link rel="stylesheet" href="../assets/css/list.css">
 </head>
 <body>
 
+<!-- id="app" tetap ada namun kini murni dikendalikan oleh class ListHandler (list.js) -->
 <div id="app" class="list-wrapper">
     <h1 class="page-title">申請書一覧</h1>
 
@@ -49,25 +49,11 @@
     </div>
 
     <div class="tab-container">
-        <button class="tab-btn active" data-tab="all">
-            すべて
-        </button>
-        
-        <button class="tab-btn" data-tab="pending">
-            承認待ち
-        </button>
-        
-        <button class="tab-btn" data-tab="approved">
-            承認済み
-        </button>
-        
-        <button class="tab-btn" data-tab="rejected">
-            否認・取下
-        </button>
-
-        <button class="tab-btn" data-tab="to_approve">
-            要承認
-        </button>
+        <button class="tab-btn active" data-tab="all">すべて</button>
+        <button class="tab-btn" data-tab="pending">承認待ち</button>
+        <button class="tab-btn" data-tab="approved">承認済み</button>
+        <button class="tab-btn" data-tab="rejected">否認・取下</button>
+        <button class="tab-btn" data-tab="to_approve">要承認</button>
     </div>
 
     <div class="table-container pc-only">
@@ -89,8 +75,7 @@
         </table>
     </div>
     
-    <div id="list-container-sp" class="sp-only table-container">
-    </div>
+    <div id="list-container-sp" class="sp-only table-container"></div>
     
     <div id="empty-state" class="text-center" style="display:none; padding: 20px;">
         データがありません
@@ -101,9 +86,7 @@
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
-
+<!-- Baris script Vue.js telah dihapus agar tidak bentrok -->
 <script src="../assets/js/main.js"></script>
 <script src="../assets/js/modules/list.js"></script>
 

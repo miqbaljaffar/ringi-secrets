@@ -4,20 +4,20 @@ class DetailHandler {
         this.docType = this.getUrlParameter('type') || this.getDocTypeFromId(this.id);
         
         this.data = null;
-        this.currentUser = window.ringiSystem.user;
+        
+        // Ambil dari global state yang diset oleh auth.js
+        const sessionUser = sessionStorage.getItem('user');
+        this.currentUser = sessionUser ? JSON.parse(sessionUser) : { role: 0, id: '0000', id_worker: '0000' };
 
-        // Cache DOM
         this.$container = $('#detail-content');
         this.$loading = $('#detail-loading');
-        this.$actions = $('#action-buttons');
-        this.$memoSection = $('#admin-memo-section');
-
+        
         this.init();
     }
 
     init() {
         if (!this.id) {
-            alert('Document ID not found');
+            alert('ID Dokumen tidak ditemukan');
             return;
         }
         this.loadDocument();
@@ -50,11 +50,11 @@ class DetailHandler {
                 this.setupPermissions();
                 this.$container.fadeIn();
             } else {
-                throw new Error(response.error || 'Failed to load data');
+                throw new Error(response.error || 'Gagal memuat data');
             }
         } catch (error) {
             console.error('Detail Error:', error);
-            $('body').html(`<div class="alert alert-danger m-4">Error: ${error.message}</div>`);
+            $('body').html(`<div class="alert alert-danger m-4 text-center">Data tidak dapat dimuat: ${error.message}</div>`);
         } finally {
             this.$loading.hide();
         }
@@ -63,181 +63,155 @@ class DetailHandler {
     renderData() {
         const d = this.data;
         
-        // Basic mapping (Text injection by ID)
-        // Pastikan di HTML ada id="lbl_subject", id="lbl_id", dll.
+        // 1. Data Umum
         $('#lbl_id').text(d.id_doc);
-        $('#lbl_subject').text(d.title || d.subject || '-');
-        $('#lbl_applicant').text(d.applicant_name || (d.applicant_info ? d.applicant_info.s_name : '-'));
+        // Tampilkan nama pelamar, ambil dari relasi jika ada, atau s_applied jika tidak ada
+        $('#lbl_applicant').text(d.applicant_info ? d.applicant_info.s_name : (d.applicant_name || d.s_applied || '-'));
         $('#lbl_date').text(d.ts_applied ? new Date(d.ts_applied).toLocaleDateString('ja-JP') : '-');
         
-        // Format Currency fields
-        $('.currency-field').each(function() {
-            const key = $(this).data('key'); // misal data-key="total_amount"
-            if (d[key]) {
-                const val = new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(d[key]);
-                $(this).text(val);
+        // 2. Tampilkan Berdasarkan Tipe Form
+        if (this.docType === 'tax') {
+            $('#tax-section').show();
+            $('#tax_s_name').text(d.s_name || '-');
+            $('#tax_s_kana').text(d.s_kana || '-');
+            $('#tax_s_rep_name').text(d.s_rep_name || '-');
+            $('#tax_s_rep_pcode').text(d.s_rep_pcode || '-');
+            $('#tax_s_rep_address').text(d.s_rep_address || '-');
+            $('#tax_s_rep_address2').text(d.s_rep_address2 || '');
+            
+            $('#tax_s_office_pcode').text(d.s_office_pcode || '-');
+            $('#tax_s_office_address').text(d.s_office_address || '-');
+            $('#tax_s_office_address2').text(d.s_office_address2 || '');
+            $('#tax_s_office_tel').text(d.s_office_tel || '-');
+            
+            $('#tax_s_tax_office').text(d.s_tax_office || '-');
+            $('#tax_n_closing_month').text(d.n_closing_month ? d.n_closing_month + '月' : '-');
+            $('#tax_s_tax_num').text(d.s_tax_num || '-');
+            $('#tax_s_national_tax_id').text(d.s_national_tax_id || '-');
+            $('#tax_s_local_tax_id').text(d.s_local_tax_id || '-');
+            
+            $('#tax_s_situation').text(d.s_situation || '-');
+            $('#tax_dt_contract_start').text(d.dt_contract_start || '-');
+            
+        } else if (this.docType === 'common') {
+            $('#common-section').show();
+            $('#common_s_title').text(d.s_title || d.subject || '-');
+            $('#common_s_overview').text(d.s_overview || '-');
+            
+            if (d.details && Array.isArray(d.details)) {
+                const rows = d.details.map(item => `
+                    <tr>
+                        <td>${item.s_category || item.category_name || '-'}</td>
+                        <td>${item.s_payer || item.payer || '-'}</td>
+                        <td class="text-right">${new Intl.NumberFormat('ja-JP').format(item.n_amount || item.amount || 0)} 円</td>
+                    </tr>
+                `).join('');
+                $('#details-tbody').html(rows);
+            } else {
+                $('#details-tbody').html('<tr><td colspan="3" class="text-center">詳細データがありません</td></tr>');
             }
-        });
-
-        // Render Dynamic Fields (Tergantung tipe dokumen)
-        // Anda bisa menambahkan logika spesifik per tipe form di sini
-        // Contoh: Mengisi tabel detail untuk common form
-        if (d.details && Array.isArray(d.details)) {
-            const rows = d.details.map(item => `
-                <tr>
-                    <td>${item.category_name || '-'}</td>
-                    <td>${item.payer}</td>
-                    <td class="text-right">${new Intl.NumberFormat('ja-JP').format(item.amount)} 円</td>
-                </tr>
-            `).join('');
-            $('#details-tbody').html(rows);
         }
-
-        // Render Memo
-        this.renderMemo(d.s_memo);
-    }
-
-    renderMemo(memoContent) {
-        const content = memoContent || 'なし (Tidak ada)';
-        $('#memo-display-text').text(content);
-        $('#memo-input').val(content);
+        
+        // 3. Stempel Status Transparan
+        if (d.dt_deleted) {
+            $('#stamp-withdrawn').show();
+        } else if (d.dt_rejected) {
+            $('#stamp-rejected').show();
+        } else if (d.dt_approved_2 || (d.dt_approved_1 && !d.s_approved_2)) { // App 2 bisa nullable menurut spec
+            $('#stamp-approved').show();
+        }
     }
 
     renderApprovalRoute() {
         const d = this.data;
         const route = [];
 
-        // Helper Status
-        const getStatusObj = (approvedDate, rejectedDate, prevApproved) => {
-            if (rejectedDate && !approvedDate) return { text: '否認', color: 'red', date: rejectedDate };
+        const getStatusObj = (approvedDate, rejectedDate, isNextInLine) => {
+            if (d.dt_deleted) return { text: '取下げ', color: '#666', date: d.dt_deleted };
+            if (rejectedDate && !approvedDate) return { text: '否認', color: '#dc3545', date: rejectedDate };
             if (approvedDate) return { text: '承認', color: '#0088cc', date: approvedDate };
-            if (!prevApproved) return { text: '未定', color: '#999', date: null }; // Belum sampai tahap ini
-            return { text: '承認待ち', color: '#ff9900', date: null }; // Menunggu giliran
+            if (!isNextInLine) return { text: '未定', color: '#ccc', date: null }; 
+            return { text: '承認待ち', color: '#ff9900', date: null }; 
         };
 
         const fmtDate = (date) => date ? new Date(date).toLocaleDateString('ja-JP') : '-';
 
-        // 1. Applicant
+        // Applicant
         route.push({
             role: '申請者',
-            name: d.applicant_name,
-            status: '申請済',
+            name: d.applicant_info ? d.applicant_info.s_name : (d.applicant_name || d.s_applied),
+            status: d.dt_deleted ? '取下げ' : '申請済',
             color: '#333',
             date: fmtDate(d.ts_applied)
         });
 
-        // 2. Approver 1
+        // App 1
         if (d.s_approved_1) {
-            const st1 = getStatusObj(d.dt_approved_1, d.dt_rejected, true); // true karena applicant pasti sudah submit
+            const st1 = getStatusObj(d.dt_approved_1, d.dt_rejected, true);
             route.push({
                 role: '第1承認者',
-                name: d.approver1_name || d.s_approved_1, // Sesuaikan dengan response API
+                name: d.approver1_info ? d.approver1_info.s_name : (d.approver1_name || d.s_approved_1),
                 status: st1.text,
                 color: st1.color,
                 date: fmtDate(st1.date)
             });
         }
 
-        // 3. Approver 2
+        // App 2
         if (d.s_approved_2) {
-            const st2 = getStatusObj(d.dt_approved_2, d.dt_rejected, !!d.dt_approved_1); // Hanya aktif jika app1 approved
+            const st2 = getStatusObj(d.dt_approved_2, d.dt_rejected, !!d.dt_approved_1);
             route.push({
                 role: '第2承認者',
-                name: d.approver2_name || d.s_approved_2,
+                name: d.approver2_info ? d.approver2_info.s_name : (d.approver2_name || d.s_approved_2),
                 status: st2.text,
                 color: st2.color,
                 date: fmtDate(st2.date)
             });
         }
 
-        // Generate HTML
+        // Render pure html table row
         const html = route.map(step => `
-            <div class="approver-item p-2 mb-2 border-bottom">
-                <div class="d-flex justify-content-between">
-                    <small class="text-muted">${step.role}</small>
-                    <span style="color:${step.color}; font-weight:bold">${step.status}</span>
-                </div>
-                <div class="font-weight-bold">${step.name}</div>
-                <small class="text-muted">${step.date}</small>
-            </div>
+            <tr>
+                <td style="font-size: 13px;">${step.role}</td>
+                <td style="color:${step.color}; font-weight:bold">${step.status}</td>
+                <td style="font-weight:bold">${step.name}</td>
+                <td>${step.date}</td>
+            </tr>
         `).join('');
 
-        $('#approval-route-container').html(html);
+        $('#approval-route-tbody').html(html);
     }
 
     setupPermissions() {
         const d = this.data;
-        const uid = String(this.currentUser.id_worker || this.currentUser.id); // Normalize ID
-        const role = parseInt(this.currentUser.role || 0);
+        // Pastikan kompatibel dengan id_worker yang lama maupun id dari sistem auth baru
+        const uid = String(this.currentUser.id || this.currentUser.id_worker); 
 
         let canApprove = false;
-        let canWithdraw = false;
-        let canEditMemo = false;
 
-        // Logic Owner (Withdraw)
-        const isOwner = (String(d.id_applicant) === uid || String(d.s_applied) === uid);
-        if (isOwner && !d.dt_deleted && !d.dt_rejected && !d.dt_approved_2) {
-            canWithdraw = true;
-        }
-
-        // Logic Approval (Approver or Admin)
-        const isApp1 = (String(d.s_approved_1) === uid && !d.dt_approved_1);
-        const isApp2 = (String(d.s_approved_2) === uid && !d.dt_approved_2 && d.dt_approved_1); // App2 butuh App1 selesai
+        // Cek giliran approval
+        const isApp1Turn = (String(d.s_approved_1) === uid && !d.dt_approved_1);
+        const isApp2Turn = (String(d.s_approved_2) === uid && d.dt_approved_1 && !d.dt_approved_2); 
         
-        if ((role > 0) || isApp1 || isApp2) {
-            // Jangan izinkan approve jika sudah rejected atau completed
-            if (!d.dt_rejected && !d.dt_approved_2) {
+        if (isApp1Turn || isApp2Turn) {
+            if (!d.dt_rejected && !d.dt_deleted) {
                 canApprove = true;
             }
         }
 
-        // Logic Edit Memo (Admin Only)
-        if (role > 0 && !d.dt_deleted) {
-            canEditMemo = true;
-        }
-
-        // Toggle UI Elements
-        if (canApprove) $('.action-approval').show(); else $('.action-approval').hide();
-        if (canWithdraw) $('.action-withdraw').show(); else $('.action-withdraw').hide();
-        
-        if (canEditMemo) {
-            $('#btn-edit-memo').show();
-        } else {
-            $('#btn-edit-memo').hide();
-        }
+        if (canApprove) $('.action-approval').show(); 
+        else $('.action-approval').hide();
     }
 
     bindGlobalEvents() {
         const self = this;
 
-        // Approve Button
         $('#btn-approve').on('click', function() {
-            self.processAction('approve', '承認しますか？');
+            self.processAction('approve', 'この稟議を承認しますか？ (Apakah Anda ingin menyetujui dokumen ini?)');
         });
 
-        // Reject Button
         $('#btn-reject').on('click', function() {
-            self.processAction('reject', '否認しますか？');
-        });
-
-        // Withdraw Button
-        $('#btn-withdraw').on('click', function() {
-            self.processAction('withdraw', '申請を取り下げますか？');
-        });
-
-        // Memo UI Toggles
-        $('#btn-edit-memo').on('click', function() {
-            $('#memo-display').hide();
-            $('#memo-edit-form').show();
-        });
-
-        $('#btn-cancel-memo').on('click', function() {
-            $('#memo-edit-form').hide();
-            $('#memo-display').show();
-        });
-
-        $('#btn-save-memo').on('click', function() {
-            self.saveMemo();
+            self.processAction('reject', 'この稟議を否認しますか？ (Apakah Anda ingin menolak dokumen ini?)');
         });
     }
 
@@ -245,51 +219,27 @@ class DetailHandler {
         if (!confirm(confirmMsg)) return;
 
         try {
-            const response = await ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/approve`, {
-                doc_id: this.id,
+            // PERBAIKAN FATAL: Backend CommonController@approve mengharapkan parameter doc_id di body.
+            const payload = {
+                doc_id: this.id, // Wajib ada sesuai logika PHP
                 action: action,
-                comment: action === 'reject' ? 'Rejected via System' : ''
-            });
+                comment: '' // Bisa ditambahkan textarea komentar pada UI jika diperlukan
+            };
+
+            const response = await ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/approve`, payload);
 
             if (response.success) {
-                alert('処理が完了しました (Proses Berhasil)');
-                location.reload();
+                ringiSystem.showNotification('Proses persetujuan berhasil.', 'success');
+                setTimeout(() => location.reload(), 1500);
             } else {
-                alert('Error: ' + response.error);
+                ringiSystem.showNotification('Error: ' + response.error, 'error');
             }
         } catch (error) {
-            alert('System Error: ' + error.message);
-        }
-    }
-
-    async saveMemo() {
-        const newVal = $('#memo-input').val();
-        if (newVal.length > 255) {
-            alert('255文字以内で入力してください');
-            return;
-        }
-
-        try {
-            const response = await ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/memo`, {
-                memo: newVal
-            });
-
-            if (response.success) {
-                this.data.s_memo = newVal; // Update local state
-                this.renderMemo(newVal);
-                $('#memo-edit-form').hide();
-                $('#memo-display').show();
-                ringiSystem.showNotification('備考を更新しました', 'success');
-            } else {
-                alert('Update Failed: ' + response.error);
-            }
-        } catch (error) {
-            alert('Error: ' + error.message);
+            ringiSystem.showNotification('System Error: ' + error.message, 'error');
         }
     }
 }
 
-// Start
 $(document).ready(function() {
     new DetailHandler();
 });

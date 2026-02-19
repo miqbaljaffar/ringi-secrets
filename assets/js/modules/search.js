@@ -117,7 +117,7 @@ class SearchModule {
             const statusClass = `status-${status}`;
             
             return `
-                <div class="result-item" onclick="window.location.href='/pages/view-document.html?id=${doc.id_doc}&type=${doc.type}'">
+                <div class="result-item" onclick="window.location.href='view-document.html?id=${doc.id_doc}&type=${doc.type}'">
                     <div class="result-header">
                         <div>
                             <span class="badge ${typeClass}">${typeLabel}</span>

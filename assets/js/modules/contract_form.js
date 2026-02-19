@@ -1,161 +1,216 @@
 class ContractFormHandler {
     constructor() {
-        this.form = $('#contract-form'); // Pastikan ID form di HTML adalah 'contract-form'
-        // Jika form tidak ditemukan, hentikan
+        this.form = $('#contract-form'); 
         if (this.form.length === 0) return;
-
         this.init();
     }
 
     init() {
         this.setDefaultValues();
+        this.loadEmployees();
         this.bindEvents();
         this.setupAutoKana();
+        
+        // Trigger initial state
+        $('input[name="n_type"]:checked').trigger('change');
     }
 
     setDefaultValues() {
-        // Set tanggal hari ini jika kosong
         const today = new Date().toISOString().split('T')[0];
         const dateInput = $('#applied_date');
         if (dateInput.val() === '') {
             dateInput.val(today);
         }
-        
-        // Trigger perubahan awal untuk radio button (tampil/sembunyi field)
-        $('input[name="corp_type"]:checked').trigger('change');
     }
 
     setupAutoKana() {
         if ($.fn.autoKana) {
+            // AutoKana untuk Nama Perusahaan
             $.fn.autoKana('#company_name', '#company_kana', { katakana: true });
+            
+            // AutoKana untuk Nama Representatif (Sei dan Mei)
+            $.fn.autoKana('#rep_name_sei', '#rep_kana_sei', { katakana: true });
+            $.fn.autoKana('#rep_name_mei', '#rep_kana_mei', { katakana: true });
+        }
+    }
+
+    async loadEmployees() {
+        const select = $('select[name="s_incharge"]');
+        if (!select.length) return;
+
+        try {
+            const response = await ringiSystem.apiRequest('GET', 'users/list'); 
+            if (response.success && response.data.length > 0) {
+                response.data.forEach(emp => {
+                    select.append(`<option value="${emp.id_worker}">${emp.id_worker}: ${emp.s_name}</option>`);
+                });
+            }
+        } catch (error) {
+            const mock = [{ id_worker: '0001', s_name: 'Yamada Taro' }, { id_worker: '0036', s_name: 'Admin' }];
+            mock.forEach(emp => {
+                select.append(`<option value="${emp.id_worker}">${emp.id_worker}: ${emp.s_name}</option>`);
+            });
         }
     }
 
     bindEvents() {
         const self = this;
 
-        // 1. Event Upload File dengan Peringatan Invoice
+        // --- Logika Show/Hide UI ---
+        $('input[name="n_type"]').on('change', function() {
+            if ($(this).val() == '1') {
+                $('.corporate-only').show();
+                $('.corporate-only input, .corporate-only select').prop('required', true);
+            } else {
+                $('.corporate-only').hide();
+                $('.corporate-only input, .corporate-only select').prop('required', false);
+            }
+        });
+
+        $('input[name="n_send_to"]').on('change', function() {
+            if($(this).val() == '9') $('.send-to-others-group').show();
+            else $('.send-to-others-group').hide();
+        });
+
+        $('input[name="s_rep_title"]').on('change', function() {
+            if($(this).val() == '9') $('#rep_title_others_input').show();
+            else $('#rep_title_others_input').hide().val('');
+        });
+
+        $('input[name="rep_email_exists"]').on('change', function() {
+            if($(this).val() == '1') $('#rep_email_input').show();
+            else $('#rep_email_input').hide().val('');
+        });
+
+        $('input[name="rep_tel_exists"]').on('change', function() {
+            if($(this).val() == '1') $('#rep_tel_group').show();
+            else $('#rep_tel_group').hide();
+        });
+
+        $('input[name="n_e_filing"]').on('change', function() {
+            if($(this).val() == '1') $('.e-filing-reason-group').show();
+            else $('.e-filing-reason-group').hide();
+        });
+
+        $('input[name="n_self_accounting"]').on('change', function() {
+            if($(this).val() == '9') $('#self_accounting_others').show();
+            else $('#self_accounting_others').hide().val('');
+        });
+
+        $('input[name="n_accounting_apps"]').on('change', function() {
+            if($(this).val() == '9') $('#accounting_soft_others').show();
+            else $('#accounting_soft_others').hide().val('');
+        });
+
+        $('input[name="pre_accountant_status"]').on('change', function() {
+            if($(this).val() == '1') $('.pre-accountant-group').show();
+            else $('.pre-accountant-group').hide();
+        });
+
+        $('select[name="n_introducer_type"]').on('change', function() {
+            if($(this).val() == '9') $('#introducer_type_others').show();
+            else $('#introducer_type_others').hide().val('');
+        });
+
+        $('#book_other_check').on('change', function() {
+            if($(this).is(':checked')) $('#books_others_input').prop('disabled', false);
+            else $('#books_others_input').prop('disabled', true).val('');
+        });
+
+
+        // --- Event Lainnya ---
         $('input[type="file"]').on('change', function(e) {
             self.handleFileUpload(this);
         });
 
-        // 2. Toggle Perusahaan vs Perorangan
-        $('input[name="corp_type"]').on('change', function() {
-            const val = $(this).val();
-            self.toggleCorporateFields(val);
-        });
-
-        // 3. Auto Address (AjaxZip3)
-        // Pastikan input zip memiliki class 'pcode-input' atau id spesifik
         $('.btn-address-search').on('click', function() {
-            const target = $(this).data('target'); // office atau rep
+            const target = $(this).data('target');
             if (target === 'office') {
-                AjaxZip3.zip2addr('zip1', 'zip2', 'address', 'address');
+                AjaxZip3.zip2addr('zip1', 'zip2', 's_office_address', 's_office_address');
             } else if (target === 'rep') {
-                AjaxZip3.zip2addr('rep_zip1', 'rep_zip2', 'rep_address', 'rep_address');
+                AjaxZip3.zip2addr('rep_zip1', 'rep_zip2', 's_rep_address', 's_rep_address');
             }
         });
 
-        // 4. Format Angka (Ribuan) saat ketik
         $('.money-input').on('blur', function() {
             const val = $(this).val().replace(/[^0-9]/g, '');
-            if(val) {
-                $(this).val(new Intl.NumberFormat('ja-JP').format(val));
-            }
+            if(val) $(this).val(new Intl.NumberFormat('ja-JP').format(val));
         });
 
-        // 5. Submit Handler (Apply)
         this.form.on('submit', function(e) {
             e.preventDefault();
             self.handleSubmit('apply');
         });
 
-        // 6. Draft Handler
         $('#btn-save-draft').on('click', function(e) {
             e.preventDefault();
             self.handleSubmit('draft');
         });
     }
 
-    toggleCorporateFields(type) {
-        // type 1 = Corporate (Badan Hukum), 2 = Individual
-        if (type == '1') {
-            $('.corporate-only').show();
-            $('.corporate-only input').prop('required', true);
-        } else {
-            $('.corporate-only').hide();
-            $('.corporate-only input').prop('required', false);
-        }
-    }
-
-    // --- LOGIC UTAMA PERMINTAAN ANDA ---
     handleFileUpload(inputElement) {
         const file = inputElement.files[0];
         if (!file) return;
 
-        // 1. Validasi Ukuran (Max 5MB)
         if (file.size > 5 * 1024 * 1024) {
             ringiSystem.showNotification('ファイルサイズは5MB以下にしてください', 'error');
-            inputElement.value = ''; // Reset input
-            return;
+            inputElement.value = ''; return;
         }
 
-        // 2. Validasi Tipe (PDF Only)
         if (file.type !== 'application/pdf') {
             ringiSystem.showNotification('PDFファイルのみアップロード可能です', 'error');
-            inputElement.value = ''; // Reset input
-            return;
+            inputElement.value = ''; return;
         }
 
-        // 3. Peringatan Keras (Invoice) - Window Confirm
-        const confirmMsg = "【注意事項】\n請求書（インボイス）の添付は禁止されています。\n\n選択されたファイルは請求書ではありませんか？\n(Perhatian: Dilarang melampirkan invoice. Apakah Anda yakin file ini BUKAN invoice?)";
-        
+        const confirmMsg = "【注意事項】\n請求書（インボイス）の添付は禁止されています。\n\n選択されたファイルは請求書ではありませんか？";
         if (!window.confirm(confirmMsg)) {
-            // Jika user klik Cancel (artinya mungkin itu invoice)
-            inputElement.value = ''; // Hapus file
+            inputElement.value = ''; 
+            $(inputElement).next('.file-name-display').text('');
             return;
         }
-
-        // Jika user klik OK
-        // Tampilkan nama file di label sebelah tombol (opsional)
         $(inputElement).next('.file-name-display').text(file.name);
     }
 
     async handleSubmit(saveMode) {
-        // Validasi HTML5 standar
-        if (saveMode === 'apply') {
-            // Validasi manual tambahan jika perlu
-            if (!$('#company_name').val()) {
-                ringiSystem.showNotification('商号（会社名）は必須です。', 'error');
-                return;
-            }
-            
-            // Cek file estimasi (Wajib)
-            if ($('#file_estimate')[0].files.length === 0) {
-                 ringiSystem.showNotification('見積書(PDF)の添付は必須です。', 'error');
-                 return;
-            }
-        } else {
-            // Draft: Minimal harus ada nama perusahaan
-            if (!$('#company_name').val()) {
-                ringiSystem.showNotification('下書き保存の場合も、商号（会社名）は必須です。', 'warning');
-                return;
-            }
+        if (saveMode === 'apply' && !$('#company_name').val()) {
+            ringiSystem.showNotification('商号（会社名）は必須です。', 'error');
+            return;
         }
 
         const formData = new FormData(this.form[0]);
         formData.append('save_mode', saveMode);
 
-        // Membersihkan format angka (hapus koma) sebelum kirim
+        // --- PENANGANAN CHECKBOX s_books[] (Buku Akuntansi) ---
+        let selectedBooks = [];
+        $('input[name="s_books[]"]:checked').each(function() {
+            selectedBooks.push($(this).val());
+        });
+        // Hapus format array bawaan HTML form
+        formData.delete('s_books[]');
+        // Set ke string gabungan (contoh: "1,4,99") agar sesuai varchar(30) di DB
+        formData.set('s_books', selectedBooks.join(','));
+        // --------------------------------------------------------
+
+        // Bersihkan koma pada format uang sebelum kirim
         $('.money-input').each(function() {
             const name = $(this).attr('name');
-            const rawVal = $(this).val().replace(/,/g, '');
-            formData.set(name, rawVal);
+            if(name) {
+                const rawVal = $(this).val().replace(/,/g, '');
+                formData.set(name, rawVal);
+            }
         });
         
-        // Gabung field telepon dll jika terpisah di HTML
-        const tel = `${$('input[name="tel1"]').val()}-${$('input[name="tel2"]').val()}-${$('input[name="tel3"]').val()}`;
-        formData.set('s_office_tel', tel);
+        // Gabungkan field yang terpisah menjadi satu sesuai standard schema DB
+        formData.set('s_office_tel', `${$('input[name="tel1"]').val()}-${$('input[name="tel2"]').val()}-${$('input[name="tel3"]').val()}`);
+        formData.set('s_office_pcode', `${$('input[name="zip1"]').val()}${$('input[name="zip2"]').val()}`);
+        
+        formData.set('s_rep_tel', `${$('input[name="rep_tel1"]').val()}-${$('input[name="rep_tel2"]').val()}-${$('input[name="rep_tel3"]').val()}`);
+        formData.set('s_rep_pcode', `${$('input[name="rep_zip1"]').val()}${$('input[name="rep_zip2"]').val()}`);
+        
+        formData.set('s_rep_name', `${$('input[name="rep_name_sei"]').val()} ${$('input[name="rep_name_mei"]').val()}`.trim());
+        formData.set('s_rep_kana', `${$('input[name="rep_kana_sei"]').val()} ${$('input[name="rep_kana_mei"]').val()}`.trim());
+        
+        formData.set('s_industry_type', `${$('select[name="cat1"]').val()}${$('input[name="cat2"]').val()}${$('input[name="cat3"]').val()}`);
 
         try {
             const response = await ringiSystem.apiRequest('POST', 'tax', formData, true);
@@ -164,23 +219,17 @@ class ContractFormHandler {
                 const msg = saveMode === 'draft' ? '下書き保存しました' : '申請が完了しました';
                 ringiSystem.showNotification(msg, 'success');
                 setTimeout(() => {
-                    window.location.href = `/pages/detail.html?id=${response.doc_id}&type=tax`;
+                    window.location.href = `detail.html?id=${response.doc_id}&type=tax`;
                 }, 1500);
             } else {
-                if(response.errors) {
-                    ringiSystem.showNotification(response.errors, 'error');
-                } else {
-                    ringiSystem.showNotification(response.error, 'error');
-                }
+                ringiSystem.showNotification(response.errors || response.error, 'error');
             }
         } catch (error) {
-            console.error('Submit error:', error);
-            ringiSystem.showNotification('Gagal mengirim data: ' + error.message, 'error');
+            ringiSystem.showNotification('System Error: ' + error.message, 'error');
         }
     }
 }
 
-// Inisialisasi saat dokumen siap
 $(document).ready(function() {
     new ContractFormHandler();
 });

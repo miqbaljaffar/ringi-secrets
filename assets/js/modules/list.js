@@ -110,7 +110,7 @@ class ListHandler {
             const formName = this.mapTypeToName(doc.type);
             const statusText = this.mapStatusText(doc.status_code);
             const dateStr = new Date(doc.ts_applied).toLocaleDateString('ja-JP');
-            const link = `/pages/detail.html?id=${doc.id_doc}&type=${doc.type}`;
+            const link = `detail.html?id=${doc.id_doc}&type=${doc.type}`;
             
             let badgeClass = this.getBadgeClass(doc.status_code);
 
@@ -134,7 +134,7 @@ class ListHandler {
             const formName = this.mapTypeToName(doc.type);
             const statusText = this.mapStatusText(doc.status_code);
             const dateStr = new Date(doc.ts_applied).toLocaleDateString('ja-JP');
-            const link = `/pages/detail.html?id=${doc.id_doc}&type=${doc.type}`;
+            const link = `detail.html?id=${doc.id_doc}&type=${doc.type}`;
             const badgeClass = this.getBadgeClass(doc.status_code);
 
             // Layout Card Mobile sesuai List.css dan Spec Hal 23

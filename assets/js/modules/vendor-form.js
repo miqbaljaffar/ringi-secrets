@@ -68,7 +68,7 @@ class VendorFormHandler {
                 ringiSystem.showNotification(msg + ' ID: ' + response.doc_id, 'success');
                 
                 setTimeout(() => {
-                    window.location.href = `/pages/detail.html?id=${response.doc_id}&type=vendor`;
+                    window.location.href = `detail.html?id=${response.doc_id}&type=vendor`;
                 }, 1500);
             } else {
                 if (response.errors) {

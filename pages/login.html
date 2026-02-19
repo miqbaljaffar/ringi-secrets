@@ -51,68 +51,14 @@
         </div>
     </div>
 
+    <!-- 1. LOAD JQUERY TERLEBIH DAHULU KARENA main.js MEMBUTUHKANNYA -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- 2. LOAD MAIN JS (ringiSystem) -->
     <script src="../assets/js/main.js"></script>
     
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            sessionStorage.removeItem('user');
-            localStorage.removeItem('auth_token');
-
-            const loginForm = document.getElementById('login-form');
-            const btn = document.getElementById('btn-submit');
-            const btnText = document.querySelector('.btn-text');
-            const btnIcon = btn.querySelector('.fa-arrow-right');
-            const spinner = document.getElementById('loading-spinner');
-            const errorMsg = document.getElementById('error-msg');
-            const errorText = document.getElementById('error-text');
-            const usernameInput = document.getElementById('username');
-
-            loginForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                errorMsg.style.display = 'none';
-                btn.disabled = true;
-                btnText.textContent = '処理中...';
-                if(btnIcon) btnIcon.style.display = 'none';
-                spinner.style.display = 'block';
-
-                const username = usernameInput.value.trim();
-
-                try {
-                    const response = await ringiSystem.apiRequest('POST', 'auth/login', {
-                        username: username
-                    });
-
-                    if (response.success) {
-                        if(response.token) localStorage.setItem('auth_token', response.token);
-                        sessionStorage.setItem('user', JSON.stringify(response.user));
-                        
-                        btn.style.background = '#10b981';
-                        btnText.textContent = '成功しました。リダイレクト中...';
-                        spinner.style.display = 'none';
-                        
-                        setTimeout(() => {
-                            window.location.href = 'list.html';
-                        }, 800);
-                    } else {
-                        throw new Error(response.error || '社員IDが見つかりません。');
-                    }
-
-                } catch (error) {
-                    console.error(error);
-                    errorText.textContent = error.message;
-                    errorMsg.style.display = 'flex';
-                    
-                    btn.disabled = false;
-                    btn.style.background = '';
-                    btnText.textContent = 'ログイン';
-                    if(btnIcon) btnIcon.style.display = 'inline-block';
-                    spinner.style.display = 'none';
-                    
-                    usernameInput.focus();
-                }
-            });
-        });
-    </script>
+    <!-- 3. LOAD LOGIN SCRIPT YANG SUDAH DIPISAH -->
+    <script src="../assets/js/modules/login.js"></script>
+    
 </body>
 </html>

@@ -1,171 +1,90 @@
-class AuthModule {
+class AuthHandler {
     constructor() {
-        this.initAuth();
+        this.init();
     }
-    
-    initAuth() {
-        this.checkLoginStatus();
-        this.setupLoginForm();
-        this.setupLogout();
-    }
-    
-    async checkLoginStatus() {
-        const token = localStorage.getItem('auth_token');
-        const uid = this.getUrlParameter('UID');
+
+    async init() {
+        const isLoginPage = window.location.pathname.includes('/pages/login.html') || 
+                            window.location.pathname.endsWith('login.html');
+
+        // Pengecekan sesi langsung ke Backend PHP 
+        // Ini memastikan SSO dari portal (yang men-set $_SESSION['UID']) terbaca dengan benar
+        await this.checkAuthGuard(isLoginPage);
         
-        if (uid) {
-            // シングルサインオン
-            await this.handleSSO(uid);
-        } else if (token) {
-            // トークン認証
-            await this.validateToken(token);
-        } else {
-            // 未認証
-            this.redirectToLogin();
+        if (isLoginPage) {
+            this.bindLoginEvent();
         }
     }
-    
-    getUrlParameter(name) {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get(name);
-    }
-    
-    async handleSSO(uid) {
+
+    async checkAuthGuard(isLoginPage) {
         try {
-            const response = await fetch(`/api/auth/login?UID=${uid}`, {
-                method: 'POST'
-            });
+            // Memanggil endpoint auth/user yang mengambil data dari $_SESSION PHP
+            const response = await ringiSystem.apiRequest('GET', 'auth/user');
             
-            const result = await response.json();
-            
-            if (result.success) {
-                // トークン保存
-                if (result.token) {
-                    localStorage.setItem('auth_token', result.token);
+            if (response.success && response.user) {
+                // Sesi PHP Aktif
+                sessionStorage.setItem('user', JSON.stringify(response.user));
+                ringiSystem.user = response.user;
+                
+                if (isLoginPage) {
+                    // Jika sudah login tapi akses halaman login, lempar ke list
+                    window.location.href = '/pages/list.html';
+                } else {
+                    this.updateUI();
                 }
-                
-                // ユーザー情報をセッションに保存
-                sessionStorage.setItem('user', JSON.stringify(result.user));
-                
-                // リダイレクトパラメータを削除
-                window.history.replaceState({}, document.title, window.location.pathname);
-                
-                // ダッシュボードへ
-                window.location.href = '/pages/dashboard.html';
             } else {
-                this.redirectToLogin();
+                throw new Error('Sesi tidak valid');
             }
         } catch (error) {
-            console.error('SSO認証エラー:', error);
-            this.redirectToLogin();
-        }
-    }
-    
-    async validateToken(token) {
-        try {
-            const response = await fetch('/api/auth/validate', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error('トークンが無効です');
+            // Sesi PHP Tidak Aktif
+            sessionStorage.removeItem('user');
+            if (!isLoginPage) {
+                console.warn('Auth Guard: User belum login. Redirecting ke login.');
+                window.location.href = '/pages/login.html';
             }
-        } catch (error) {
-            localStorage.removeItem('auth_token');
-            this.redirectToLogin();
         }
     }
-    
-    setupLoginForm() {
-        const loginForm = document.getElementById('login-form');
-        if (!loginForm) return;
-        
-        loginForm.addEventListener('submit', async (e) => {
+
+    bindLoginEvent() {
+        $('#login-form').on('submit', async (e) => {
             e.preventDefault();
-            
-            const formData = new FormData(loginForm);
-            const data = Object.fromEntries(formData);
-            
+            const workerId = $('#id_worker').val();
+            const password = $('#password').val(); // Opsional jika backend meminta
+
+            if (!workerId) {
+                alert('ID karyawan wajib diisi.');
+                return;
+            }
+
             try {
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
+                // Panggil endpoint login manual untuk Development Mode
+                const response = await ringiSystem.apiRequest('POST', 'auth/login', { 
+                    username: workerId, 
+                    password: password 
                 });
                 
-                const result = await response.json();
-                
-                if (result.success) {
-                    localStorage.setItem('auth_token', result.token);
-                    sessionStorage.setItem('user', JSON.stringify(result.user));
-                    
-                    // ダッシュボードへリダイレクト
-                    window.location.href = '/pages/dashboard.html';
+                if (response.success) {
+                    sessionStorage.setItem('user', JSON.stringify(response.user));
+                    sessionStorage.setItem('token', response.token);
+                    window.location.href = '/pages/list.html';
                 } else {
-                    this.showLoginError(result.error);
+                    alert(response.error || 'Login gagal.');
                 }
             } catch (error) {
-                this.showLoginError('ログインに失敗しました');
+                alert('Terjadi kesalahan sistem saat login: ' + error.message);
             }
         });
     }
-    
-    showLoginError(message) {
-        const errorDiv = document.getElementById('login-error');
-        if (errorDiv) {
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
+
+    updateUI() {
+        const userSession = sessionStorage.getItem('user');
+        if (userSession) {
+            try {
+                const user = JSON.parse(userSession);
+                $('.user-name-display').text(user.name || 'User');
+            } catch(e) {}
         }
-    }
-    
-    setupLogout() {
-        const logoutBtn = document.getElementById('logout-btn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                this.logout();
-            });
-        }
-    }
-    
-    async logout() {
-        try {
-            await fetch('/api/auth/logout', {
-                method: 'POST'
-            });
-        } catch (error) {
-            console.error('ログアウトエラー:', error);
-        } finally {
-            localStorage.removeItem('auth_token');
-            sessionStorage.removeItem('user');
-            window.location.href = '/login.html';
-        }
-    }
-    
-    redirectToLogin() {
-        // ログインページ以外にいる場合のみリダイレクト
-        if (!window.location.pathname.includes('login.html')) {
-            window.location.href = '/login.html';
-        }
-    }
-    
-    getCurrentUser() {
-        const userStr = sessionStorage.getItem('user');
-        return userStr ? JSON.parse(userStr) : null;
-    }
-    
-    hasPermission(requiredRole) {
-        const user = this.getCurrentUser();
-        if (!user) return false;
-        
-        return user.role >= requiredRole;
     }
 }
 
-// 初期化
-document.addEventListener('DOMContentLoaded', () => {
-    window.authModule = new AuthModule();
-});
+const appAuth = new AuthHandler();

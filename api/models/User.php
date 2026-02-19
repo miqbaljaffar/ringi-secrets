@@ -11,17 +11,15 @@ class User extends BaseModel {
     
     // --- LOGIKA ROLE BARU SESUAI REQUEST ---
     public function calculateRole($workerId) {
-        // 1. Admin (管理者): 0002, 0004, 0006
+        // 1. Admin (管理者)
         // Hak akses: Mengisi kolom 'Memo' (備考)
-        $adminIds = ['0002', '0004', '0006'];
-        if (in_array($workerId, $adminIds)) {
+        if (defined('ADMIN_IDS') && in_array($workerId, ADMIN_IDS)) {
             return 2; // ROLE_ADMIN
         }
 
-        // 2. Approver (承認者): 0012, 0013
+        // 2. Approver (承認者)
         // Hak akses: Approve/Reject dokumen
-        $approverIds = ['0012', '0013'];
-        if (in_array($workerId, $approverIds)) {
+        if (defined('APPROVER_IDS') && in_array($workerId, APPROVER_IDS)) {
             return 1; // ROLE_APPROVER
         }
 

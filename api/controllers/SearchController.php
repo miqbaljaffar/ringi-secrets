@@ -47,8 +47,6 @@ class SearchController {
                               LEFT JOIN v_worker w ON c.s_applied = w.id_worker
                               WHERE 1=1";
                 
-                // PERBAIKAN LOGIKA TAB 'ALL':
-                // Tampilkan jika Tanggal Masa Depan ATAU Status Masih Pending (Menunggu Approval)
                 if ($isAllTab) {
                     $sqlCommon .= " AND (
                         c.dt_deadline >= CURDATE() 
@@ -58,8 +56,10 @@ class SearchController {
                 }
 
                 if ($keyword) {
-                    $sqlCommon .= " AND (c.s_title LIKE :kw_c OR c.s_overview LIKE :kw_c)";
-                    $params[':kw_c'] = "%$keyword%";
+                    // MENGGUNAKAN PARAMETER UNIK (:kw_c1 dan :kw_c2)
+                    $sqlCommon .= " AND (c.s_title LIKE :kw_c1 OR c.s_overview LIKE :kw_c2)";
+                    $params[':kw_c1'] = "%$keyword%";
+                    $params[':kw_c2'] = "%$keyword%";
                 }
                 $subQueries[] = $sqlCommon;
             }
@@ -84,7 +84,6 @@ class SearchController {
                            LEFT JOIN v_worker w ON t.s_applied = w.id_worker
                            WHERE 1=1";
                 
-                // PERBAIKAN LOGIKA TAB 'ALL'
                 if ($isAllTab) {
                     $sqlTax .= " AND (
                         t.dt_contract_start >= CURDATE() 
@@ -94,8 +93,9 @@ class SearchController {
                 }
 
                 if ($keyword) {
-                    $sqlTax .= " AND (t.s_name LIKE :kw_t OR t.s_rep_name LIKE :kw_t)";
-                    $params[':kw_t'] = "%$keyword%";
+                    $sqlTax .= " AND (t.s_name LIKE :kw_t1 OR t.s_rep_name LIKE :kw_t2)";
+                    $params[':kw_t1'] = "%$keyword%";
+                    $params[':kw_t2'] = "%$keyword%";
                 }
                 $subQueries[] = $sqlTax;
             }
@@ -120,7 +120,6 @@ class SearchController {
                              LEFT JOIN v_worker w ON o.s_applied = w.id_worker
                              WHERE 1=1";
                 
-                // PERBAIKAN LOGIKA TAB 'ALL'
                 if ($isAllTab) {
                     $sqlOther .= " AND (
                         o.dt_contract_start >= CURDATE() 
@@ -130,8 +129,9 @@ class SearchController {
                 }
 
                 if ($keyword) {
-                    $sqlOther .= " AND (o.s_name LIKE :kw_o OR o.s_rep_name LIKE :kw_o)";
-                    $params[':kw_o'] = "%$keyword%";
+                    $sqlOther .= " AND (o.s_name LIKE :kw_o1 OR o.s_rep_name LIKE :kw_o2)";
+                    $params[':kw_o1'] = "%$keyword%";
+                    $params[':kw_o2'] = "%$keyword%";
                 }
                 $subQueries[] = $sqlOther;
             }
@@ -156,9 +156,6 @@ class SearchController {
                               LEFT JOIN v_worker w ON v.s_applied = w.id_worker
                               WHERE 1=1";
                 
-                // PERBAIKAN LOGIKA TAB 'ALL'
-                // Karena Vendor tidak punya tgl kontrak/deadline spesifik, 
-                // kita gunakan tgl pengajuan (ts_applied) ATAU status Pending.
                 if ($isAllTab) {
                     $sqlVendor .= " AND (
                         v.ts_applied >= CURDATE() 
@@ -168,8 +165,8 @@ class SearchController {
                 }
 
                 if ($keyword) {
-                    $sqlVendor .= " AND (v.s_name LIKE :kw_v)";
-                    $params[':kw_v'] = "%$keyword%";
+                    $sqlVendor .= " AND (v.s_name LIKE :kw_v1)";
+                    $params[':kw_v1'] = "%$keyword%";
                 }
                 $subQueries[] = $sqlVendor;
             }
@@ -180,16 +177,19 @@ class SearchController {
             // Logic Tab Status (Filter Global setelah UNION)
             switch ($tab) {
                 case 'to_approve':
+                    // MENGGUNAKAN PARAMETER UNIK (:uid1 dan :uid2)
+                    // DAN LOGIKA: Approver 2 hanya melihat jika Approver 1 sudah menyetujui
                     $whereClauses[] = "
                         (
-                            (u.s_approved_1 = :uid AND u.dt_approved_1 IS NULL) 
+                            (u.s_approved_1 = :uid1 AND u.dt_approved_1 IS NULL) 
                             OR 
-                            (u.s_approved_2 = :uid AND u.dt_approved_2 IS NULL)
+                            (u.s_approved_2 = :uid2 AND u.dt_approved_2 IS NULL AND u.dt_approved_1 IS NOT NULL)
                         )
                         AND u.dt_rejected IS NULL 
                         AND u.dt_deleted IS NULL
                     ";
-                    $params[':uid'] = $userId;
+                    $params[':uid1'] = $userId;
+                    $params[':uid2'] = $userId;
                     break;
                 case 'approved':
                     $whereClauses[] = "u.dt_approved_2 IS NOT NULL AND u.dt_deleted IS NULL";
@@ -201,7 +201,6 @@ class SearchController {
                     $whereClauses[] = "u.dt_approved_2 IS NULL AND u.dt_rejected IS NULL AND u.dt_deleted IS NULL";
                     break;
                 default:
-                    // Tab 'all' tidak ada filter tambahan di sini karena sudah difilter di sub-query
                     $whereClauses[] = "1=1"; 
                     break;
             }
@@ -216,7 +215,7 @@ class SearchController {
             $orderBy = "u.ts_applied DESC"; // Default fallback
             
             if ($tab === 'all') {
-                $orderBy = "u.sort_date ASC"; // Sesuai spec: Oldest -> Newest untuk Tab All
+                $orderBy = "u.sort_date ASC"; 
             } elseif ($tab === 'approved' || $tab === 'rejected') {
                 $orderBy = "u.sort_date DESC"; 
             } elseif ($tab === 'pending' || $tab === 'to_approve') {
