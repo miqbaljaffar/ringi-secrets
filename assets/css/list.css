@@ -1,4 +1,4 @@
-/* css/list.css - REVISI UKURAN BESAR */
+/* css/list.css - REVISI SESUAI SPESIFIKASI (MAX-WIDTH 1200px) */
 
 body {
     font-family: "Meiryo", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
@@ -11,16 +11,17 @@ body {
 }
 
 .list-wrapper {
-    /* UBAH: Gunakan persentase agar lebar menyesuaikan layar, jangan dilimit 1200px */
-    width: 98%; 
-    min-width: 1000px; /* Mencegah layout hancur di layar sangat kecil */
+    /* REVISI: Mengembalikan ke spesifikasi (Max 1200px) */
+    width: 100%; 
+    max-width: 1200px; /* Sesuai spesifikasi Hal. 10 */
+    min-width: 1000px; /* Mencegah layout hancur di layar sangat kecil, scrollbar akan muncul */
     margin: 0 auto;
 }
 
 /* --- 1. JUDUL --- */
 .page-title {
     text-align: center;
-    font-size: 28px; /* Diperbesar */
+    font-size: 28px; 
     font-weight: bold;
     margin-bottom: 25px;
     color: #000;
@@ -30,7 +31,7 @@ body {
 .search-container {
     background-color: #cceeff; /* Biru muda persis screenshot */
     border: 1px solid #8ec6eb;
-    padding: 15px 20px; /* Padding diperbesar */
+    padding: 15px 20px; 
     margin-bottom: 5px; /* Jarak ke tab diperkecil agar nempel */
     border-radius: 4px;
 }
@@ -45,7 +46,7 @@ body {
 .form-item {
     display: flex;
     align-items: center;
-    font-size: 15px; /* Font diperbesar */
+    font-size: 15px; 
 }
 
 .form-item label {
@@ -236,7 +237,7 @@ body {
 .sp-only { display: none; }
 
 @media screen and (max-width: 900px) {
-    .list-wrapper { width: 100%; padding: 10px; }
+    .list-wrapper { width: 100%; padding: 10px; max-width: none; min-width: 0; }
     .pc-only { display: none; }
     .sp-only { display: block; }
     

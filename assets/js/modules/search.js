@@ -7,7 +7,7 @@ class SearchModule {
     }
     
     init() {
-        // Load data awal (misal tab: all atau to_approve tergantung role)
+        // Load initial data (e.g., default tab: all or to_approve depending on role)
         this.loadInitialData();
         this.setupTabs();
         
@@ -34,13 +34,14 @@ class SearchModule {
     }
     
     async loadInitialData() {
-        // Cek user role dari ringiSystem global
+        // Check user role from global ringiSystem
         const user = ringiSystem.user;
-        // Jika approver, default tab mungkin 'to_approve'
+        
+        // If approver, default tab may be 'to_approve'
         if (user && user.role >= 1) {
             this.currentTab = 'to_approve';
             const tabEl = document.querySelector('[data-tab="to_approve"]');
-            if(tabEl) tabEl.click();
+            if (tabEl) tabEl.click();
         } else {
             this.performSearch();
         }
@@ -49,50 +50,66 @@ class SearchModule {
     async performSearch() {
         if (!this.resultsContainer) return;
         
-        this.resultsContainer.innerHTML = '<div class="text-center p-4"><div class="spinner"></div> Memuat data...</div>';
+        this.resultsContainer.innerHTML = 
+            '<div class="text-center p-4"><div class="spinner"></div> Loading data...</div>';
         
         const params = new URLSearchParams();
         params.append('tab', this.currentTab);
         
-        // Ambil filter dari form jika ada
+        // Get filters from form if available
         if (this.searchForm) {
             const formData = new FormData(this.searchForm);
             for (let [key, value] of formData.entries()) {
-                if(value) params.append(key, value);
+                if (value) params.append(key, value);
             }
         }
 
         try {
-            // Gunakan endpoint 'search' yang baru
+            // Use the new 'search' endpoint
             const response = await ringiSystem.apiRequest('GET', `search?${params.toString()}`);
             
             if (response.success) {
                 this.renderResults(response.data);
-                this.updateBadges(); // Update angka notifikasi
+                this.updateBadges(); // Update notification count
             } else {
-                this.resultsContainer.innerHTML = '<div class="alert alert-danger">Gagal memuat data</div>';
+                this.resultsContainer.innerHTML = 
+                    '<div class="alert alert-danger">Failed to load data</div>';
             }
         } catch (error) {
             console.error('Search error:', error);
-            this.resultsContainer.innerHTML = '<div class="alert alert-danger">Terjadi kesalahan sistem</div>';
+            this.resultsContainer.innerHTML = 
+                '<div class="alert alert-danger">A system error occurred</div>';
         }
     }
     
     renderResults(documents) {
         if (documents.length === 0) {
-            this.resultsContainer.innerHTML = '<div class="no-results p-4 text-center">Tidak ada dokumen ditemukan.</div>';
+            this.resultsContainer.innerHTML = 
+                '<div class="no-results p-4 text-center">No documents found.</div>';
             return;
         }
         
         const html = documents.map(doc => {
-            // Tentukan label tipe dokumen
+            // Determine document type label
             let typeLabel = '';
             let typeClass = '';
-            switch(doc.type) {
-                case 'common': typeLabel = 'Umum'; typeClass='badge-primary'; break;
-                case 'tax': typeLabel = 'Pajak'; typeClass='badge-warning'; break;
-                case 'others': typeLabel = 'Lainnya'; typeClass='badge-info'; break;
-                case 'vendor': typeLabel = 'Vendor'; typeClass='badge-success'; break;
+            switch (doc.type) {
+                case 'common': 
+                    typeLabel = 'General'; 
+                    typeClass = 'badge-primary'; 
+                    break;
+                case 'tax': 
+                    typeLabel = 'Tax'; 
+                    typeClass = 'badge-warning'; 
+                    break;
+                case 'others': 
+                    typeLabel = 'Others'; 
+                    typeClass = 'badge-info'; 
+                    break;
+                case 'vendor': 
+                    typeLabel = 'Vendor'; 
+                    typeClass = 'badge-success'; 
+                    break;
             }
 
             const status = this.getStatus(doc);
@@ -109,7 +126,7 @@ class SearchModule {
                         <div class="${statusClass}">${statusText}</div>
                     </div>
                     <div class="result-body">
-                        <h4 class="doc-title">${doc.title || '(Tanpa Judul)'}</h4>
+                        <h4 class="doc-title">${doc.title || '(Untitled)'}</h4>
                         <div class="doc-meta">
                             <span><i class="icon-user"></i> ${doc.applicant_name}</span>
                             <span><i class="icon-calendar"></i> ${new Date(doc.ts_applied).toLocaleDateString('ja-JP')}</span>
@@ -132,24 +149,24 @@ class SearchModule {
 
     getStatusText(status) {
         const texts = {
-            'pending': 'Menunggu Persetujuan 1',
-            'pending_second': 'Menunggu Persetujuan 2',
-            'approved': 'Disetujui',
-            'rejected': 'Ditolak',
-            'withdrawn': 'Ditarik',
-            'completed': 'Selesai'
+            'pending': 'Waiting for Approval 1',
+            'pending_second': 'Waiting for Approval 2',
+            'approved': 'Approved',
+            'rejected': 'Rejected',
+            'withdrawn': 'Withdrawn',
+            'completed': 'Completed'
         };
         return texts[status] || status;
     }
     
     async updateBadges() {
-        // Implementasi opsional: Hitung jumlah 'to_approve' untuk badge notifikasi
+        // Optional implementation: Count 'to_approve' items for notification badge
     }
 }
 
 // Init
 document.addEventListener('DOMContentLoaded', () => {
-    // Cek apakah kita di halaman yang punya search container
+    // Check if we are on a page that has a search container
     if (document.getElementById('search-results')) {
         window.searchModule = new SearchModule();
     }

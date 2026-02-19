@@ -11,15 +11,17 @@ class AuthController {
         return $this->userModel;
     }
 
-    // 社員IDでログインし、セッションと権限情報を設定する (Handle login by employee ID and initialize session data)
+    // DEVELOPMENT ONLY: Login Manual (Simulasi SSO)
+    // Di Production, fungsi ini jarang dipakai karena user masuk otomatis via Middleware
     public function login($request) {
         if ($request['method'] === 'POST') {
             $body = $request['body'];
             
+            // Menerima input username (ID Karyawan)
             $employeeId = $body['username'] ?? '';
 
             if (empty($employeeId)) {
-                return ['success' => false, 'error' => '社員ID（ユーザーID）を入力してください。'];
+                return ['success' => false, 'error' => 'ID Karyawan wajib diisi.'];
             }
 
             $userModel = $this->getUserModel();
@@ -29,22 +31,22 @@ class AuthController {
                 if (session_status() === PHP_SESSION_NONE) session_start();
                 session_regenerate_id(true);
                 
+                // 1. Simulasi Variable SSO Portal
+                $_SESSION['UID'] = $worker['id_worker'];
+
+                // 2. Set Session Internal Aplikasi
                 $_SESSION['user_id'] = $worker['id_worker'];
                 $_SESSION['user_name'] = $worker['s_name'];
                 $_SESSION['user_department'] = $worker['s_department'];
                 
-                $role = 0; // User
-                if ($worker['id_worker'] === '0036' || $worker['id_worker'] === '0001') {
-                    $role = 2; // Admin
-                } elseif ($worker['n_chairperson'] == 1) {
-                    $role = 1; // Approver
-                }
-                
+                // 3. Hitung Role (Admin/Approver/User) menggunakan logika terpusat
+                $role = $userModel->calculateRole($worker['id_worker']);
                 $_SESSION['user_role'] = $role;
                 
                 return [
                     'success' => true,
-                    'token' => 'session_token_active', 
+                    'token' => 'session_active_dev', 
+                    'message' => 'Login (Dev Mode) Berhasil',
                     'user' => [
                         'id' => $_SESSION['user_id'],
                         'name' => $_SESSION['user_name'],
@@ -56,36 +58,40 @@ class AuthController {
             
             return [
                 'success' => false, 
-                'error' => 'ログインに失敗しました。社員ID「' . $employeeId . '」は登録されていません。'
+                'error' => 'Login gagal. ID Karyawan tidak ditemukan.'
             ];
         }
 
-        return ['success' => false, 'error' => '許可されていないリクエストです。'];
+        return ['success' => false, 'error' => 'Method not allowed.'];
     }
 
-    // ログアウトしてセッションを破棄する (Handle logout and destroy session)
+    // Logout
     public function logout() {
         if (session_status() === PHP_SESSION_NONE) session_start();
         session_unset();
         session_destroy();
-        return ['success' => true, 'message' => 'ログアウトしました。'];
+        return ['success' => true, 'message' => 'Logout berhasil.'];
     }
     
-    // ログインユーザー情報を取得する (Get logged-in user information)
+    // Get Info
     public function getUserInfo($request) {
-        return [
-            'success' => true,
-            'user' => $request['user']
-        ];
+        // Data user sudah di-inject oleh AuthMiddleware
+        if (isset($request['user'])) {
+            return [
+                'success' => true,
+                'user' => $request['user']
+            ];
+        }
+        return ['success' => false, 'error' => 'User info tidak ditemukan.'];
     }
 
-    // トークンの有効性を検証する (Validate the session token)
+    // Validate Token
     public function validateToken($request) {
-        if (isset($_SESSION['user_id'])) {
+        if (isset($_SESSION['user_id']) || isset($_SESSION['UID'])) {
             return ['success' => true];
         }
         http_response_code(401);
-        return ['success' => false, 'error' => '認証が無効です。再度ログインしてください。'];
+        return ['success' => false, 'error' => 'Sesi tidak valid.'];
     }
 }
 ?>

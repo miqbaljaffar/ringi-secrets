@@ -210,6 +210,13 @@ textarea {
 }
 .stamp-rejected::after { content: "否認"; }
 
+/* PENAMBAHAN: Status Withdrawn (Ditarik) */
+.stamp-withdrawn {
+    color: #6c757d;
+    border-color: #6c757d;
+}
+.stamp-withdrawn::after { content: "取下"; }
+
 /* --- MOBILE RESPONSIVE --- */
 @media screen and (max-width: 768px) {
     body { padding: 10px; }

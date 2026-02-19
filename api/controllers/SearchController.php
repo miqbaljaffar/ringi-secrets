@@ -25,7 +25,6 @@ class SearchController {
             $subQueries = [];
 
             // Helper untuk mengecek apakah tab adalah 'all'
-            // Logika: Tab 'all' hanya menampilkan data masa depan (Future dates)
             $isAllTab = ($tab === 'all');
 
             // --- 1. COMMON (Ringi Biasa) ---
@@ -48,9 +47,14 @@ class SearchController {
                               LEFT JOIN v_worker w ON c.s_applied = w.id_worker
                               WHERE 1=1";
                 
-                // Filter Tanggal Masa Depan untuk Tab 'Semua'
+                // PERBAIKAN LOGIKA TAB 'ALL':
+                // Tampilkan jika Tanggal Masa Depan ATAU Status Masih Pending (Menunggu Approval)
                 if ($isAllTab) {
-                    $sqlCommon .= " AND c.dt_deadline >= CURDATE()";
+                    $sqlCommon .= " AND (
+                        c.dt_deadline >= CURDATE() 
+                        OR 
+                        (c.dt_approved_2 IS NULL AND c.dt_rejected IS NULL AND c.dt_deleted IS NULL)
+                    )";
                 }
 
                 if ($keyword) {
@@ -80,9 +84,13 @@ class SearchController {
                            LEFT JOIN v_worker w ON t.s_applied = w.id_worker
                            WHERE 1=1";
                 
-                // Filter Tanggal Masa Depan untuk Tab 'Semua'
+                // PERBAIKAN LOGIKA TAB 'ALL'
                 if ($isAllTab) {
-                    $sqlTax .= " AND t.dt_contract_start >= CURDATE()";
+                    $sqlTax .= " AND (
+                        t.dt_contract_start >= CURDATE() 
+                        OR 
+                        (t.dt_approved_2 IS NULL AND t.dt_rejected IS NULL AND t.dt_deleted IS NULL)
+                    )";
                 }
 
                 if ($keyword) {
@@ -112,9 +120,13 @@ class SearchController {
                              LEFT JOIN v_worker w ON o.s_applied = w.id_worker
                              WHERE 1=1";
                 
-                // Filter Tanggal Masa Depan untuk Tab 'Semua'
+                // PERBAIKAN LOGIKA TAB 'ALL'
                 if ($isAllTab) {
-                    $sqlOther .= " AND o.dt_contract_start >= CURDATE()";
+                    $sqlOther .= " AND (
+                        o.dt_contract_start >= CURDATE() 
+                        OR 
+                        (o.dt_approved_2 IS NULL AND o.dt_rejected IS NULL AND o.dt_deleted IS NULL)
+                    )";
                 }
 
                 if ($keyword) {
@@ -143,6 +155,18 @@ class SearchController {
                               FROM t_vendors v
                               LEFT JOIN v_worker w ON v.s_applied = w.id_worker
                               WHERE 1=1";
+                
+                // PERBAIKAN LOGIKA TAB 'ALL'
+                // Karena Vendor tidak punya tgl kontrak/deadline spesifik, 
+                // kita gunakan tgl pengajuan (ts_applied) ATAU status Pending.
+                if ($isAllTab) {
+                    $sqlVendor .= " AND (
+                        v.ts_applied >= CURDATE() 
+                        OR 
+                        (v.dt_approved_2 IS NULL AND v.dt_rejected IS NULL AND v.dt_deleted IS NULL)
+                    )";
+                }
+
                 if ($keyword) {
                     $sqlVendor .= " AND (v.s_name LIKE :kw_v)";
                     $params[':kw_v'] = "%$keyword%";
@@ -153,7 +177,7 @@ class SearchController {
             $unionSql = implode(" UNION ALL ", $subQueries);
             $whereClauses = [];
             
-            // Logic Tab Status
+            // Logic Tab Status (Filter Global setelah UNION)
             switch ($tab) {
                 case 'to_approve':
                     $whereClauses[] = "
@@ -177,6 +201,7 @@ class SearchController {
                     $whereClauses[] = "u.dt_approved_2 IS NULL AND u.dt_rejected IS NULL AND u.dt_deleted IS NULL";
                     break;
                 default:
+                    // Tab 'all' tidak ada filter tambahan di sini karena sudah difilter di sub-query
                     $whereClauses[] = "1=1"; 
                     break;
             }
@@ -191,7 +216,7 @@ class SearchController {
             $orderBy = "u.ts_applied DESC"; // Default fallback
             
             if ($tab === 'all') {
-                $orderBy = "u.sort_date ASC"; 
+                $orderBy = "u.sort_date ASC"; // Sesuai spec: Oldest -> Newest untuk Tab All
             } elseif ($tab === 'approved' || $tab === 'rejected') {
                 $orderBy = "u.sort_date DESC"; 
             } elseif ($tab === 'pending' || $tab === 'to_approve') {

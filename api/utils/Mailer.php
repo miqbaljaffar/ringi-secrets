@@ -66,6 +66,33 @@ class Mailer {
     }
 
     /**
+     * BARU: Mengirim notifikasi Update Memo oleh Admin
+     * Dikirim ke: Pemohon (Applicant) dan Para Penyetuju (Approvers)
+     */
+    public function sendMemoUpdateNotification($docId, $targetUserId, $updaterName, $newMemo) {
+        $targetUser = $this->userModel->findByEmployeeId($targetUserId);
+
+        if (!$targetUser || empty($targetUser['s_email'])) {
+            // User mungkin sudah dihapus atau tidak ada email, skip saja
+            return false;
+        }
+
+        $subject = "[{$this->appName}] Update Catatan (Memo) Dokumen: $docId";
+
+        $body  = "Yth. " . $targetUser['s_name'] . ",\n\n";
+        $body .= "Terdapat pembaruan Catatan/Memo oleh Administrator pada dokumen berikut.\n\n";
+        $body .= "No Dokumen: $docId\n";
+        $body .= "Diperbarui Oleh: $updaterName (Admin)\n";
+        $body .= "Isi Catatan Baru:\n";
+        $body .= "--------------------------------------------------\n";
+        $body .= $newMemo . "\n";
+        $body .= "--------------------------------------------------\n";
+        $body .= "\nSilakan login ke sistem untuk melihat detailnya.\n";
+
+        return $this->send($targetUser['s_email'], $subject, $body);
+    }
+
+    /**
      * Fungsi dasar pengiriman email
      */
     private function send($to, $subject, $body) {

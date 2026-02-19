@@ -107,7 +107,7 @@ class CommonController {
         }
     }
     
-    // MODIFIKASI: Method store dengan Notifikasi Email (Apply -> Approver)
+    // ... (Method store tetap sama) ...
     public function store($request) {
         if ($_SERVER['CONTENT_TYPE'] === 'application/x-www-form-urlencoded' || 
             strpos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') !== false) {
@@ -147,18 +147,16 @@ class CommonController {
             
             $docId = $this->commonModel->createDocument($data);
             
-            // --- NOTIFIKASI EMAIL START ---
-            // Ambil data dokumen yang baru dibuat untuk mendapatkan ID Approver 1
+            // Notifikasi Email (Apply -> Approver 1)
             $newDoc = $this->commonModel->find($docId);
             if ($newDoc && !empty($newDoc['s_approved_1'])) {
                 $this->mailer->sendRequestNotification(
                     $docId,
-                    $newDoc['s_approved_1'],      // Ke Approver 1
-                    $request['user']['name'],     // Dari Nama Pemohon
-                    $data['s_title']              // Judul
+                    $newDoc['s_approved_1'],      
+                    $request['user']['name'],     
+                    $data['s_title']              
                 );
             }
-            // --- NOTIFIKASI EMAIL END ---
             
             return [
                 'success' => true,
@@ -175,7 +173,7 @@ class CommonController {
         }
     }
     
-    // ... (Method update tetap sama) ...
+    // MODIFIKASI: Method update dengan Notifikasi Email (Admin Update Memo)
     public function update($request) {
         $docId = $request['params']['id'] ?? $_GET['id'] ?? null;
 
@@ -184,29 +182,90 @@ class CommonController {
             return ['success' => false, 'error' => 'ID Required'];
         }
         
-        $data = json_decode(file_get_contents('php://input'), true);
-        if (isset($data['s_memo']) && class_exists('AuthMiddleware')) {
+        // Cek Role Admin (Hanya Admin yang boleh update Memo)
+        if (isset($request['user']) && class_exists('AuthMiddleware')) {
+            // ROLE_ADMIN = 2 (didefinisikan di constants.php dan logic User)
             AuthMiddleware::requireRole(ROLE_ADMIN, $request);
         }
         
+        $data = json_decode(file_get_contents('php://input'), true);
+        
         try {
-            $result = $this->commonModel->update($docId, $data);
+            // Deteksi Model berdasarkan Prefix ID (AR, CT, CO, CV)
+            // Agar Admin bisa update memo untuk SEMUA tipe dokumen
+            $prefix = strtoupper(substr($docId, 0, 2));
+            $targetModel = null;
             
-            // Opsional: Jika admin update memo, bisa kirim notifikasi di sini (sesuai dokumen: Update Keterangan -> Notifikasi semua)
-            // Namun untuk fokus perbaikan utama, kita fokus pada Approve/Reject dulu.
+            switch ($prefix) {
+                case 'AR': $targetModel = $this->commonModel; break;
+                case 'CT': $targetModel = new Tax(); break;
+                case 'CO': $targetModel = new OtherContract(); break;
+                case 'CV': $targetModel = new Vendor(); break;
+                default: 
+                    // Fallback jika format ID tidak standar
+                    $targetModel = $this->commonModel; 
+                    break;
+            }
+
+            // Lakukan Update ke Database
+            $result = $targetModel->update($docId, $data);
             
             if ($result) {
-                return ['success' => true, 'message' => 'Update berhasil.'];
+                // --- IMPLEMENTASI BUSINESS LOGIC NOTIFIKASI EMAIL ---
+                // "Admin Update Memo -> Kirim Email ke Pemohon & Penyetuju"
+                if (isset($data['s_memo']) && !empty($data['s_memo'])) {
+                    
+                    // Ambil data dokumen terbaru (untuk tau siapa pemohon & approvernya)
+                    $docData = $targetModel->find($docId);
+                    $adminName = $request['user']['name'];
+                    $newMemo = $data['s_memo'];
+
+                    // Daftar penerima email (ID User)
+                    $recipients = [];
+                    
+                    // 1. Pemohon (Applicant)
+                    if (!empty($docData['s_applied'])) {
+                        $recipients[] = $docData['s_applied'];
+                    }
+                    
+                    // 2. Approver 1
+                    if (!empty($docData['s_approved_1'])) {
+                        $recipients[] = $docData['s_approved_1'];
+                    }
+                    
+                    // 3. Approver 2 (Jika ada)
+                    if (!empty($docData['s_approved_2'])) {
+                        $recipients[] = $docData['s_approved_2'];
+                    }
+                    
+                    // Hapus duplikat (misal Admin juga Approver, atau Pemohon sama dengan Approver)
+                    $recipients = array_unique($recipients);
+
+                    // Kirim email ke semua penerima
+                    foreach ($recipients as $recipientId) {
+                        // Jangan kirim email ke diri sendiri (jika Admin yang edit juga termasuk dalam list)
+                        if ($recipientId !== $request['user']['id']) {
+                            $this->mailer->sendMemoUpdateNotification(
+                                $docId,
+                                $recipientId,
+                                $adminName,
+                                $newMemo
+                            );
+                        }
+                    }
+                }
+                
+                return ['success' => true, 'message' => 'Update berhasil (Memo diperbarui).'];
             } else {
-                return ['success' => false, 'error' => 'Update gagal.'];
+                return ['success' => false, 'error' => 'Update gagal atau tidak ada data yang berubah.'];
             }
         } catch (Throwable $e) {
             http_response_code(API_SERVER_ERROR);
-            return ['success' => false, 'error' => 'Server Error'];
+            return ['success' => false, 'error' => 'Server Error: ' . $e->getMessage()];
         }
     }
     
-    // MODIFIKASI: Method approve dengan Notifikasi Email (Approve/Reject -> Applicant/Next Approver)
+    // ... (Method approve tetap sama) ...
     public function approve($request) {
         $data = json_decode(file_get_contents('php://input'), true);
         
@@ -236,37 +295,28 @@ class CommonController {
             );
             
             if ($result) {
-                // --- NOTIFIKASI EMAIL START ---
-                // Ambil data dokumen TERBARU setelah update DB
+                // Notifikasi Email (Approve/Reject)
                 $updatedDoc = $targetModel->find($docId);
-                
-                // Ambil data untuk email
                 $applicantId = $updatedDoc['s_applied'];
                 $approverName = $request['user']['name'];
-                
-                // Judul berbeda tergantung tipe dokumen
                 $title = $updatedDoc['s_title'] ?? $updatedDoc['s_name'] ?? 'Dokumen'; 
 
                 if ($data['action'] === 'approve') {
-                    // Cek apakah ini baru tahap 1 dan masih butuh tahap 2?
                     if (!empty($updatedDoc['dt_approved_1']) && empty($updatedDoc['dt_approved_2']) && !empty($updatedDoc['s_approved_2'])) {
-                        // Kasus: Disetujui Approver 1 -> Kirim email ke Approver 2
-                        // Ambil nama pemohon (perlu query user, atau gunakan ID sementara)
-                        $applicantName = $updatedDoc['applicant_name'] ?? $applicantId; // Fallback jika join belum ada
+                        // Kirim email ke Approver 2
+                        $applicantName = $updatedDoc['applicant_name'] ?? $applicantId;
                         if (class_exists('User')) {
                              $uModel = new User();
                              $appUser = $uModel->findByEmployeeId($applicantId);
                              if($appUser) $applicantName = $appUser['s_name'];
                         }
-
                         $this->mailer->sendRequestNotification(
                             $docId,
-                            $updatedDoc['s_approved_2'], // Ke Approver 2
+                            $updatedDoc['s_approved_2'], 
                             $applicantName, 
                             $title . " (Telah disetujui Tahap 1)"
                         );
                     } else {
-                        // Kasus: Disetujui Final (oleh Approver 2 ATAU Approver 1 jika tidak ada Approver 2)
                         // Kirim notifikasi SUKSES ke Pemohon
                         $this->mailer->sendResultNotification(
                             $docId,
@@ -277,7 +327,7 @@ class CommonController {
                         );
                     }
                 } elseif ($data['action'] === 'reject') {
-                    // Kasus: Ditolak -> Kirim notifikasi DITOLAK ke Pemohon
+                    // Kirim notifikasi DITOLAK ke Pemohon
                     $this->mailer->sendResultNotification(
                         $docId,
                         $applicantId,
@@ -286,7 +336,6 @@ class CommonController {
                         $data['comment'] ?? ''
                     );
                 }
-                // --- NOTIFIKASI EMAIL END ---
 
                 return ['success' => true, 'message' => 'Proses persetujuan berhasil.'];
             } else {

@@ -9,7 +9,6 @@ class CommonFormHandler {
         this.init();
     }
     
-    // Ini (Initialization)
     init() {
         if (!this.form) return;
         
@@ -25,6 +24,7 @@ class CommonFormHandler {
             this.addDetailRow();
         });
         
+        // Event listener untuk upload
         document.getElementById('file-upload')?.addEventListener('change', (e) => {
             this.handleFileUpload(e);
         });
@@ -35,15 +35,11 @@ class CommonFormHandler {
             }
         });
         
-        // --- MODIFIKASI: Handler Submit Terpisah ---
-        
-        // 1. Tombol Ajukan (Apply)
         this.form.addEventListener('submit', (e) => {
             e.preventDefault();
             this.handleSubmit('apply');
         });
 
-        // 2. Tombol Simpan Draft (Draft) - Asumsi ID tombol di HTML adalah 'btn-save-draft'
         const draftBtn = document.getElementById('btn-save-draft');
         if (draftBtn) {
             draftBtn.addEventListener('click', (e) => {
@@ -116,11 +112,7 @@ class CommonFormHandler {
     }
     
     addDetailRow() {
-        if (this.detailCounter >= 3) {
-            ringiSystem.showNotification('最大3行まで追加できます (Maks 3 Baris)', 'warning');
-            return;
-        }
-        
+        // Baris tak terbatas sesuai update sebelumnya
         const detailId = this.detailCounter++;
         const rowHtml = `
             <div class="detail-row" data-detail-id="${detailId}">
@@ -151,6 +143,8 @@ class CommonFormHandler {
         });
         
         this.populateCategorySelect(rowElement);
+
+        this.detailsContainer.scrollTop = this.detailsContainer.scrollHeight;
     }
     
     createRowElement(html) {
@@ -175,7 +169,6 @@ class CommonFormHandler {
         const row = document.querySelector(`[data-detail-id="${detailId}"]`);
         if (row) {
             row.remove();
-            this.detailCounter--;
             this.calculateTotal();
         }
     }
@@ -183,8 +176,7 @@ class CommonFormHandler {
     calculateTotal() {
         let total = 0;
         document.querySelectorAll('.amount-input').forEach(input => {
-            const amount = parseInt(input.value) || 0;
-            total += amount;
+            total += parseInt(input.value) || 0;
         });
         
         if (this.totalAmountElement) {
@@ -287,10 +279,7 @@ class CommonFormHandler {
         return total;
     }
     
-    // --- MODIFIKASI: Handle Submit dengan Mode ---
     async handleSubmit(saveMode = 'apply') {
-        // Jika mode 'apply', lakukan validasi penuh
-        // Jika mode 'draft', bypass validasi (atau validasi minimal)
         if (saveMode === 'apply') {
             if (!this.validateForm()) {
                 return;
@@ -300,11 +289,8 @@ class CommonFormHandler {
         const formData = new FormData(this.form);
         const details = this.collectDetails();
         formData.append('details', JSON.stringify(details));
-        
         formData.append('total_amount', this.getTotalAmount());
-        
-        // PENTING: Kirim flag mode ke backend
-        formData.append('save_mode', saveMode); // 'apply' atau 'draft'
+        formData.append('save_mode', saveMode);
         
         try {
             const response = await ringiSystem.apiRequest('POST', 'common', formData, true);
@@ -313,7 +299,6 @@ class CommonFormHandler {
                 const msg = saveMode === 'draft' ? '下書き保存しました (Draft Tersimpan)' : '申請が完了しました (Berhasil Diajukan)';
                 ringiSystem.showNotification(msg, 'success');
                 setTimeout(() => {
-                    // Redirect ke halaman detail (baik draft maupun apply)
                     window.location.href = `/pages/detail.html?id=${response.doc_id}&type=common`;
                 }, 1500);
             } else {
@@ -336,12 +321,10 @@ class CommonFormHandler {
             const payerInput = row.querySelector('.payer-input');
             const amountInput = row.querySelector('.amount-input');
             
-            // Untuk draft, ambil saja value-nya meskipun kosong
             if (categorySelect && payerInput && amountInput) {
                  const categoryVal = categorySelect.value;
                  const amountVal = amountInput.value;
                  
-                 // Jika ada isinya, masukkan. Kalau draft boleh parsial
                  if (categoryVal || payerInput.value || amountVal) {
                     details.push({
                         category: parseInt(categoryVal) || 0,
@@ -358,15 +341,27 @@ class CommonFormHandler {
         const file = event.target.files[0];
         if (!file) return;
         
+        // 1. Validasi Ukuran
         if (file.size > 5 * 1024 * 1024) {
             ringiSystem.showNotification('ファイルサイズは5MB以下にしてください', 'error');
             event.target.value = '';
             return;
         }
         
+        // 2. Validasi Tipe
         if (file.type !== 'application/pdf') {
             ringiSystem.showNotification('PDFファイルのみアップロード可能です', 'error');
             event.target.value = '';
+            return;
+        }
+
+        // 3. Konfirmasi Invoice (jQuery Style - tapi native JS cukup)
+        const confirmMsg = "【注意事項】\n請求書（インボイス）の添付は禁止されています。\n\nアップロードするファイルは請求書ではありませんか？\n(Perhatian: Dilarang melampirkan invoice. Apakah file ini bukan invoice?)";
+        
+        if (!window.confirm(confirmMsg)) {
+            event.target.value = ''; 
+            const fileNameDisplay = document.getElementById('file-name-display');
+            if (fileNameDisplay) fileNameDisplay.textContent = '';
             return;
         }
         

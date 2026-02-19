@@ -1,334 +1,295 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Guard Clause: Pastikan elemen mount point ada
-    if (!document.getElementById('app')) return;
+class DetailHandler {
+    constructor() {
+        this.id = this.getUrlParameter('id');
+        this.docType = this.getUrlParameter('type') || this.getDocTypeFromId(this.id);
+        
+        this.data = null;
+        this.currentUser = window.ringiSystem.user;
 
-    // 2. Dependency Check: Pastikan Core System sudah dimuat
-    if (!window.ringiSystem) {
-        console.error("CRITICAL ERROR: RingiSystem core not loaded. Check script order in HTML.");
-        alert("Sistem gagal dimuat. Silakan refresh halaman.");
-        return;
+        // Cache DOM
+        this.$container = $('#detail-content');
+        this.$loading = $('#detail-loading');
+        this.$actions = $('#action-buttons');
+        this.$memoSection = $('#admin-memo-section');
+
+        this.init();
     }
 
-    new Vue({
-        el: '#app',
-        data: {
-            id: '',
-            docType: '', 
-            form: {}, 
-            loading: true,
-            error: null,
-            currentUser: null,
+    init() {
+        if (!this.id) {
+            alert('Document ID not found');
+            return;
+        }
+        this.loadDocument();
+        this.bindGlobalEvents();
+    }
+
+    getUrlParameter(name) {
+        const results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        return results ? results[1] : null;
+    }
+
+    getDocTypeFromId(id) {
+        if (!id || id.length < 2) return 'common';
+        const prefix = id.substring(0, 2).toUpperCase();
+        const map = { 'AR': 'common', 'CT': 'tax', 'CV': 'vendor', 'CO': 'others' };
+        return map[prefix] || 'common';
+    }
+
+    async loadDocument() {
+        this.$loading.show();
+        this.$container.hide();
+
+        try {
+            const response = await ringiSystem.apiRequest('GET', `${this.docType}/${this.id}`);
             
-            // Permissions
-            canApprove: false, 
-            isOwner: false,
-            canWithdraw: false,
-
-            // --- FITUR BARU: Admin Memo (Bikou) ---
-            canEditMemo: false,   // Izin untuk mengedit memo
-            isMemoEditing: false, // State toggle mode edit
-            memoInput: ''         // Model untuk input memo
-        },
-        filters: {
-            currency(value) {
-                if (!value) return '0';
-                return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(value);
+            if (response.success) {
+                this.data = response.data;
+                this.renderData();
+                this.renderApprovalRoute();
+                this.setupPermissions();
+                this.$container.fadeIn();
+            } else {
+                throw new Error(response.error || 'Failed to load data');
             }
-        },
-        computed: {
-            approvalRoute() {
-                if (!this.form || Object.keys(this.form).length === 0) return [];
-                
-                const route = [];
-                // Helper internal untuk akses method
-                const fmtDate = this.formatDate; 
+        } catch (error) {
+            console.error('Detail Error:', error);
+            $('body').html(`<div class="alert alert-danger m-4">Error: ${error.message}</div>`);
+        } finally {
+            this.$loading.hide();
+        }
+    }
 
-                // Logic Approval Route
-                let applicantName = this.form.applicant_info ? this.form.applicant_info.s_name : (this.form.applicant_name || this.form.s_applied);
-                
-                route.push({
-                    role: '申請者',
-                    name: applicantName,
-                    statusText: '申請済',
-                    statusColor: '#333',
-                    date: fmtDate(this.form.ts_applied)
-                });
-
-                // 2. Approver 1
-                let status1 = '未定'; // Belum ditentukan
-                let color1 = '#999';
-                let date1 = '-';
-                
-                if (this.form.dt_rejected && !this.form.dt_approved_1) {
-                    status1 = '否認'; // Rejected
-                    color1 = 'red';
-                    date1 = fmtDate(this.form.dt_rejected);
-                } else if (this.form.dt_approved_1) {
-                    status1 = '承認'; // Approved
-                    color1 = '#0088cc';
-                    date1 = fmtDate(this.form.dt_approved_1);
-                } else {
-                    status1 = '承認待ち'; // Waiting
-                    color1 = '#ff9900';
-                }
-
-                if (this.form.s_approved_1) {
-                     let name1 = this.form.approver1_info ? this.form.approver1_info.s_name : this.form.s_approved_1;
-                     route.push({
-                        role: '第1承認者',
-                        name: name1,
-                        statusText: status1,
-                        statusColor: color1,
-                        date: date1
-                    });
-                }
-
-                // 3. Approver 2
-                if (this.form.s_approved_2) {
-                    let status2 = '未定';
-                    let color2 = '#999';
-                    let date2 = '-';
-
-                    if (this.form.dt_rejected && this.form.dt_approved_1) {
-                        status2 = '否認';
-                        color2 = 'red';
-                        date2 = fmtDate(this.form.dt_rejected);
-                    } else if (this.form.dt_approved_2) {
-                        status2 = '承認';
-                        color2 = '#0088cc';
-                        date2 = fmtDate(this.form.dt_approved_2);
-                    } else if (this.form.dt_approved_1) {
-                        status2 = '承認待ち';
-                        color2 = '#ff9900';
-                    }
-
-                    let name2 = this.form.approver2_info ? this.form.approver2_info.s_name : this.form.s_approved_2;
-                    route.push({
-                        role: '第2承認者',
-                        name: name2,
-                        statusText: status2,
-                        statusColor: color2,
-                        date: date2
-                    });
-                }
-                
-                return route;
+    renderData() {
+        const d = this.data;
+        
+        // Basic mapping (Text injection by ID)
+        // Pastikan di HTML ada id="lbl_subject", id="lbl_id", dll.
+        $('#lbl_id').text(d.id_doc);
+        $('#lbl_subject').text(d.title || d.subject || '-');
+        $('#lbl_applicant').text(d.applicant_name || (d.applicant_info ? d.applicant_info.s_name : '-'));
+        $('#lbl_date').text(d.ts_applied ? new Date(d.ts_applied).toLocaleDateString('ja-JP') : '-');
+        
+        // Format Currency fields
+        $('.currency-field').each(function() {
+            const key = $(this).data('key'); // misal data-key="total_amount"
+            if (d[key]) {
+                const val = new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(d[key]);
+                $(this).text(val);
             }
-        },
-        async mounted() {
-            // Ambil ID dari URL
-            const urlParams = new URLSearchParams(window.location.search);
-            this.id = urlParams.get('id');
+        });
 
-            if (!this.id) {
-                this.error = 'Document ID is missing.';
-                this.loading = false;
-                return;
-            }
+        // Render Dynamic Fields (Tergantung tipe dokumen)
+        // Anda bisa menambahkan logika spesifik per tipe form di sini
+        // Contoh: Mengisi tabel detail untuk common form
+        if (d.details && Array.isArray(d.details)) {
+            const rows = d.details.map(item => `
+                <tr>
+                    <td>${item.category_name || '-'}</td>
+                    <td>${item.payer}</td>
+                    <td class="text-right">${new Intl.NumberFormat('ja-JP').format(item.amount)} 円</td>
+                </tr>
+            `).join('');
+            $('#details-tbody').html(rows);
+        }
 
-            // AKSES GLOBAL VARIABEL DENGAN AMAN
-            this.currentUser = window.ringiSystem.user;
+        // Render Memo
+        this.renderMemo(d.s_memo);
+    }
 
-            await this.loadDocument();
-        },
-        methods: {
-            getDocTypeFromId(id) {
-                if (!id || id.length < 2) return null;
-                const prefix = id.substring(0, 2).toUpperCase();
-                
-                switch (prefix) {
-                    case 'AR': return 'common';
-                    case 'CT': return 'tax';
-                    case 'CV': return 'vendor';
-                    case 'CO': return 'others';
-                    default: return 'common';
-                }
-            },
+    renderMemo(memoContent) {
+        const content = memoContent || 'なし (Tidak ada)';
+        $('#memo-display-text').text(content);
+        $('#memo-input').val(content);
+    }
 
-            async loadDocument() {
-                this.loading = true;
-                this.error = null;
+    renderApprovalRoute() {
+        const d = this.data;
+        const route = [];
 
-                try {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    let typeParam = urlParams.get('type');
-                    
-                    if (!typeParam || typeParam === 'undefined') {
-                        this.docType = this.getDocTypeFromId(this.id);
-                    } else {
-                        this.docType = typeParam;
-                    }
-                    
-                    if (!this.docType) {
-                        throw new Error("Invalid Document ID or Type.");
-                    }
+        // Helper Status
+        const getStatusObj = (approvedDate, rejectedDate, prevApproved) => {
+            if (rejectedDate && !approvedDate) return { text: '否認', color: 'red', date: rejectedDate };
+            if (approvedDate) return { text: '承認', color: '#0088cc', date: approvedDate };
+            if (!prevApproved) return { text: '未定', color: '#999', date: null }; // Belum sampai tahap ini
+            return { text: '承認待ち', color: '#ff9900', date: null }; // Menunggu giliran
+        };
 
-                    // Panggil API menggunakan Global Helper
-                    const response = await window.ringiSystem.apiRequest('GET', `${this.docType}/${this.id}`);
-                    
-                    if (response.success) {
-                        this.form = response.data;
-                        this.calculatePermissions();
-                    } else {
-                        this.error = response.error || 'Failed to load document.';
-                    }
+        const fmtDate = (date) => date ? new Date(date).toLocaleDateString('ja-JP') : '-';
 
-                } catch (err) {
-                    console.error("Load Error:", err);
-                    this.error = err.message || 'An error occurred while loading data.';
-                } finally {
-                    this.loading = false;
-                }
-            },
+        // 1. Applicant
+        route.push({
+            role: '申請者',
+            name: d.applicant_name,
+            status: '申請済',
+            color: '#333',
+            date: fmtDate(d.ts_applied)
+        });
 
-            calculatePermissions() {
-                if (!this.currentUser || !this.form) return;
+        // 2. Approver 1
+        if (d.s_approved_1) {
+            const st1 = getStatusObj(d.dt_approved_1, d.dt_rejected, true); // true karena applicant pasti sudah submit
+            route.push({
+                role: '第1承認者',
+                name: d.approver1_name || d.s_approved_1, // Sesuaikan dengan response API
+                status: st1.text,
+                color: st1.color,
+                date: fmtDate(st1.date)
+            });
+        }
 
-                const creatorId = this.form.id_draft_writer || this.form.id_applicant || this.form.s_applied;
-                // Pastikan perbandingan string vs string / int vs int
-                this.isOwner = (String(this.currentUser.id) === String(creatorId));
+        // 3. Approver 2
+        if (d.s_approved_2) {
+            const st2 = getStatusObj(d.dt_approved_2, d.dt_rejected, !!d.dt_approved_1); // Hanya aktif jika app1 approved
+            route.push({
+                role: '第2承認者',
+                name: d.approver2_name || d.s_approved_2,
+                status: st2.text,
+                color: st2.color,
+                date: fmtDate(st2.date)
+            });
+        }
 
-                // Cek Approver
-                let isApprover1 = (String(this.form.s_approved_1) === String(this.currentUser.id) && !this.form.dt_approved_1);
-                let isApprover2 = (String(this.form.s_approved_2) === String(this.currentUser.id) && !this.form.dt_approved_2);
-                
-                if(isApprover2 && !this.form.dt_approved_1) isApprover2 = false;
+        // Generate HTML
+        const html = route.map(step => `
+            <div class="approver-item p-2 mb-2 border-bottom">
+                <div class="d-flex justify-content-between">
+                    <small class="text-muted">${step.role}</small>
+                    <span style="color:${step.color}; font-weight:bold">${step.status}</span>
+                </div>
+                <div class="font-weight-bold">${step.name}</div>
+                <small class="text-muted">${step.date}</small>
+            </div>
+        `).join('');
 
-                // Role > 0 dianggap admin/manager yang bisa override (Business Logic)
-                if ((this.currentUser.role && parseInt(this.currentUser.role) > 0) || isApprover1 || isApprover2) { 
-                    this.canApprove = true; 
-                } else {
-                    this.canApprove = false;
-                }
+        $('#approval-route-container').html(html);
+    }
 
-                // Logic Withdraw (Torisage)
-                if (this.isOwner && !this.form.dt_deleted && !this.form.dt_rejected && !this.form.dt_approved_2) {
-                    this.canWithdraw = true;
-                } else {
-                    this.canWithdraw = false;
-                }
+    setupPermissions() {
+        const d = this.data;
+        const uid = String(this.currentUser.id_worker || this.currentUser.id); // Normalize ID
+        const role = parseInt(this.currentUser.role || 0);
 
-                // --- NEW: Logic Admin Memo ---
-                // Sesuai spesifikasi: "Admin (jumlah tetap) input備考欄"
-                // Kita asumsikan role > 0 (Manager/Admin) atau ID tertentu memiliki hak ini.
-                // Hak ini aktif SETELAH aplikasi diajukan.
-                const isAdmin = (this.currentUser.role && parseInt(this.currentUser.role) > 0);
-                
-                // Admin bisa edit memo kapan saja selama dokumen belum dihapus
-                if (isAdmin && !this.form.dt_deleted) {
-                    this.canEditMemo = true;
-                } else {
-                    this.canEditMemo = false;
-                }
-            },
+        let canApprove = false;
+        let canWithdraw = false;
+        let canEditMemo = false;
 
-            formatDate(dateStr) {
-                if (!dateStr) return '';
-                const d = new Date(dateStr);
-                if (isNaN(d.getTime())) return '-';
-                return d.toLocaleDateString('ja-JP');
-            },
+        // Logic Owner (Withdraw)
+        const isOwner = (String(d.id_applicant) === uid || String(d.s_applied) === uid);
+        if (isOwner && !d.dt_deleted && !d.dt_rejected && !d.dt_approved_2) {
+            canWithdraw = true;
+        }
 
-            // --- Admin Memo Actions (NEW) ---
-            startMemoEdit() {
-                // Salin nilai saat ini ke buffer input
-                this.memoInput = this.form.s_memo || '';
-                this.isMemoEditing = true;
-            },
-
-            cancelMemoEdit() {
-                this.isMemoEditing = false;
-                this.memoInput = '';
-            },
-
-            async saveMemo() {
-                if (this.memoInput.length > 255) {
-                    alert('備考は255文字以内で入力してください。(Maksimal 255 karakter)');
-                    return;
-                }
-
-                try {
-                    // Endpoint baru khusus untuk update memo: POST /api/{type}/{id}/memo
-                    const response = await window.ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/memo`, {
-                        memo: this.memoInput
-                    });
-
-                    if (response.success) {
-                        this.form.s_memo = this.memoInput; // Update tampilan lokal
-                        this.isMemoEditing = false;
-                        alert('備考を更新しました (Memo Updated)');
-                    } else {
-                        alert('Error: ' + response.error);
-                    }
-                } catch (e) {
-                    console.error("Memo Update Error:", e);
-                    alert('System Error: ' + e.message);
-                }
-            },
-
-            // --- Approval Actions ---
-            async doApprove() {
-                if (!confirm('承認しますか？ (Approve?)')) return;
-                
-                try {
-                    const response = await window.ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/approve`, {
-                        doc_id: this.id,
-                        action: 'approve',
-                        comment: ''
-                    });
-
-                    if (response.success) {
-                        alert('承認しました (Approved)');
-                        location.reload();
-                    } else {
-                        alert('Error: ' + response.error);
-                    }
-                } catch (e) {
-                    alert('System Error: ' + e.message);
-                }
-            },
-
-            async doReject() {
-                if (!confirm('否認しますか？ (Reject?)')) return;
-                 try {
-                    const response = await window.ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/approve`, {
-                        doc_id: this.id,
-                        action: 'reject',
-                        comment: 'Rejected by User'
-                    });
-
-                    if (response.success) {
-                        alert('否認しました (Rejected)');
-                        location.reload();
-                    } else {
-                        alert('Error: ' + response.error);
-                    }
-                } catch (e) {
-                    alert('System Error: ' + e.message);
-                }
-            },
-
-            async doWithdraw() {
-                if (!confirm('申請を取り下げますか？ (Withdraw application?)')) return;
-
-                try {
-                    const response = await window.ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/approve`, {
-                        doc_id: this.id,
-                        action: 'withdraw', 
-                        comment: 'Withdrawn by Applicant'
-                    });
-
-                    if (response.success) {
-                        alert('申請を取り下げました (Application Withdrawn)');
-                        location.reload();
-                    } else {
-                        alert('Error: ' + (response.error || 'Failed to withdraw'));
-                    }
-                } catch (e) {
-                    console.error("Withdraw Error:", e);
-                    alert('System Error: ' + e.message);
-                }
+        // Logic Approval (Approver or Admin)
+        const isApp1 = (String(d.s_approved_1) === uid && !d.dt_approved_1);
+        const isApp2 = (String(d.s_approved_2) === uid && !d.dt_approved_2 && d.dt_approved_1); // App2 butuh App1 selesai
+        
+        if ((role > 0) || isApp1 || isApp2) {
+            // Jangan izinkan approve jika sudah rejected atau completed
+            if (!d.dt_rejected && !d.dt_approved_2) {
+                canApprove = true;
             }
         }
-    });
+
+        // Logic Edit Memo (Admin Only)
+        if (role > 0 && !d.dt_deleted) {
+            canEditMemo = true;
+        }
+
+        // Toggle UI Elements
+        if (canApprove) $('.action-approval').show(); else $('.action-approval').hide();
+        if (canWithdraw) $('.action-withdraw').show(); else $('.action-withdraw').hide();
+        
+        if (canEditMemo) {
+            $('#btn-edit-memo').show();
+        } else {
+            $('#btn-edit-memo').hide();
+        }
+    }
+
+    bindGlobalEvents() {
+        const self = this;
+
+        // Approve Button
+        $('#btn-approve').on('click', function() {
+            self.processAction('approve', '承認しますか？');
+        });
+
+        // Reject Button
+        $('#btn-reject').on('click', function() {
+            self.processAction('reject', '否認しますか？');
+        });
+
+        // Withdraw Button
+        $('#btn-withdraw').on('click', function() {
+            self.processAction('withdraw', '申請を取り下げますか？');
+        });
+
+        // Memo UI Toggles
+        $('#btn-edit-memo').on('click', function() {
+            $('#memo-display').hide();
+            $('#memo-edit-form').show();
+        });
+
+        $('#btn-cancel-memo').on('click', function() {
+            $('#memo-edit-form').hide();
+            $('#memo-display').show();
+        });
+
+        $('#btn-save-memo').on('click', function() {
+            self.saveMemo();
+        });
+    }
+
+    async processAction(action, confirmMsg) {
+        if (!confirm(confirmMsg)) return;
+
+        try {
+            const response = await ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/approve`, {
+                doc_id: this.id,
+                action: action,
+                comment: action === 'reject' ? 'Rejected via System' : ''
+            });
+
+            if (response.success) {
+                alert('処理が完了しました (Proses Berhasil)');
+                location.reload();
+            } else {
+                alert('Error: ' + response.error);
+            }
+        } catch (error) {
+            alert('System Error: ' + error.message);
+        }
+    }
+
+    async saveMemo() {
+        const newVal = $('#memo-input').val();
+        if (newVal.length > 255) {
+            alert('255文字以内で入力してください');
+            return;
+        }
+
+        try {
+            const response = await ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/memo`, {
+                memo: newVal
+            });
+
+            if (response.success) {
+                this.data.s_memo = newVal; // Update local state
+                this.renderMemo(newVal);
+                $('#memo-edit-form').hide();
+                $('#memo-display').show();
+                ringiSystem.showNotification('備考を更新しました', 'success');
+            } else {
+                alert('Update Failed: ' + response.error);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+}
+
+// Start
+$(document).ready(function() {
+    new DetailHandler();
 });
