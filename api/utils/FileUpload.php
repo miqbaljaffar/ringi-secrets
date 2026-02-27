@@ -21,19 +21,19 @@ class FileUpload {
         $this->subDirectory = strtolower($subDirectory);
     }
     
-    // ファイルを保存するメソッド (Method to save file)
+    // ファイルを保存するメソッド (Save file method)
     public function save($file, $docId, $customName = null) {
         $this->validate($file);
         
         if (!$this->basePath) {
-            throw new Exception("cnfiguration error: UPLOAD_PATH is not defined.");
+            throw new Exception("設定エラー: UPLOAD_PATHが定義されていません。");
         }
 
         $targetDir = $this->basePath . '/' . $this->subDirectory . '/' . $docId;
         
         if (!file_exists($targetDir)) {
             if (!mkdir($targetDir, 0755, true)) {
-                throw new Exception("Failed to create directory: " . $targetDir);
+                throw new Exception("ディレクトリの作成に失敗しました: " . $targetDir);
             }
         }
         
@@ -47,13 +47,13 @@ class FileUpload {
         $destination = $targetDir . '/' . $filename;
         
         if (!move_uploaded_file($file['tmp_name'], $destination)) {
-            throw new Exception("Failed to move uploaded file.");
+            throw new Exception("アップロードされたファイルの移動に失敗しました。");
         }
         
         return $filename;
     }
     
-    // 複数ファイルを保存するメソッド (Method to save multiple files)
+    // 複数ファイルを保存するメソッド (Save multiple files method)
     public function saveMultiple($files, $docId) {
         $savedFiles = [];
         foreach ($files as $file) {
@@ -61,36 +61,36 @@ class FileUpload {
                 try {
                     $savedFiles[] = $this->save($file, $docId);
                 } catch (Exception $e) {
-                    error_log("Failed to upload one file: " . $e->getMessage());
+                    error_log("ファイルのアップロードに失敗: " . $e->getMessage());
                 }
             }
         }
         return $savedFiles;
     }
     
-    // ファイルのバリデーション (File validation)
+    // ファイルのバリデーション (Validation of files)
     private function validate($file) {
         if ($file['error'] !== UPLOAD_ERR_OK) {
             $errors = [
-                UPLOAD_ERR_INI_SIZE   => 'Ukuran file melebihi batas upload_max_filesize di php.ini',
-                UPLOAD_ERR_FORM_SIZE  => 'Ukuran file melebihi batas MAX_FILE_SIZE form',
-                UPLOAD_ERR_PARTIAL    => 'File hanya terupload sebagian',
-                UPLOAD_ERR_NO_FILE    => 'Tidak ada file yang diupload',
-                UPLOAD_ERR_NO_TMP_DIR => 'Folder temporary hilang',
-                UPLOAD_ERR_CANT_WRITE => 'Gagal menulis ke disk',
-                UPLOAD_ERR_EXTENSION  => 'Upload dihentikan oleh ekstensi PHP'
+                UPLOAD_ERR_INI_SIZE   => 'ファイルサイズがphp.iniのupload_max_filesize制限を超えています',
+                UPLOAD_ERR_FORM_SIZE  => 'ファイルサイズがフォームのMAX_FILE_SIZE制限を超えています',
+                UPLOAD_ERR_PARTIAL    => 'ファイルの一部のみがアップロードされました',
+                UPLOAD_ERR_NO_FILE    => 'ファイルがアップロードされていません',
+                UPLOAD_ERR_NO_TMP_DIR => '一時フォルダが存在しません',
+                UPLOAD_ERR_CANT_WRITE => 'ディスクへの書き込みに失敗しました',
+                UPLOAD_ERR_EXTENSION  => 'PHP拡張機能によりアップロードが中止されました'
             ];
-            $msg = $errors[$file['error']] ?? 'Unknown Error';
-            throw new Exception("Error upload: " . $msg);
+            $msg = $errors[$file['error']] ?? '不明なエラー';
+            throw new Exception("アップロードエラー: " . $msg);
         }
         
         if ($file['size'] > $this->maxSize) {
-            throw new Exception("Ukuran file melebihi batas 5MB.");
+            throw new Exception("ファイルサイズが5MBの制限を超えています。");
         }
         
         $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         if (!in_array($extension, $this->allowedExtensions)) {
-            throw new Exception("Hanya file PDF yang diperbolehkan.");
+            throw new Exception("PDFファイルのみ許可されています。");
         }
         
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -98,7 +98,7 @@ class FileUpload {
         finfo_close($finfo);
         
         if ($mimeType !== 'application/pdf') {
-            throw new Exception("MIME type tidak valid (harus PDF). Deteksi: " . $mimeType);
+            throw new Exception("MIMEタイプが無効です（PDFが必要です）。検出されたタイプ: " . $mimeType);
         }
     }
 }

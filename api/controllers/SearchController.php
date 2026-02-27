@@ -24,10 +24,9 @@ class SearchController {
             $params = [];
             $subQueries = [];
 
-            // Helper untuk mengecek apakah tab adalah 'all'
             $isAllTab = ($tab === 'all');
 
-            // --- 1. COMMON (Ringi Biasa) ---
+            // --- サブクエリの構築 (Build subqueries) ---
             if (empty($type) || $type === 'common') {
                 $sqlCommon = "SELECT 
                                 c.id_doc, 
@@ -47,6 +46,7 @@ class SearchController {
                               LEFT JOIN v_worker w ON c.s_applied = w.id_worker
                               WHERE 1=1";
                 
+                // 全てのタブで期限切れのドキュメントを除外 (Exclude expired documents for all tabs)
                 if ($isAllTab) {
                     $sqlCommon .= " AND (
                         c.dt_deadline >= CURDATE() 
@@ -55,8 +55,9 @@ class SearchController {
                     )";
                 }
 
+                // キーワード検索 (Keyword search)
                 if ($keyword) {
-                    // MENGGUNAKAN PARAMETER UNIK (:kw_c1 dan :kw_c2)
+
                     $sqlCommon .= " AND (c.s_title LIKE :kw_c1 OR c.s_overview LIKE :kw_c2)";
                     $params[':kw_c1'] = "%$keyword%";
                     $params[':kw_c2'] = "%$keyword%";
@@ -64,7 +65,7 @@ class SearchController {
                 $subQueries[] = $sqlCommon;
             }
 
-            // --- 2. TAX (Pajak) ---
+            // 他のドキュメントタイプのサブクエリも同様に構築 (Build subqueries for other document types similarly) ---
             if (empty($type) || $type === 'tax') {
                 $sqlTax = "SELECT 
                             t.id_doc, 
@@ -84,6 +85,7 @@ class SearchController {
                            LEFT JOIN v_worker w ON t.s_applied = w.id_worker
                            WHERE 1=1";
                 
+                // 全てのタブで期限切れのドキュメントを除外 (Exclude expired documents for all tabs)
                 if ($isAllTab) {
                     $sqlTax .= " AND (
                         t.dt_contract_start >= CURDATE() 
@@ -92,6 +94,7 @@ class SearchController {
                     )";
                 }
 
+                // キーワード検索 (Keyword search)
                 if ($keyword) {
                     $sqlTax .= " AND (t.s_name LIKE :kw_t1 OR t.s_rep_name LIKE :kw_t2)";
                     $params[':kw_t1'] = "%$keyword%";
@@ -100,7 +103,7 @@ class SearchController {
                 $subQueries[] = $sqlTax;
             }
 
-            // --- 3. OTHERS (Kontrak Lainnya) ---
+            // その他契約書のサブクエリ (Subquery for other contracts)
             if (empty($type) || $type === 'contract' || $type === 'others') {
                 $sqlOther = "SELECT 
                                 o.id_doc, 
@@ -136,7 +139,7 @@ class SearchController {
                 $subQueries[] = $sqlOther;
             }
 
-            // --- 4. VENDOR (Pemasok) ---
+            // ベンダーのサブクエリ (Subquery for vendors)
             if (empty($type) || $type === 'vendor') {
                 $sqlVendor = "SELECT 
                                 v.id_doc, 
@@ -174,11 +177,9 @@ class SearchController {
             $unionSql = implode(" UNION ALL ", $subQueries);
             $whereClauses = [];
             
-            // Logic Tab Status (Filter Global setelah UNION)
+            // タブに応じた条件を追加 (Add conditions based on tab)
             switch ($tab) {
                 case 'to_approve':
-                    // MENGGUNAKAN PARAMETER UNIK (:uid1 dan :uid2)
-                    // DAN LOGIKA: Approver 2 hanya melihat jika Approver 1 sudah menyetujui
                     $whereClauses[] = "
                         (
                             (u.s_approved_1 = :uid1 AND u.dt_approved_1 IS NULL) 
@@ -207,7 +208,6 @@ class SearchController {
 
             $whereSql = implode(' AND ', $whereClauses);
             
-            // Hitung Total
             $countSql = "SELECT COUNT(*) as total FROM ($unionSql) as u WHERE $whereSql";
             $totalResult = $this->db->fetch($countSql, $params);
             $totalCount = $totalResult['total'];

@@ -14,8 +14,7 @@ define('SSO_TIMEOUT', 60);
 
 define('DEBUG_MODE', true); 
 
-// --- Role Assignments (Karyawan IDs) ---
-// Pengaturan ID karyawan untuk penetapan hak akses
+// --- Role Assignments ---
 define('ADMIN_IDS', explode(',', '0002,0004,0006'));
 define('APPROVER_IDS', explode(',', '0012,0013'));
 ?>

@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../utils/IdGenerator.php';
+
 class Common extends BaseModel {
     protected $table = 't_common';
     protected $primaryKey = 'id_doc';
@@ -8,7 +10,7 @@ class Common extends BaseModel {
         $this->beginTransaction();
         
         try {
-            $docId = $this->generateDocId();
+            $docId = $data['id_doc'] ?? IdGenerator::generate('AR', $this->table);
             
             $mainData = [
                 'id_doc' => $docId,
@@ -43,22 +45,6 @@ class Common extends BaseModel {
             error_log("Common Create Document Failed: " . $e->getMessage());
             throw $e;
         }
-    }
-    
-    // ドキュメントIDを生成する (Generate Document ID)
-    public function generateDocId() {
-        $prefix = 'AR';
-        $date = date('ymd');
-        
-        $sql = "SELECT COUNT(*) as count FROM {$this->table} 
-                WHERE id_doc LIKE :pattern";
-        
-        $result = $this->db->fetch($sql, [
-            ':pattern' => $prefix . $date . '%'
-        ]);
-        
-        $sequence = $result['count'] + 1;
-        return $prefix . $date . str_pad($sequence, 2, '0', STR_PAD_LEFT);
     }
     
     // 承認ルートを設定する (Set Approval Route)

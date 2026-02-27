@@ -1,22 +1,24 @@
 <?php
 require_once __DIR__ . '/../utils/Mailer.php';
+require_once __DIR__ . '/../utils/IdGenerator.php'; 
 
 class CommonController {
     private $commonModel;
     private $detailModel;
     private $validator;
     private $fileUpload;
-    private $mailer; // Property Mailer
+    private $mailer;
     
+    // コンストラクタで必要なクラスを初期化 (Initialize necessary classes in constructor)
     public function __construct() {
         $this->commonModel = new Common();
         $this->detailModel = new CommonDetail();
         $this->validator = new Validator();
         $this->fileUpload = new FileUpload('ar');
-        $this->mailer = new Mailer(); // Inisialisasi Mailer
+        $this->mailer = new Mailer();
     }
     
-    // ... (Method index tetap sama) ...
+    // ドキュメントの一覧を取得する (Get list of documents)
     public function index($request) {
         $filters = [
             'type' => $_GET['type'] ?? null,
@@ -46,12 +48,12 @@ class CommonController {
             http_response_code(API_SERVER_ERROR);
             return [
                 'success' => false,
-                'error' => 'Server Error'
+                'error' => 'サーバーエラー'
             ];
         }
     }
     
-    // ... (Method filterByTab tetap sama) ...
+    // ドキュメントの詳細を取得する (Get document details)
     private function filterByTab($document, $tab, $user) {
         $status = $this->commonModel->getStatus($document);
         
@@ -67,20 +69,20 @@ class CommonController {
         }
     }
     
-    // ... (Method show tetap sama) ...
+    // ドキュメントの検索 (Search documents)
     public function show($request) {
         $docId = $request['params']['id'] ?? $_GET['id'] ?? null;
 
         if (!$docId) {
             http_response_code(API_BAD_REQUEST);
-            return ['success' => false, 'error' => 'No ID provided'];
+            return ['success' => false, 'error' => 'IDが指定されていません'];
         }
         
         try {
             $document = $this->commonModel->find($docId);
             if (!$document) {
                 http_response_code(API_NOT_FOUND);
-                return ['success' => false, 'error' => 'Not found'];
+                return ['success' => false, 'error' => '見つかりません'];
             }
             
             $details = $this->detailModel->getByDocument($docId);
@@ -102,12 +104,12 @@ class CommonController {
             http_response_code(API_SERVER_ERROR);
             return [
                 'success' => false,
-                'error' => 'Server Error'
+                'error' => 'サーバーエラー'
             ];
         }
     }
     
-    // ... (Method store tetap sama) ...
+    // ドキュメントの検索 (Search documents)
     public function store($request) {
         if ($_SERVER['CONTENT_TYPE'] === 'application/x-www-form-urlencoded' || 
             strpos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') !== false) {
@@ -136,8 +138,12 @@ class CommonController {
         
         try {
             $data['s_applied'] = $request['user']['id'];
-            if (!empty($files['attachment'])) {
-                $docId = $this->commonModel->generateDocId(); 
+            
+            $docId = IdGenerator::generate('AR', 't_common');
+            $data['id_doc'] = $docId; // Modelで使用するためにデータに挿入
+            
+            if (!empty($files['attachment']) && $files['attachment']['error'] === UPLOAD_ERR_OK) {
+                // 生成したdocIdを使用
                 $filename = $this->fileUpload->save($files['attachment'], $docId);
                 $data['s_file'] = $filename;
             }
@@ -145,13 +151,13 @@ class CommonController {
                 $data['details'] = json_decode($data['details'], true);
             }
             
-            $docId = $this->commonModel->createDocument($data);
+            // createDocumentは作成済みのIDを使用
+            $createdDocId = $this->commonModel->createDocument($data);
             
-            // Notifikasi Email (Apply -> Approver 1)
-            $newDoc = $this->commonModel->find($docId);
+            $newDoc = $this->commonModel->find($createdDocId);
             if ($newDoc && !empty($newDoc['s_approved_1'])) {
                 $this->mailer->sendRequestNotification(
-                    $docId,
+                    $createdDocId,
                     $newDoc['s_approved_1'],      
                     $request['user']['name'],     
                     $data['s_title']              
@@ -160,39 +166,35 @@ class CommonController {
             
             return [
                 'success' => true,
-                'doc_id' => $docId,
-                'message' => 'Pengajuan berhasil dikirim.'
+                'doc_id' => $createdDocId,
+                'message' => '申請が正常に送信されました。'
             ];
             
         } catch (Throwable $e) {
             http_response_code(API_SERVER_ERROR);
             return [
                 'success' => false,
-                'error' => 'Gagal menyimpan pengajuan: ' . $e->getMessage()
+                'error' => '申請の保存に失敗しました: ' . $e->getMessage()
             ];
         }
     }
     
-    // MODIFIKASI: Method update dengan Notifikasi Email (Admin Update Memo)
+    // ドキュメントの更新 (Update document)
     public function update($request) {
         $docId = $request['params']['id'] ?? $_GET['id'] ?? null;
 
         if (!$docId) {
             http_response_code(API_BAD_REQUEST);
-            return ['success' => false, 'error' => 'ID Required'];
+            return ['success' => false, 'error' => 'IDが必要です'];
         }
         
-        // Cek Role Admin (Hanya Admin yang boleh update Memo)
         if (isset($request['user']) && class_exists('AuthMiddleware')) {
-            // ROLE_ADMIN = 2 (didefinisikan di constants.php dan logic User)
             AuthMiddleware::requireRole(ROLE_ADMIN, $request);
         }
         
         $data = json_decode(file_get_contents('php://input'), true);
         
         try {
-            // Deteksi Model berdasarkan Prefix ID (AR, CT, CO, CV)
-            // Agar Admin bisa update memo untuk SEMUA tipe dokumen
             $prefix = strtoupper(substr($docId, 0, 2));
             $targetModel = null;
             
@@ -202,48 +204,26 @@ class CommonController {
                 case 'CO': $targetModel = new OtherContract(); break;
                 case 'CV': $targetModel = new Vendor(); break;
                 default: 
-                    // Fallback jika format ID tidak standar
                     $targetModel = $this->commonModel; 
                     break;
             }
 
-            // Lakukan Update ke Database
             $result = $targetModel->update($docId, $data);
             
             if ($result) {
-                // --- IMPLEMENTASI BUSINESS LOGIC NOTIFIKASI EMAIL ---
-                // "Admin Update Memo -> Kirim Email ke Pemohon & Penyetuju"
                 if (isset($data['s_memo']) && !empty($data['s_memo'])) {
-                    
-                    // Ambil data dokumen terbaru (untuk tau siapa pemohon & approvernya)
                     $docData = $targetModel->find($docId);
                     $adminName = $request['user']['name'];
                     $newMemo = $data['s_memo'];
 
-                    // Daftar penerima email (ID User)
                     $recipients = [];
+                    if (!empty($docData['s_applied'])) $recipients[] = $docData['s_applied'];
+                    if (!empty($docData['s_approved_1'])) $recipients[] = $docData['s_approved_1'];
+                    if (!empty($docData['s_approved_2'])) $recipients[] = $docData['s_approved_2'];
                     
-                    // 1. Pemohon (Applicant)
-                    if (!empty($docData['s_applied'])) {
-                        $recipients[] = $docData['s_applied'];
-                    }
-                    
-                    // 2. Approver 1
-                    if (!empty($docData['s_approved_1'])) {
-                        $recipients[] = $docData['s_approved_1'];
-                    }
-                    
-                    // 3. Approver 2 (Jika ada)
-                    if (!empty($docData['s_approved_2'])) {
-                        $recipients[] = $docData['s_approved_2'];
-                    }
-                    
-                    // Hapus duplikat (misal Admin juga Approver, atau Pemohon sama dengan Approver)
                     $recipients = array_unique($recipients);
 
-                    // Kirim email ke semua penerima
                     foreach ($recipients as $recipientId) {
-                        // Jangan kirim email ke diri sendiri (jika Admin yang edit juga termasuk dalam list)
                         if ($recipientId !== $request['user']['id']) {
                             $this->mailer->sendMemoUpdateNotification(
                                 $docId,
@@ -255,23 +235,23 @@ class CommonController {
                     }
                 }
                 
-                return ['success' => true, 'message' => 'Update berhasil (Memo diperbarui).'];
+                return ['success' => true, 'message' => '更新が成功しました（メモが更新されました）。'];
             } else {
-                return ['success' => false, 'error' => 'Update gagal atau tidak ada data yang berubah.'];
+                return ['success' => false, 'error' => '更新に失敗したか、変更されたデータがありません。'];
             }
         } catch (Throwable $e) {
             http_response_code(API_SERVER_ERROR);
-            return ['success' => false, 'error' => 'Server Error: ' . $e->getMessage()];
+            return ['success' => false, 'error' => 'サーバーエラー: ' . $e->getMessage()];
         }
     }
     
-    // ... (Method approve tetap sama) ...
+    // ドキュメントの申請 (Submit document application)
     public function approve($request) {
         $data = json_decode(file_get_contents('php://input'), true);
         
         if (!isset($data['doc_id']) || !isset($data['action'])) {
             http_response_code(API_BAD_REQUEST);
-            return ['success' => false, 'error' => 'Parameter tidak lengkap.'];
+            return ['success' => false, 'error' => 'パラメータが不完全です。'];
         }
         
         try {
@@ -284,7 +264,7 @@ class CommonController {
                 case 'CT': $targetModel = new Tax(); break;
                 case 'CO': $targetModel = new OtherContract(); break;
                 case 'CV': $targetModel = new Vendor(); break;
-                default: throw new Exception('Tipe dokumen tidak diketahui.');
+                default: throw new Exception('不明なドキュメントタイプです。');
             }
 
             $result = $targetModel->approve(
@@ -295,15 +275,13 @@ class CommonController {
             );
             
             if ($result) {
-                // Notifikasi Email (Approve/Reject)
                 $updatedDoc = $targetModel->find($docId);
                 $applicantId = $updatedDoc['s_applied'];
                 $approverName = $request['user']['name'];
-                $title = $updatedDoc['s_title'] ?? $updatedDoc['s_name'] ?? 'Dokumen'; 
+                $title = $updatedDoc['s_title'] ?? $updatedDoc['s_name'] ?? 'ドキュメント'; 
 
                 if ($data['action'] === 'approve') {
                     if (!empty($updatedDoc['dt_approved_1']) && empty($updatedDoc['dt_approved_2']) && !empty($updatedDoc['s_approved_2'])) {
-                        // Kirim email ke Approver 2
                         $applicantName = $updatedDoc['applicant_name'] ?? $applicantId;
                         if (class_exists('User')) {
                              $uModel = new User();
@@ -314,10 +292,9 @@ class CommonController {
                             $docId,
                             $updatedDoc['s_approved_2'], 
                             $applicantName, 
-                            $title . " (Telah disetujui Tahap 1)"
+                            $title . "（第1段階承認済み）"
                         );
                     } else {
-                        // Kirim notifikasi SUKSES ke Pemohon
                         $this->mailer->sendResultNotification(
                             $docId,
                             $applicantId,
@@ -327,7 +304,6 @@ class CommonController {
                         );
                     }
                 } elseif ($data['action'] === 'reject') {
-                    // Kirim notifikasi DITOLAK ke Pemohon
                     $this->mailer->sendResultNotification(
                         $docId,
                         $applicantId,
@@ -337,24 +313,24 @@ class CommonController {
                     );
                 }
 
-                return ['success' => true, 'message' => 'Proses persetujuan berhasil.'];
+                return ['success' => true, 'message' => '承認処理が成功しました。'];
             } else {
-                return ['success' => false, 'error' => 'Gagal memproses persetujuan.'];
+                return ['success' => false, 'error' => '承認処理に失敗しました。'];
             }
             
         } catch (Throwable $e) {
             http_response_code(API_SERVER_ERROR);
-            return ['success' => false, 'error' => 'Server Error: ' . $e->getMessage()];
+            return ['success' => false, 'error' => 'サーバーエラー: ' . $e->getMessage()];
         }
     }
     
-    // ... (Method withdraw tetap sama) ...
+    // ドキュメントの撤回 (Withdraw document application)
     public function withdraw($request) {
         $docId = $request['params']['id'] ?? $_GET['id'] ?? null;
         
         if (!$docId) {
             http_response_code(API_BAD_REQUEST);
-            return ['success' => false, 'error' => 'No ID'];
+            return ['success' => false, 'error' => 'IDがありません'];
         }
         
         try {
@@ -365,21 +341,21 @@ class CommonController {
              if(!$targetModel && $prefix == 'CO') $targetModel = new OtherContract();
              if(!$targetModel && $prefix == 'CV') $targetModel = new Vendor();
 
-             if(!$targetModel) throw new Exception('Invalid Type');
+             if(!$targetModel) throw new Exception('無効なタイプです');
 
             if(method_exists($targetModel, 'withdraw')) {
                 $result = $targetModel->withdraw($docId, $request['user']['id']);
             } else {
                 $doc = $targetModel->find($docId);
-                if($doc['s_applied'] !== $request['user']['id']) throw new Exception('Unauthorized');
-                if(!empty($doc['dt_approved_1'])) throw new Exception('Cannot withdraw approved doc');
+                if($doc['s_applied'] !== $request['user']['id']) throw new Exception('権限がありません');
+                if(!empty($doc['dt_approved_1'])) throw new Exception('承認済みのドキュメントは撤回できません');
                 $result = $targetModel->delete($docId);
             }
             
             if ($result) {
-                return ['success' => true, 'message' => 'Pengajuan ditarik.'];
+                return ['success' => true, 'message' => '申請が撤回されました。'];
             } else {
-                return ['success' => false, 'error' => 'Gagal menarik pengajuan.'];
+                return ['success' => false, 'error' => '申請の撤回に失敗しました。'];
             }
             
         } catch (Throwable $e) {
@@ -388,7 +364,7 @@ class CommonController {
         }
     }
     
-    // ... (Method getCategories tetap sama) ...
+    // カテゴリの取得 (Get categories)
     public function getCategories() {
         try {
             $db = DB::getInstance();
@@ -400,7 +376,7 @@ class CommonController {
                 'data' => $categories
             ];
         } catch (Throwable $e) {
-            return ['success' => false, 'error' => 'Error fetching categories'];
+            return ['success' => false, 'error' => 'カテゴリの取得中にエラーが発生しました'];
         }
     }
 }

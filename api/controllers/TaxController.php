@@ -1,20 +1,21 @@
 <?php
-// Pastikan Mailer di-load
 require_once __DIR__ . '/../utils/Mailer.php';
 
 class TaxController {
     private $validator;
     private $fileUpload;
     private $taxModel;
-    private $mailer; // Property Mailer
+    private $mailer; 
     
+    // コンストラクタで必要なクラスを初期化 (Initialize necessary classes in constructor)
     public function __construct() {
         $this->validator = new Validator();
         $this->fileUpload = new FileUpload('ct'); 
         $this->taxModel = new Tax();
-        $this->mailer = new Mailer(); // Inisialisasi Mailer
+        $this->mailer = new Mailer(); 
     }
     
+    // 税務書類の申請を処理するメソッド (Method to handle tax document application)
     public function store($request) {
         try {
             $data = $request['body'] ?? $_POST; 
@@ -24,7 +25,6 @@ class TaxController {
                 $data = $_POST;
             }
 
-            // ... (Logika manipulasi data telp dll tetap sama) ...
             $tel1 = $data['tel1'] ?? '';
             $tel2 = $data['tel2'] ?? '';
             $tel3 = $data['tel3'] ?? '';
@@ -34,7 +34,7 @@ class TaxController {
                 $data['s_office_tel'] = $data['s_office_tel'] ?? '';
             }
             
-            // ... (Validasi tetap sama) ...
+            // --- バリデーションルールの定義 --- (Define validation rules)
             $rules = [
                 'n_type' => 'required|in:1,2',
                 's_name' => 'required|max:100',
@@ -50,7 +50,7 @@ class TaxController {
             $validation = $this->validator->validate($data, $rules);
             if (!$validation['valid']) {
                 http_response_code(API_BAD_REQUEST);
-                return ['success' => false, 'errors' => $validation['errors'], 'message' => 'Validation failed'];
+                return ['success' => false, 'errors' => $validation['errors'], 'message' => 'バリデーションに失敗しました'];
             }
             
             $data['s_applied'] = $request['user']['id'] ?? '0000';
@@ -68,40 +68,46 @@ class TaxController {
                 try {
                     $this->fileUpload->save($files['estimate_file'], $docId, '見積書');
                 } catch (Exception $fileEx) {
-                    error_log("File upload warning: " . $fileEx->getMessage());
+                    error_log("ファイルアップロード警告: " . $fileEx->getMessage());
                 }
             }
 
-            // --- EMAIL TRIGGER START (TAX) ---
+            // --- メール送信開始（税務） --- (Start email notification for tax document)
             $newDoc = $this->taxModel->find($docId);
             if ($newDoc && !empty($newDoc['s_approved_1'])) {
                 $this->mailer->sendRequestNotification(
                     $docId,
                     $newDoc['s_approved_1'],
                     $request['user']['name'],
-                    $data['s_name'] // Menggunakan Nama Perusahaan/Client sebagai judul untuk Tax Doc
+                    $data['s_name'] // 税務書類のタイトルとして会社名/クライアント名を使用 (Use company/client name as title for tax document)
                 );
             }
-            // --- EMAIL TRIGGER END ---
-            
+            // --- メール送信終了 --- (End email notification)
             return [
                 'success' => true, 
                 'doc_id' => $docId,
-                'message' => 'Tax document application submitted successfully'
+                'message' => '税務書類の申請が正常に送信されました'
             ];
             
         } catch (Throwable $e) {
             http_response_code(API_SERVER_ERROR);
-            return ['success' => false, 'error' => 'Server Error: ' . $e->getMessage()];
+            return ['success' => false, 'error' => 'サーバーエラー: ' . $e->getMessage()];
         }
     }
     
-    // ... (Show method tetap sama) ...
+    // 税務書類の詳細を取得するメソッド (Method to get details of a tax document)
     public function show($request) {
         $id = $request['params']['id'] ?? $_GET['id'] ?? null;
-        if (!$id) { http_response_code(API_BAD_REQUEST); return ['success' => false, 'error' => 'ID Required']; }
+        if (!$id) { 
+            http_response_code(API_BAD_REQUEST); 
+            return ['success' => false, 'error' => 'IDが必要です']; 
+        }
+        
         $doc = $this->taxModel->find($id);
-        if (!$doc) { http_response_code(API_NOT_FOUND); return ['success' => false, 'error' => 'Document not found']; }
+        if (!$doc) { 
+            http_response_code(API_NOT_FOUND); 
+            return ['success' => false, 'error' => '文書が見つかりません']; 
+        }
         
         if (class_exists('User')) {
             $userModel = new User();

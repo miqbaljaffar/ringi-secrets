@@ -3,34 +3,31 @@ class User extends BaseModel {
     protected $table = 'v_worker';
     protected $primaryKey = 'id_worker';
     
-    // 従業員IDでユーザーを検索する (Cari user berdasarkan Employee ID)
+    // 従業員IDでユーザーを検索する
     public function findByEmployeeId($employeeId) {
         $sql = "SELECT * FROM {$this->table} WHERE id_worker = :id AND n_delete = 0";
         return $this->db->fetch($sql, [':id' => $employeeId]);
     }
     
-    // --- LOGIKA ROLE BARU SESUAI REQUEST ---
+    // ロールを計算する (Calculate user role)
     public function calculateRole($workerId) {
         // 1. Admin (管理者)
-        // Hak akses: Mengisi kolom 'Memo' (備考)
         if (defined('ADMIN_IDS') && in_array($workerId, ADMIN_IDS)) {
             return 2; // ROLE_ADMIN
         }
 
         // 2. Approver (承認者)
-        // Hak akses: Approve/Reject dokumen
         if (defined('APPROVER_IDS') && in_array($workerId, APPROVER_IDS)) {
             return 1; // ROLE_APPROVER
         }
 
-        // 3. General User (一般ユーザー): Sisanya
-        // Hak akses: Buat pengajuan, Lihat dokumen, Tarik pengajuan sendiri
+        // 3. General User (一般ユーザー)
         return 0; // ROLE_USER
     }
 
+    // ドキュメントタイプに基づいて承認者を取得する (Get approvers based on document type)
     public function getApprovers($docType, $amount = 0, $category = null) {
         // 承認ルートを取得するロジック (Get approval route logic)
-        // Logika ini tetap mengambil dari view v_approval_route untuk workflow
         $sql = "SELECT * FROM v_approval_route 
                 WHERE n_doc_cat = :docType 
                 AND (dt_end IS NULL OR dt_end >= CURDATE())

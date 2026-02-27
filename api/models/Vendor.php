@@ -12,13 +12,17 @@ class Vendor extends BaseModel {
         try {
             $docId = IdGenerator::generate('CV', $this->table);
             
+            // 郵便番号のハイフンを削除 (Remove hyphens from postal code)
+            $postalCode = $data['s_office_pcode'] ?? ($data['zip1'] . $data['zip2'] ?? '');
+            $postalCode = str_replace('-', '', $postalCode);
+            
             $dbData = [
                 'id_doc' => $docId,
                 's_name' => $data['s_name'],
                 's_kana' => $data['s_kana'] ?? '',
                 
                 // Address & Contact
-                's_office_pcode' => $data['s_office_pcode'] ?? ($data['zip1'].$data['zip2'] ?? ''),
+                's_office_pcode' => substr($postalCode, 0, 7),
                 's_office_address' => $data['s_office_address'] ?? '',
                 's_office_address2' => $data['s_office_address2'] ?? '',
                 's_office_tel' => $data['s_office_tel'] ?? '',

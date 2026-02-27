@@ -27,6 +27,11 @@ class Tax extends BaseModel {
                     $postalCode = $z1 . $z2;
                 }
             }
+            $postalCode = str_replace('-', '', $postalCode);
+
+            // 代表者郵便番号も同様に処理 (Same for representative postal code)
+            $repPostalCode = $data['s_rep_pcode'] ?? '';
+            $repPostalCode = str_replace('-', '', $repPostalCode);
             
             $declarationType = '1'; 
             if (isset($data['s_declaration_type'])) {
@@ -74,7 +79,7 @@ class Tax extends BaseModel {
                 
                 'dt_rep_birth' => !empty($data['dt_rep_birth']) ? $data['dt_rep_birth'] : '1970-01-01', 
                 
-                's_rep_pcode' => $data['s_rep_pcode'] ?? '', 
+                's_rep_pcode' => $this->safeSubstr($repPostalCode, 0, 7), 
                 's_rep_address' => $this->safeSubstr($data['s_rep_address'] ?? '', 0, 100),
                 's_rep_address2' => $this->safeSubstr($data['s_rep_address2'] ?? '', 0, 100),
                 's_rep_tel' => $this->safeSubstr($data['s_rep_tel'] ?? '', 0, 13),

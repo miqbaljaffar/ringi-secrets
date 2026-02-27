@@ -7,6 +7,7 @@ class DatabaseConfig {
     const USERNAME = DB_USER;
     const PASSWORD = DB_PASS;
 
+    // DB接続を取得する (Get DB connection)
     public static function getConnection() {
         $conn = null;
         try {

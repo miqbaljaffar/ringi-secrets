@@ -2,8 +2,10 @@
 class AuthController {
     private $userModel = null;
     
+    // コンストラクタ (Constructor)
     public function __construct() {}
     
+    // ユーザーモデルの遅延初期化 (Lazy initialization of User model)
     private function getUserModel() {
         if ($this->userModel === null) {
             $this->userModel = new User();
@@ -11,17 +13,15 @@ class AuthController {
         return $this->userModel;
     }
 
-    // DEVELOPMENT ONLY: Login Manual (Simulasi SSO)
-    // Di Production, fungsi ini jarang dipakai karena user masuk otomatis via Middleware
+    // ログイン処理 (Login process)
     public function login($request) {
         if ($request['method'] === 'POST') {
             $body = $request['body'];
             
-            // Menerima input username (ID Karyawan)
             $employeeId = $body['username'] ?? '';
 
             if (empty($employeeId)) {
-                return ['success' => false, 'error' => 'ID Karyawan wajib diisi.'];
+                return ['success' => false, 'error' => '従業員IDは必須です。'];
             }
 
             $userModel = $this->getUserModel();
@@ -31,22 +31,22 @@ class AuthController {
                 if (session_status() === PHP_SESSION_NONE) session_start();
                 session_regenerate_id(true);
                 
-                // 1. Simulasi Variable SSO Portal
+                // 1. SSOポータル変数のシミュレーション
                 $_SESSION['UID'] = $worker['id_worker'];
 
-                // 2. Set Session Internal Aplikasi
+                // 2. アプリケーション内部セッションの設定
                 $_SESSION['user_id'] = $worker['id_worker'];
                 $_SESSION['user_name'] = $worker['s_name'];
                 $_SESSION['user_department'] = $worker['s_department'];
                 
-                // 3. Hitung Role (Admin/Approver/User) menggunakan logika terpusat
+                // 3. 集中ロジックを使用してロール（管理者/承認者/ユーザー）を計算
                 $role = $userModel->calculateRole($worker['id_worker']);
                 $_SESSION['user_role'] = $role;
                 
                 return [
                     'success' => true,
                     'token' => 'session_active_dev', 
-                    'message' => 'Login (Dev Mode) Berhasil',
+                    'message' => 'ログイン（開発モード）に成功しました',
                     'user' => [
                         'id' => $_SESSION['user_id'],
                         'name' => $_SESSION['user_name'],
@@ -58,40 +58,40 @@ class AuthController {
             
             return [
                 'success' => false, 
-                'error' => 'Login gagal. ID Karyawan tidak ditemukan.'
+                'error' => 'ログインに失敗しました。従業員IDが見つかりません。'
             ];
         }
 
-        return ['success' => false, 'error' => 'Method not allowed.'];
+        return ['success' => false, 'error' => '許可されていないメソッドです。'];
     }
 
-    // Logout
+    // ログアウト (Logout)
     public function logout() {
         if (session_status() === PHP_SESSION_NONE) session_start();
         session_unset();
         session_destroy();
-        return ['success' => true, 'message' => 'Logout berhasil.'];
+        return ['success' => true, 'message' => 'ログアウトに成功しました。'];
     }
     
-    // Get Info
+    // 情報取得 (Get user info)
     public function getUserInfo($request) {
-        // Data user sudah di-inject oleh AuthMiddleware
+        // ユーザーデータはAuthMiddlewareによって既に注入されています
         if (isset($request['user'])) {
             return [
                 'success' => true,
                 'user' => $request['user']
             ];
         }
-        return ['success' => false, 'error' => 'User info tidak ditemukan.'];
+        return ['success' => false, 'error' => 'ユーザー情報が見つかりません。'];
     }
 
-    // Validate Token
+    // トークン検証 (Token validation)
     public function validateToken($request) {
         if (isset($_SESSION['user_id']) || isset($_SESSION['UID'])) {
             return ['success' => true];
         }
         http_response_code(401);
-        return ['success' => false, 'error' => 'Sesi tidak valid.'];
+        return ['success' => false, 'error' => 'セッションが無効です。'];
     }
 }
 ?>

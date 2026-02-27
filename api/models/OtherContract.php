@@ -12,6 +12,10 @@ class OtherContract extends BaseModel {
         try {
             $docId = IdGenerator::generate('CO', $this->table);
             
+            // 契約書の概要や状況などのテキストフィールドは、データベースの制限に合わせて切り詰める (Truncate text fields to fit database limits)
+            $postalCode = $data['s_office_pcode'] ?? ($data['zip1'] . $data['zip2'] ?? '');
+            $postalCode = str_replace('-', '', $postalCode);
+            
             $dbData = [
                 'id_doc' => $docId,
                 's_name' => $data['s_name'],
@@ -20,7 +24,7 @@ class OtherContract extends BaseModel {
                 's_industry' => $data['s_industry'] ?? '',
                 's_industry_type' => $data['s_industry_type'] ?? '',
                 
-                's_office_pcode' => $data['s_office_pcode'] ?? ($data['zip1'].$data['zip2'] ?? ''),
+                's_office_pcode' => substr($postalCode, 0, 7),
                 's_office_address' => $data['s_office_address'] ?? '',
                 's_office_address2' => $data['s_office_address2'] ?? '',
                 's_office_tel' => $data['s_office_tel'] ?? '',

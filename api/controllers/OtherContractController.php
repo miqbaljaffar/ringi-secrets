@@ -41,12 +41,11 @@ class OtherContractController {
             if ($newDoc && !empty($newDoc['s_approved_1'])) {
                 $this->mailer->sendRequestNotification(
                     $docId,
-                    $newDoc['s_approved_1'],      // Ke Approver 1
-                    $request['user']['name'],     // Dari Pemohon
-                    $data['s_name']               // Judul (Nama Perusahaan)
+                    $newDoc['s_approved_1'],      
+                    $request['user']['name'],    
+                    $data['s_name']               
                 );
             }
-            // --- NOTIFIKASI EMAIL END ---
             
             return [
                 'success' => true, 
@@ -60,7 +59,6 @@ class OtherContractController {
         }
     }
 
-    // ... (Method show tetap sama) ...
     public function show($request) {
         $id = $request['params']['id'] ?? $_GET['id'] ?? null;
         
