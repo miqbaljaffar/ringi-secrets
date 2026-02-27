@@ -14,6 +14,11 @@ class SearchController {
             $keyword = $_GET['keyword'] ?? '';
             $type = $_GET['type'] ?? '';
             
+            $n_category = $_GET['n_category'] ?? '';
+            $payer = $_GET['payer'] ?? '';
+            $date_start = $_GET['date_start'] ?? '';
+            $date_end = $_GET['date_end'] ?? '';
+            
             $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
             if ($page < 1) $page = 1;
             $perPage = 20;
@@ -27,6 +32,8 @@ class SearchController {
             $isAllTab = ($tab === 'all');
 
             // --- サブクエリの構築 (Build subqueries) ---
+            
+            // 1. 通常稟議 (Common / AR)
             if (empty($type) || $type === 'common') {
                 $sqlCommon = "SELECT 
                                 c.id_doc, 
@@ -57,15 +64,24 @@ class SearchController {
 
                 // キーワード検索 (Keyword search)
                 if ($keyword) {
-
                     $sqlCommon .= " AND (c.s_title LIKE :kw_c1 OR c.s_overview LIKE :kw_c2)";
                     $params[':kw_c1'] = "%$keyword%";
                     $params[':kw_c2'] = "%$keyword%";
                 }
+
+                // --- PERBAIKAN: Filter Kategori & Payer khusus t_common (Sesuai Spesifikasi Hal.11) ---
+                if (!empty($n_category)) {
+                    $sqlCommon .= " AND EXISTS (SELECT 1 FROM t_common_details cd WHERE cd.n_doc = c.id_doc AND cd.n_category = :n_category)";
+                    $params[':n_category'] = $n_category;
+                }
+                if (!empty($payer)) {
+                    $sqlCommon .= " AND EXISTS (SELECT 1 FROM t_common_details cd WHERE cd.n_doc = c.id_doc AND cd.s_payer LIKE :payer)";
+                    $params[':payer'] = "%$payer%";
+                }
                 $subQueries[] = $sqlCommon;
             }
 
-            // 他のドキュメントタイプのサブクエリも同様に構築 (Build subqueries for other document types similarly) ---
+            // 2. 税務契約 (Tax / CT)
             if (empty($type) || $type === 'tax') {
                 $sqlTax = "SELECT 
                             t.id_doc, 
@@ -85,7 +101,6 @@ class SearchController {
                            LEFT JOIN v_worker w ON t.s_applied = w.id_worker
                            WHERE 1=1";
                 
-                // 全てのタブで期限切れのドキュメントを除外 (Exclude expired documents for all tabs)
                 if ($isAllTab) {
                     $sqlTax .= " AND (
                         t.dt_contract_start >= CURDATE() 
@@ -94,16 +109,15 @@ class SearchController {
                     )";
                 }
 
-                // キーワード検索 (Keyword search)
                 if ($keyword) {
-                    $sqlTax .= " AND (t.s_name LIKE :kw_t1 OR t.s_rep_name LIKE :kw_t2)";
+                    $sqlTax .= " AND (t.s_name LIKE :kw_t1 OR t.s_kana LIKE :kw_t2)";
                     $params[':kw_t1'] = "%$keyword%";
                     $params[':kw_t2'] = "%$keyword%";
                 }
                 $subQueries[] = $sqlTax;
             }
 
-            // その他契約書のサブクエリ (Subquery for other contracts)
+            // 3. その他契約稟議 (Other Contracts / CO)
             if (empty($type) || $type === 'contract' || $type === 'others') {
                 $sqlOther = "SELECT 
                                 o.id_doc, 
@@ -132,14 +146,14 @@ class SearchController {
                 }
 
                 if ($keyword) {
-                    $sqlOther .= " AND (o.s_name LIKE :kw_o1 OR o.s_rep_name LIKE :kw_o2)";
+                    $sqlOther .= " AND (o.s_name LIKE :kw_o1 OR o.s_kana LIKE :kw_o2)";
                     $params[':kw_o1'] = "%$keyword%";
                     $params[':kw_o2'] = "%$keyword%";
                 }
                 $subQueries[] = $sqlOther;
             }
 
-            // ベンダーのサブクエリ (Subquery for vendors)
+            // 4. 取引先契約稟議 (Vendor / CV)
             if (empty($type) || $type === 'vendor') {
                 $sqlVendor = "SELECT 
                                 v.id_doc, 
@@ -168,8 +182,9 @@ class SearchController {
                 }
 
                 if ($keyword) {
-                    $sqlVendor .= " AND (v.s_name LIKE :kw_v1)";
+                    $sqlVendor .= " AND (v.s_name LIKE :kw_v1 OR v.s_kana LIKE :kw_v2)";
                     $params[':kw_v1'] = "%$keyword%";
+                    $params[':kw_v2'] = "%$keyword%";
                 }
                 $subQueries[] = $sqlVendor;
             }
@@ -206,6 +221,15 @@ class SearchController {
                     break;
             }
 
+            if (!empty($date_start)) {
+                $whereClauses[] = "u.sort_date >= :date_start";
+                $params[':date_start'] = $date_start;
+            }
+            if (!empty($date_end)) {
+                $whereClauses[] = "u.sort_date <= :date_end";
+                $params[':date_end'] = $date_end;
+            }
+
             $whereSql = implode(' AND ', $whereClauses);
             
             $countSql = "SELECT COUNT(*) as total FROM ($unionSql) as u WHERE $whereSql";
@@ -239,7 +263,7 @@ class SearchController {
                 return [
                     'id_doc' => $row['id_doc'],
                     'type' => $row['doc_type'],
-                    'title' => $row['title'] ?? '(Tanpa Judul)',
+                    'title' => $row['title'] ?? '(タイトルなし)',
                     'applicant_name' => $row['applicant_name'] ?? $row['applicant_id'] ?? 'Unknown',
                     'ts_applied' => $row['ts_applied'],
                     'sort_date' => $row['sort_date'], 

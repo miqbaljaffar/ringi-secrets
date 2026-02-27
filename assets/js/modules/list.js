@@ -1,6 +1,5 @@
 class ListHandler {
     constructor() {
-        // State
         this.currentTab = 'all';
         this.filters = {
             keyword: '',
@@ -11,11 +10,7 @@ class ListHandler {
             payer: ''       
         };
 
-        // DOM Elements
-        this.$container = $('#list-container'); // Container untuk Tabel PC (tbody)
-        
-        // PENAMBAHAN: Container untuk Mobile (div)
-        // Pastikan di HTML ada <div id="list-container-sp" class="sp-only"></div>
+        this.$container = $('#list-container'); 
         this.$containerSP = $('#list-container-sp'); 
 
         this.$loading = $('#loading-indicator');
@@ -24,12 +19,30 @@ class ListHandler {
         this.init();
     }
 
+    // 初期化関数 - タブの初期状態設定、イベントのバインド、データの取得を行う
     init() {
-        this.fetchData();
-        this.fetchPendingCount();
         this.bindEvents();
+        this.setInitialState(); 
     }
 
+    // タブの初期状態を設定し、ユーザーの権限に応じて適切なタブを表示する関数
+    setInitialState() {
+        const sessionUser = sessionStorage.getItem('user');
+        const user = sessionUser ? JSON.parse(sessionUser) : ringiSystem.user;
+        
+        if (user && user.role >= 1) {
+            this.currentTab = 'to_approve';
+            $('.tab-btn').removeClass('active');
+            $('.tab-btn[data-tab="to_approve"]').addClass('active');
+        } else {
+            this.currentTab = $('.tab-btn.active').data('tab') || 'all';
+        }
+
+        this.fetchData();
+        this.fetchPendingCount();
+    }
+
+    // タブのクリックイベントや検索ボタンのイベントをバインドする関数
     bindEvents() {
         const self = this;
 
@@ -55,6 +68,7 @@ class ListHandler {
         });
     }
 
+    // フィルタの値を更新する関数 - ユーザーが入力した検索キーワードや日付範囲、フォームタイプなどを取得してフィルタオブジェクトに保存する
     updateFilters() {
         this.filters.keyword = $('#search-keyword').val() || '';
         this.filters.date_start = $('input[name="date_start"]').val() || '';
@@ -68,10 +82,11 @@ class ListHandler {
         this.filters.payer = $('input[name="payer"]').val() || '';
     }
 
+    // データをAPIから取得し、リストを更新する関数 - APIリクエストの前にローディングインジケーターを表示し、リクエストが完了したらデータをリストにレンダリングする。エラーが発生した場合はエラーメッセージを表示する。
     async fetchData() {
         this.$loading.show();
         this.$container.empty();
-        this.$containerSP.empty(); // Bersihkan mobile container juga
+        this.$containerSP.empty();
         this.$empty.hide();
 
         try {
@@ -104,21 +119,32 @@ class ListHandler {
         }
     }
 
+    // 文書のステータスコードを取得する関数 - 文書オブジェクトのプロパティをチェックして、適切なステータスコードを返す。ステータスコードは、文書の状態（承認待ち、承認済み、否認、取下げなど）を表す文字列で、リスト表示やバッジのスタイルに使用される。
+    getStatusCode(doc) {
+        if (doc.status_code) return doc.status_code; 
+        
+        if (doc.dt_deleted) return 'withdrawn';
+        if (doc.dt_rejected) return 'rejected';
+        if (doc.dt_approved_2 || (doc.dt_approved_1 && !doc.s_approved_2)) return 'approved';
+        if (doc.dt_approved_1) return 'pending_second';
+        return 'pending';
+    }
+
+    // データをリスト形式でレンダリングする関数 - APIから取得した文書データの配列をループして、PC版とスマホ版の両方のHTMLを生成する。各文書のタイプ、ステータス、申請日などに基づいて適切な表示形式やスタイルを適用する。生成されたHTMLは、それぞれのコンテナに挿入される。
     renderList(data) {
-        // 1. RENDER UNTUK PC (TABLE ROW)
         const htmlPC = data.map(doc => {
             const formName = this.mapTypeToName(doc.type);
-            const statusText = this.mapStatusText(doc.status_code);
+            const statusCode = this.getStatusCode(doc);
+            const statusText = this.mapStatusText(statusCode);
             const dateStr = new Date(doc.ts_applied).toLocaleDateString('ja-JP');
             const link = `detail.html?id=${doc.id_doc}&type=${doc.type}`;
-            
-            let badgeClass = this.getBadgeClass(doc.status_code);
+            const badgeClass = this.getBadgeClass(statusCode);
 
             return `
                 <tr>
                     <td><a href="${link}" class="text-primary font-weight-bold">${doc.id_doc}</a></td>
                     <td><span class="badge badge-light border">${formName}</span></td>
-                    <td>${doc.subject || '(無題)'}</td>
+                    <td>${doc.title || '(無題)'}</td>
                     <td>${doc.applicant_name}</td>
                     <td>${dateStr}</td>
                     <td><span class="badge ${badgeClass}">${statusText}</span></td>
@@ -129,22 +155,21 @@ class ListHandler {
             `;
         }).join('');
 
-        // 2. RENDER UNTUK MOBILE (CARD) - Sesuai Spec Hal. 23
         const htmlSP = data.map(doc => {
             const formName = this.mapTypeToName(doc.type);
-            const statusText = this.mapStatusText(doc.status_code);
+            const statusCode = this.getStatusCode(doc);
+            const statusText = this.mapStatusText(statusCode);
             const dateStr = new Date(doc.ts_applied).toLocaleDateString('ja-JP');
             const link = `detail.html?id=${doc.id_doc}&type=${doc.type}`;
-            const badgeClass = this.getBadgeClass(doc.status_code);
+            const badgeClass = this.getBadgeClass(statusCode);
 
-            // Layout Card Mobile sesuai List.css dan Spec Hal 23
             return `
                 <div class="card-item" onclick="window.location.href='${link}'">
                     <div class="card-header">
                         <span class="badge badge-light border">${formName}</span>
                         <span class="text-muted" style="font-size:12px;">${dateStr}</span>
                     </div>
-                    <div class="card-subject">${doc.subject || '(無題)'}</div>
+                    <div class="card-subject">${doc.title || '(無題)'}</div>
                     <div class="d-flex justify-content-between align-items-center mt-2">
                         <span style="font-size:13px; color:#555;">
                             <i class="icon-user"></i> ${doc.applicant_name}
@@ -155,23 +180,24 @@ class ListHandler {
             `;
         }).join('');
 
-        // Inject ke DOM masing-masing
         this.$container.html(htmlPC);
         this.$containerSP.html(htmlSP);
     }
-
+    
+    // ステータスコードに対応するバッジのクラスを取得する関数 - ステータスコードに基づいて、Bootstrapのバッジクラスを返す。例えば、承認済みは緑色のバッジ、否認は赤色のバッジ、承認待ちは黄色のバッジなど。これにより、リスト内で文書の状態が視覚的にわかりやすくなる。
     getBadgeClass(code) {
         if (code === 'approved') return 'badge-success';
         if (code === 'rejected') return 'badge-danger';
-        if (code === 'withdrawn') return 'badge-secondary'; // Abu-abu utk withdrawn
+        if (code === 'withdrawn') return 'badge-secondary';
         if (code && code.includes('pending')) return 'badge-warning';
         return 'badge-secondary';
     }
 
+    // 承認待ちの文書の数をAPIから取得し、タブにバッジで表示する関数 - APIリクエストを送信して、承認待ちの文書の数を取得する。取得した数を「承認待ち」タブの右側に赤いバッジで表示する。これにより、ユーザーは承認待ちの文書があるかどうかを一目で確認できる。
     async fetchPendingCount() {
-        // Implementasi badge counter opsional
     }
 
+    // フォームタイプを人間が読みやすい名前に変換する関数 - フォームのタイプコードを日本語のテキストにマッピングする。例えば、'common'は「通常稟議」、'tax'は「税務契約」、'contract'は「契約稟議」、'vendor'は「取引開始」、'others'は「その他」など。これにより、リスト内でフォームの種類がわかりやすく表示される。
     mapTypeToName(type) {
         const types = {
             'common': '通常稟議',
@@ -183,6 +209,7 @@ class ListHandler {
         return types[type] || type.toUpperCase();
     }
 
+    // ステータスコードを人間が読みやすいテキストに変換する関数 - ステータスコードを日本語のテキストにマッピングする。例えば、'pending'は「承認待ち (1)」、'approved'は「承認済」、'rejected'は「否認」、'withdrawn'は「取下げ」など。これにより、リスト内で文書の状態がわかりやすく表示される。
     mapStatusText(code) {
         const statuses = {
             'pending': '承認待ち (1)',
@@ -195,7 +222,6 @@ class ListHandler {
     }
 }
 
-// Init
 $(document).ready(function() {
     new ListHandler();
 });

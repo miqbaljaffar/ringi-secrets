@@ -5,7 +5,6 @@ class DetailHandler {
         
         this.data = null;
         
-        // Ambil dari global state yang diset oleh auth.js
         const sessionUser = sessionStorage.getItem('user');
         this.currentUser = sessionUser ? JSON.parse(sessionUser) : { role: 0, id: '0000', id_worker: '0000' };
 
@@ -15,20 +14,23 @@ class DetailHandler {
         this.init();
     }
 
+    // 初期化関数 - 文書IDの検証、データの読み込み、イベントのバインドを行う
     init() {
         if (!this.id) {
-            alert('ID Dokumen tidak ditemukan');
+            alert('文書IDが見つかりません');
             return;
         }
         this.loadDocument();
         this.bindGlobalEvents();
     }
 
+    // URLパラメータから値を取得するユーティリティ関数 
     getUrlParameter(name) {
         const results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
         return results ? results[1] : null;
     }
 
+    // 文書IDのプレフィックスからドキュメントタイプを推測するロジック
     getDocTypeFromId(id) {
         if (!id || id.length < 2) return 'common';
         const prefix = id.substring(0, 2).toUpperCase();
@@ -36,6 +38,7 @@ class DetailHandler {
         return map[prefix] || 'common';
     }
 
+    // ドキュメントデータをAPIから非同期に読み込む関数
     async loadDocument() {
         this.$loading.show();
         this.$container.hide();
@@ -46,30 +49,31 @@ class DetailHandler {
             if (response.success) {
                 this.data = response.data;
                 this.renderData();
+                this.renderMemo(); 
                 this.renderApprovalRoute();
                 this.setupPermissions();
                 this.$container.fadeIn();
             } else {
-                throw new Error(response.error || 'Gagal memuat data');
+                throw new Error(response.error || 'データの読み込みに失敗しました');
             }
         } catch (error) {
-            console.error('Detail Error:', error);
-            $('body').html(`<div class="alert alert-danger m-4 text-center">Data tidak dapat dimuat: ${error.message}</div>`);
+            console.error('詳細エラー:', error);
+            $('body').html(`<div class="alert alert-danger m-4 text-center">データを読み込めません: ${error.message}</div>`);
         } finally {
             this.$loading.hide();
         }
     }
 
+    // 読み込んだデータをHTMLに反映する関数
     renderData() {
         const d = this.data;
         
-        // 1. Data Umum
+        // 1. 基本情報
         $('#lbl_id').text(d.id_doc);
-        // Tampilkan nama pelamar, ambil dari relasi jika ada, atau s_applied jika tidak ada
         $('#lbl_applicant').text(d.applicant_info ? d.applicant_info.s_name : (d.applicant_name || d.s_applied || '-'));
         $('#lbl_date').text(d.ts_applied ? new Date(d.ts_applied).toLocaleDateString('ja-JP') : '-');
         
-        // 2. Tampilkan Berdasarkan Tipe Form
+        // 2. フォームタイプ別表示
         if (this.docType === 'tax') {
             $('#tax-section').show();
             $('#tax_s_name').text(d.s_name || '-');
@@ -112,16 +116,50 @@ class DetailHandler {
             }
         }
         
-        // 3. Stempel Status Transparan
+        // 3. 透明なステータススタンプ
         if (d.dt_deleted) {
             $('#stamp-withdrawn').show();
         } else if (d.dt_rejected) {
             $('#stamp-rejected').show();
-        } else if (d.dt_approved_2 || (d.dt_approved_1 && !d.s_approved_2)) { // App 2 bisa nullable menurut spec
+        } else if (d.dt_approved_2 || (d.dt_approved_1 && !d.s_approved_2)) { 
             $('#stamp-approved').show();
         }
     }
 
+    // 備考セクションを動的に生成して表示する関数
+    renderMemo() {
+        const memoText = this.data.s_memo || '';
+        
+        let $memoSection = $('#memo-section');
+        if ($memoSection.length === 0) {
+            $memoSection = $('<div id="memo-section" class="mt-4 mb-4 p-3 border rounded bg-light" style="border-left: 4px solid #17a2b8 !important;"></div>');
+            
+            // 承認ルートテーブルの前に挿入
+            if ($('.approval-route-container').length) {
+                $('.approval-route-container').before($memoSection);
+            } else {
+                $('#detail-content').append($memoSection);
+            }
+        }
+
+        const html = `
+            <h6 class="font-weight-bold" style="color: #17a2b8;">備考</h6>
+            <div id="memo-display-mode">
+                <p id="memo-text" class="mb-0 text-dark" style="white-space: pre-wrap;">${memoText ? memoText : 'なし'}</p>
+            </div>
+            <div id="memo-edit-mode" style="display:none;">
+                <textarea id="input-memo" class="form-control" rows="3" placeholder="備考を入力してください...">${memoText}</textarea>
+                <div class="mt-2 text-right">
+                    <button id="btn-update-memo" class="btn btn-sm btn-info text-white">
+                        備考を更新
+                    </button>
+                </div>
+            </div>
+        `;
+        $memoSection.html(html);
+    }
+
+    // 承認ルートを動的に生成して表示する関数
     renderApprovalRoute() {
         const d = this.data;
         const route = [];
@@ -136,7 +174,7 @@ class DetailHandler {
 
         const fmtDate = (date) => date ? new Date(date).toLocaleDateString('ja-JP') : '-';
 
-        // Applicant
+        // 申請者
         route.push({
             role: '申請者',
             name: d.applicant_info ? d.applicant_info.s_name : (d.applicant_name || d.s_applied),
@@ -145,7 +183,7 @@ class DetailHandler {
             date: fmtDate(d.ts_applied)
         });
 
-        // App 1
+        // 第1承認者
         if (d.s_approved_1) {
             const st1 = getStatusObj(d.dt_approved_1, d.dt_rejected, true);
             route.push({
@@ -157,7 +195,7 @@ class DetailHandler {
             });
         }
 
-        // App 2
+        // 第2承認者
         if (d.s_approved_2) {
             const st2 = getStatusObj(d.dt_approved_2, d.dt_rejected, !!d.dt_approved_1);
             route.push({
@@ -169,7 +207,6 @@ class DetailHandler {
             });
         }
 
-        // Render pure html table row
         const html = route.map(step => `
             <tr>
                 <td style="font-size: 13px;">${step.role}</td>
@@ -182,14 +219,13 @@ class DetailHandler {
         $('#approval-route-tbody').html(html);
     }
 
+    // 現在のユーザーの権限に基づいて、承認ボタンやメモ編集機能の表示/非表示を制御する関数
     setupPermissions() {
         const d = this.data;
-        // Pastikan kompatibel dengan id_worker yang lama maupun id dari sistem auth baru
         const uid = String(this.currentUser.id || this.currentUser.id_worker); 
 
+        // 1. 承認ボタンの表示ロジック
         let canApprove = false;
-
-        // Cek giliran approval
         const isApp1Turn = (String(d.s_approved_1) === uid && !d.dt_approved_1);
         const isApp2Turn = (String(d.s_approved_2) === uid && d.dt_approved_1 && !d.dt_approved_2); 
         
@@ -198,44 +234,85 @@ class DetailHandler {
                 canApprove = true;
             }
         }
-
         if (canApprove) $('.action-approval').show(); 
         else $('.action-approval').hide();
+
+        const isAdmin = (this.currentUser.role >= 2 || uid === '0036');
+        
+        if (isAdmin) {
+            $('#memo-edit-mode').show();
+            $('#memo-display-mode').hide();
+        } else {
+            $('#memo-edit-mode').hide();
+            $('#memo-display-mode').show();
+        }
     }
 
+    // 承認/否認ボタンと管理者用メモ更新ボタンのイベントハンドラを設定する関数
     bindGlobalEvents() {
         const self = this;
 
         $('#btn-approve').on('click', function() {
-            self.processAction('approve', 'この稟議を承認しますか？ (Apakah Anda ingin menyetujui dokumen ini?)');
+            self.processAction('approve', 'この稟議を承認しますか？');
         });
 
         $('#btn-reject').on('click', function() {
-            self.processAction('reject', 'この稟議を否認しますか？ (Apakah Anda ingin menolak dokumen ini?)');
+            self.processAction('reject', 'この稟議を否認しますか？');
+        });
+
+        // 管理者用メモ更新ボタンの動的イベントハンドラ
+        $(document).on('click', '#btn-update-memo', function() {
+            self.updateMemoAction();
         });
     }
 
+    // 承認/否認のアクションを処理する関数
     async processAction(action, confirmMsg) {
         if (!confirm(confirmMsg)) return;
 
         try {
-            // PERBAIKAN FATAL: Backend CommonController@approve mengharapkan parameter doc_id di body.
             const payload = {
-                doc_id: this.id, // Wajib ada sesuai logika PHP
+                doc_id: this.id,
                 action: action,
-                comment: '' // Bisa ditambahkan textarea komentar pada UI jika diperlukan
+                comment: '' 
             };
 
             const response = await ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/approve`, payload);
 
             if (response.success) {
-                ringiSystem.showNotification('Proses persetujuan berhasil.', 'success');
+                ringiSystem.showNotification('承認処理が完了しました。', 'success');
                 setTimeout(() => location.reload(), 1500);
             } else {
-                ringiSystem.showNotification('Error: ' + response.error, 'error');
+                ringiSystem.showNotification('エラー: ' + response.error, 'error');
             }
         } catch (error) {
-            ringiSystem.showNotification('System Error: ' + error.message, 'error');
+            ringiSystem.showNotification('システムエラー: ' + error.message, 'error');
+        }
+    }
+
+    // 管理者が備考を更新するためのイベントハンドラ関数
+    async updateMemoAction() {
+        const newMemo = $('#input-memo').val();
+        if (!confirm('備考を更新しますか？')) return;
+
+        try {
+            const payload = { memo: newMemo };
+            const response = await ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/memo`, payload);
+
+            if (response.success) {
+                ringiSystem.showNotification('備考が更新されました', 'success');
+                this.data.s_memo = newMemo;
+                
+                $('#btn-update-memo').text('保存完了').removeClass('btn-info').addClass('btn-success');
+                setTimeout(() => {
+                    $('#btn-update-memo').text('備考を更新').removeClass('btn-success').addClass('btn-info');
+                }, 2000);
+
+            } else {
+                ringiSystem.showNotification('エラー: ' + response.error, 'error');
+            }
+        } catch (error) {
+            ringiSystem.showNotification('システムエラー: ' + error.message, 'error');
         }
     }
 }
