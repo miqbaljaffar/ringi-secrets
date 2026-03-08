@@ -12,11 +12,11 @@ class DatabaseConfig {
         $conn = null;
         try {
             $conn = new PDO(
-                "mysql:host=" . self::HOST . ";dbname=" . self::DB_NAME, 
+                "mysql:host=" . self::HOST . ";dbname=" . self::DB_NAME . ";charset=utf8mb4", 
                 self::USERNAME, 
                 self::PASSWORD
             );
-            $conn->exec("set names utf8");
+            $conn->exec("set names utf8mb4");
             
             $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             

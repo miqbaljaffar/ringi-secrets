@@ -20,11 +20,32 @@ class VendorController {
         $data = $_POST;
         $files = $_FILES;
         
+        // --- Pre-process data dari form yang mungkin terpisah (seperti telepon dan kodepos) ---
+        $tel1 = $data['tel1'] ?? '';
+        $tel2 = $data['tel2'] ?? '';
+        $tel3 = $data['tel3'] ?? '';
+        if (!empty($tel1) || !empty($tel2) || !empty($tel3)) {
+            $data['s_office_tel'] = $tel1 . '-' . $tel2 . '-' . $tel3;
+        }
+
+        $zip1 = $data['zip1'] ?? '';
+        $zip2 = $data['zip2'] ?? '';
+        if (empty($data['s_office_pcode']) && (!empty($zip1) || !empty($zip2))) {
+            $data['s_office_pcode'] = $zip1 . $zip2;
+        }
+
+        // --- Aturan Validasi Diperketat sesuai Definisi Tabel t_vendors ---
         $rules = [
             's_name' => 'required|max:100',
             's_kana' => 'required|max:100',
-            's_rep_name' => 'required',     
-            's_situation' => 'required'     
+            's_office_pcode' => 'required',
+            's_office_address' => 'required|max:100',
+            's_office_tel' => 'required',
+            'n_send_to' => 'required',
+            's_rep_name' => 'required|max:30',
+            's_rep_kana' => 'required|max:30',
+            's_rep_title' => 'required',
+            's_situation' => 'required'
         ];
         
         $validation = $this->validator->validate($data, $rules);

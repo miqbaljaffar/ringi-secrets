@@ -4,16 +4,19 @@ require_once __DIR__ . '/../utils/Mailer.php';
 class OtherContractController {
     private $validator;
     private $model;
-    private $mailer; // Property Mailer
+    private $mailer;
+    private $fileUpload;
 
     public function __construct() {
         $this->validator = new Validator();
         $this->model = new OtherContract();
-        $this->mailer = new Mailer(); // Inisialisasi Mailer
+        $this->mailer = new Mailer();
+        $this->fileUpload = new FileUpload('co'); 
     }
     
     public function store($request) {
         $data = $_POST;
+        $files = $_FILES;
         
         $rules = [
             's_name' => 'required|max:100',
@@ -36,7 +39,22 @@ class OtherContractController {
             
             $docId = $this->model->createDocument($data);
             
-            // --- NOTIFIKASI EMAIL START ---
+            if (!empty($files['estimate_file']) && $files['estimate_file']['error'] === UPLOAD_ERR_OK) {
+                try {
+                    $this->fileUpload->save($files['estimate_file'], $docId, '見積書');
+                } catch (Exception $fileEx) {
+                    error_log("Upload 見積書 gagal: " . $fileEx->getMessage());
+                }
+            }
+
+            if (!empty($files['attachment']) && $files['attachment']['error'] === UPLOAD_ERR_OK) {
+                try {
+                    $this->fileUpload->save($files['attachment'], $docId);
+                } catch (Exception $fileEx) {
+                    error_log("Upload file tambahan gagal: " . $fileEx->getMessage());
+                }
+            }
+
             $newDoc = $this->model->find($docId);
             if ($newDoc && !empty($newDoc['s_approved_1'])) {
                 $this->mailer->sendRequestNotification(
@@ -50,7 +68,7 @@ class OtherContractController {
             return [
                 'success' => true, 
                 'doc_id' => $docId,
-                'message' => 'Aplikasi kontrak berhasil dikirim'
+                'message' => 'Aplikasi kontrak dan file berhasil dikirim'
             ];
             
         } catch (Exception $e) {

@@ -61,18 +61,27 @@ class TaxController {
                     $data[$field] = str_replace(',', '', $data[$field]);
                 }
             }
-            
+            // --- データベースに保存してドキュメントIDを取得 --- (Save to database and get document ID)
             $docId = $this->taxModel->createDocument($data);
             
+            // --- ファイルアップロード処理 --- (File upload process)
             if (!empty($files['estimate_file']) && $files['estimate_file']['error'] === UPLOAD_ERR_OK) {
                 try {
                     $this->fileUpload->save($files['estimate_file'], $docId, '見積書');
                 } catch (Exception $fileEx) {
-                    error_log("ファイルアップロード警告: " . $fileEx->getMessage());
+                    error_log("Upload 見積書 gagal: " . $fileEx->getMessage());
                 }
             }
 
-            // --- メール送信開始（税務） --- (Start email notification for tax document)
+            if (!empty($files['attachment']) && $files['attachment']['error'] === UPLOAD_ERR_OK) {
+                try {
+                    $this->fileUpload->save($files['attachment'], $docId);
+                } catch (Exception $fileEx) {
+                    error_log("Upload file tambahan gagal: " . $fileEx->getMessage());
+                }
+            }
+
+            // --- メール送信処理 --- (Email notification process)
             $newDoc = $this->taxModel->find($docId);
             if ($newDoc && !empty($newDoc['s_approved_1'])) {
                 $this->mailer->sendRequestNotification(
