@@ -1,20 +1,16 @@
-/* css/list.css - REVISI SESUAI SPESIFIKASI (MAX-WIDTH 1200px) */
-
 body {
     font-family: "Meiryo", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
     background-color: #fff;
     margin: 0;
     padding: 20px;
     color: #333;
-    /* Mencegah scroll horizontal jika tabel terlalu lebar */
     overflow-x: auto; 
 }
 
 .list-wrapper {
-    /* REVISI: Mengembalikan ke spesifikasi (Max 1200px) */
     width: 100%; 
-    max-width: 1200px; /* Sesuai spesifikasi Hal. 10 */
-    min-width: 1000px; /* Mencegah layout hancur di layar sangat kecil, scrollbar akan muncul */
+    max-width: 1200px; 
+    min-width: 1000px; 
     margin: 0 auto;
 }
 
@@ -27,12 +23,12 @@ body {
     color: #000;
 }
 
-/* --- 2. SEARCH AREA (Sesuai Gambar) --- */
+/* --- 2. SEARCH AREA --- */
 .search-container {
-    background-color: #cceeff; /* Biru muda persis screenshot */
+    background-color: #cceeff; 
     border: 1px solid #8ec6eb;
     padding: 15px 20px; 
-    margin-bottom: 5px; /* Jarak ke tab diperkecil agar nempel */
+    margin-bottom: 5px; 
     border-radius: 4px;
 }
 
@@ -40,7 +36,7 @@ body {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 15px; /* Jarak antar elemen input */
+    gap: 15px; 
 }
 
 .form-item {
@@ -55,39 +51,23 @@ body {
     color: #222;
 }
 
-/* --- Input Styles (Dibuat Lebih Besar/Tinggi) --- */
-/* Reset style dasar */
 .input-date, .input-select, .input-text {
     padding: 6px 10px;
-    height: 38px; /* Tinggi input diperbesar agar gagah */
+    height: 38px; 
     border: 1px solid #aaa;
     border-radius: 3px;
     font-size: 14px;
-    box-sizing: border-box; /* Agar padding tidak menambah lebar */
+    box-sizing: border-box; 
     background-color: #fff;
 }
 
-.input-date {
-    width: 150px;
-}
+.input-date { width: 150px; }
+.tilde { margin: 0 8px; font-weight: bold; color: #666; }
+.input-select { width: 180px; }
+.input-text { width: 250px; }
 
-.tilde {
-    margin: 0 8px;
-    font-weight: bold;
-    color: #666;
-}
-
-.input-select {
-    width: 180px;
-}
-
-.input-text {
-    width: 250px; /* Input keyword lebih lebar */
-}
-
-/* --- Tombol Aksi --- */
 .action-buttons {
-    margin-left: auto; /* Dorong ke kanan mentok */
+    margin-left: auto; 
     display: flex;
     gap: 10px;
 }
@@ -95,7 +75,7 @@ body {
 .btn {
     border: none;
     color: white;
-    height: 38px; /* Tinggi disamakan dengan input */
+    height: 38px; 
     padding: 0 20px;
     font-size: 15px;
     border-radius: 4px;
@@ -109,53 +89,37 @@ body {
     transition: opacity 0.2s;
 }
 
-.btn i {
-    font-size: 16px;
-}
-
-/* Warna Biru Cerah Sesuai Screenshot */
-.btn-blue {
-    background-color: #0088cc; 
-}
-.btn-blue:hover {
-    background-color: #0077b3;
-}
+.btn i { font-size: 16px; }
+.btn-blue { background-color: #0088cc; }
+.btn-blue:hover { background-color: #0077b3; }
 
 /* --- 3. TABS --- */
-.tab-container {
-    margin-top: 10px;
-    display: flex;
-    /* Tidak ada border-bottom di container, border ikut header tabel */
-}
+.tab-container { margin-top: 10px; display: flex; }
 
-.tab-item {
-    padding: 12px 30px; /* Tab lebih lebar & tinggi */
+.tab-item, .tab-btn {
+    padding: 12px 30px; 
     font-size: 15px;
     cursor: pointer;
-    background-color: #d9efff; /* Biru pucat (Inactive) */
-    border: 1px solid #fff; /* Pemisah putih antar tab */
+    background-color: #d9efff; 
+    border: 1px solid #fff; 
     border-bottom: none;
     color: #0088cc;
     margin-right: 2px;
-    border-radius: 5px 5px 0 0; /* Sudut atas rounded */
+    border-radius: 5px 5px 0 0; 
     outline: none;
     position: relative;
     font-weight: normal;
     transition: background-color 0.2s;
 }
 
-/* State Aktif */
-.tab-item.active {
-    background-color: #0088cc; /* Biru Tua (Active) */
+.tab-item.active, .tab-btn.active {
+    background-color: #0088cc; 
     color: white;
     font-weight: bold;
 }
 
-.tab-item:hover:not(.active) {
-    background-color: #cceeff;
-}
+.tab-item:hover:not(.active), .tab-btn:hover:not(.active) { background-color: #cceeff; }
 
-/* Badge Merah */
 .badge {
     position: absolute;
     top: -8px;
@@ -175,62 +139,48 @@ body {
 }
 
 /* --- 4. TABLE --- */
-.table-container {
-    width: 100%;
-    /* Menghilangkan jarak antara tab dan tabel */
-    margin-top: 0; 
-}
+.table-container { width: 100%; margin-top: 0; }
 
 .custom-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 15px; /* Font tabel diperbesar */
+    font-size: 15px; 
     background-color: #fff;
-    border: 1px solid #ccc; /* Border luar tabel */
+    border: 1px solid #ccc; 
+    table-layout: fixed; /* PERBAIKAN: Wajib untuk ellipsis */
 }
 
 .custom-table th {
-    background-color: #0088cc; /* Header Biru Tua */
+    background-color: #0088cc; 
     color: white;
-    padding: 12px 15px; /* Padding header diperbesar */
+    padding: 12px 15px; 
     text-align: left;
     font-weight: normal;
-    border-right: 1px solid rgba(255,255,255,0.3); /* Pemisah kolom halus */
-    white-space: nowrap; /* Header tidak boleh turun baris */
+    border-right: 1px solid rgba(255,255,255,0.3); 
+    white-space: nowrap; 
 }
 
-.custom-table th:last-child {
-    border-right: none;
-}
+.custom-table th:last-child { border-right: none; }
 
 .custom-table td {
-    padding: 12px 15px; /* Padding sel diperbesar */
+    padding: 12px 15px; 
     border-bottom: 1px solid #e0e0e0;
     color: #333;
     vertical-align: middle;
 }
 
-/* Zebra Striping: Baris ganjil biru sangat muda */
-.custom-table tr:nth-child(odd) td {
-    background-color: #f2f9ff; 
-}
-.custom-table tr:nth-child(even) td {
-    background-color: #fff;
-}
-
-.custom-table tr:hover td {
-    background-color: #e6f3ff; /* Efek hover baris */
+/* PERBAIKAN: Pemotongan teks (Ellipsis) untuk Subjek/Judul (Kolom ke-3) */
+.custom-table td:nth-child(3) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.text-center {
-    text-align: center;
-}
+.custom-table tr:nth-child(odd) td { background-color: #f2f9ff; }
+.custom-table tr:nth-child(even) td { background-color: #fff; }
+.custom-table tr:hover td { background-color: #e6f3ff; }
 
-/* Ikon Dokumen */
-.icon-doc {
-    font-size: 18px;
-    color: #333;
-}
+.text-center { text-align: center; }
 
 /* --- MOBILE RESPONSIVE --- */
 .pc-only { display: block; }
@@ -256,6 +206,8 @@ body {
     }
     .card-header { display: flex; justify-content: space-between; color: #888; font-size: 13px; margin-bottom: 5px; }
     .card-title { font-weight: bold; color: #0088cc; margin-bottom: 5px; }
-    .card-subject { font-size: 16px; font-weight: bold; margin-bottom: 10px; }
+    
+    /* PERBAIKAN: Ellipsis untuk Card subject mobile juga */
+    .card-subject { font-size: 16px; font-weight: bold; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .card-footer { border-top: 1px solid #eee; padding-top: 10px; text-align: right; }
 }

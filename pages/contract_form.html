@@ -58,8 +58,11 @@
             <div class="corporate-only">
                 <div class="form-group">
                     <label class="form-label required" style="color: #800080;">設立年月日</label>
-                    <div class="form-control-wrapper">
-                        <input type="date" name="dt_establishment" required>
+                    <div class="form-control-wrapper flex-row">
+                        <span style="font-size: 13px;">西暦:</span>
+                        <input type="date" name="dt_establishment" id="dt_est_seireki" required>
+                        <span style="font-size: 13px; margin-left: 10px;">和暦:</span>
+                        <input type="text" id="dt_est_wareki" class="input-mid wareki-input" placeholder="自動入力 (例:令和5年...)" readonly style="background-color: #f5f5f5;">
                     </div>
                 </div>
 
@@ -199,7 +202,6 @@
             <div class="form-group">
                 <label class="form-label required">代表者氏名</label>
                 <div class="form-control-wrapper flex-row">
-                    <!-- Penambahan ID id="rep_name_sei" dan id="rep_name_mei" -->
                     <input type="text" name="rep_name_sei" id="rep_name_sei" placeholder="姓" class="input-mid" required maxlength="15">
                     <input type="text" name="rep_name_mei" id="rep_name_mei" placeholder="名" class="input-mid" required maxlength="15">
                 </div>
@@ -208,7 +210,6 @@
             <div class="form-group">
                 <label class="form-label required">代表者フリガナ</label>
                 <div class="form-control-wrapper flex-row">
-                    <!-- Penambahan ID id="rep_kana_sei" dan id="rep_kana_mei" -->
                     <input type="text" name="rep_kana_sei" id="rep_kana_sei" placeholder="セイ" class="input-mid" required maxlength="15">
                     <input type="text" name="rep_kana_mei" id="rep_kana_mei" placeholder="メイ" class="input-mid" required maxlength="15">
                 </div>
@@ -237,8 +238,11 @@
 
             <div class="form-group">
                 <label class="form-label required">生年月日</label>
-                <div class="form-control-wrapper">
-                    <input type="date" name="dt_rep_birth" required>
+                <div class="form-control-wrapper flex-row">
+                    <span style="font-size: 13px;">西暦:</span>
+                    <input type="date" name="dt_rep_birth" id="dt_birth_seireki" required>
+                    <span style="font-size: 13px; margin-left: 10px;">和暦:</span>
+                    <input type="text" id="dt_birth_wareki" class="input-mid wareki-input" placeholder="自動入力" readonly style="background-color: #f5f5f5;">
                 </div>
             </div>
 
@@ -445,8 +449,11 @@
         <div class="section">
             <div class="form-group">
                 <label class="form-label required">関与開始日</label>
-                <div class="form-control-wrapper">
-                    <input type="date" name="dt_contract_start" required>
+                <div class="form-control-wrapper flex-row">
+                    <span style="font-size: 13px;">西暦:</span>
+                    <input type="date" name="dt_contract_start" id="dt_start_seireki" required>
+                    <span style="font-size: 13px; margin-left: 10px;">和暦:</span>
+                    <input type="text" id="dt_start_wareki" class="input-mid wareki-input" placeholder="自動入力" readonly style="background-color: #f5f5f5;">
                 </div>
             </div>
             
@@ -500,7 +507,6 @@
                         <input type="text" name="s_incharge_close" placeholder="クロージング担当者" class="input-mid" maxlength="50">
                         <select name="s_incharge" class="input-mid" required>
                             <option value="" disabled selected>顧客担当者を選択</option>
-                            <!-- Populated via JS -->
                         </select>
                     </div>
                     <div class="flex-row" style="margin-top: 10px;">
@@ -519,7 +525,7 @@
             </div>
             
             <div class="form-group">
-                <label class="form-label required">きっかけ (経緯)</label>
+                <label class="form-label required">きっかけ (経経)</label>
                 <div class="form-control-wrapper">
                     <textarea name="s_situation" placeholder="契約に至った経緯..." required></textarea>
                 </div>
@@ -533,6 +539,7 @@
                 <div class="form-control-wrapper">
                     <input type="file" name="file_estimate" accept=".pdf">
                     <span class="file-name-display" style="font-weight: bold; margin-left: 10px;"></span>
+                    <div class="note" style="color: #dc3545; font-weight: bold; margin-top: 5px;">※注意事項: 請求書（インボイス）は添付しない</div>
                 </div>
             </div>
             <div class="form-group">
@@ -540,6 +547,7 @@
                 <div class="form-control-wrapper">
                     <input type="file" name="file_others" accept=".pdf">
                     <span class="file-name-display" style="font-weight: bold; margin-left: 10px;"></span>
+                    <div class="note" style="color: #dc3545; font-weight: bold; margin-top: 5px;">※注意事項: 請求書（インボイス）は添付しない</div>
                 </div>
             </div>
         </div>

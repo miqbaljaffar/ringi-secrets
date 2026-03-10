@@ -93,5 +93,17 @@ class AuthController {
         http_response_code(401);
         return ['success' => false, 'error' => 'セッションが無効です。'];
     }
+
+    // ユーザー一覧の取得 (Get user list for dropdowns)
+    public function getUsersList($request) {
+        try {
+            $userModel = $this->getUserModel();
+            $users = $userModel->getAllUsers();
+            return ['success' => true, 'data' => $users];
+        } catch (Exception $e) {
+            http_response_code(500);
+            return ['success' => false, 'error' => 'ユーザーデータの取得に失敗しました'];
+        }
+    }
 }
 ?>

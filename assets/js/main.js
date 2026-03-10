@@ -58,7 +58,13 @@ const ringiSystem = {
                 if (response.status === 401) {
                     sessionStorage.removeItem('user');
                     sessionStorage.removeItem('token');
-                    window.location.href = 'login.html?error=session_expired';
+                    
+                    // PERBAIKAN BUG INFINITE LOOP: 
+                    // Cek apakah saat ini sedang di halaman login. Jika iya, JANGAN redirect lagi.
+                    if (!window.location.pathname.includes('login.html')) {
+                        window.location.href = 'login.html?error=session_expired';
+                    }
+                    
                     return { success: false, error: 'Sesi berakhir. Silakan login kembali.' };
                 }
                 const errorData = await response.json().catch(() => ({}));
@@ -92,6 +98,6 @@ $(document).ready(function() {
         
         sessionStorage.removeItem('user');
         sessionStorage.removeItem('token');
-        window.location.href = '../pages/login.html'; // Perbaikan path redirect
+        window.location.href = 'login.html'; // Perbaikan path redirect
     });
 });

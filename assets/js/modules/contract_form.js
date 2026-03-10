@@ -10,8 +10,8 @@ class ContractFormHandler {
         this.loadEmployees();
         this.bindEvents();
         this.setupAutoKana();
+        this.setupDateSync(); 
         
-        // Trigger initial state
         $('input[name="n_type"]:checked').trigger('change');
     }
 
@@ -25,13 +25,34 @@ class ContractFormHandler {
 
     setupAutoKana() {
         if ($.fn.autoKana) {
-            // AutoKana untuk Nama Perusahaan
             $.fn.autoKana('#company_name', '#company_kana', { katakana: true });
-            
-            // AutoKana untuk Nama Representatif (Sei dan Mei)
             $.fn.autoKana('#rep_name_sei', '#rep_kana_sei', { katakana: true });
             $.fn.autoKana('#rep_name_mei', '#rep_kana_mei', { katakana: true });
         }
+    }
+
+    setupDateSync() {
+        const convertToWareki = (dateString) => {
+            if (!dateString) return '';
+            try {
+                const date = new Date(dateString);
+                return new Intl.DateTimeFormat('ja-JP-u-ca-japanese', { 
+                    era: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                }).format(date);
+            } catch (e) {
+                return '';
+            }
+        };
+
+        $('input[type="date"]').on('change', function() {
+            const warekiInput = $(this).siblings('.wareki-input');
+            if(warekiInput.length) {
+                warekiInput.val(convertToWareki($(this).val()));
+            }
+        });
     }
 
     async loadEmployees() {
@@ -56,7 +77,6 @@ class ContractFormHandler {
     bindEvents() {
         const self = this;
 
-        // --- Logika Show/Hide UI ---
         $('input[name="n_type"]').on('change', function() {
             if ($(this).val() == '1') {
                 $('.corporate-only').show();
@@ -117,8 +137,6 @@ class ContractFormHandler {
             else $('#books_others_input').prop('disabled', true).val('');
         });
 
-
-        // --- Event Lainnya ---
         $('input[type="file"]').on('change', function(e) {
             self.handleFileUpload(this);
         });
@@ -168,7 +186,12 @@ class ContractFormHandler {
             $(inputElement).next('.file-name-display').text('');
             return;
         }
-        $(inputElement).next('.file-name-display').text(file.name);
+        
+        if (inputElement.name === 'file_estimate') {
+            $(inputElement).next('.file-name-display').text('見積書.pdf');
+        } else {
+            $(inputElement).next('.file-name-display').text(file.name);
+        }
     }
 
     async handleSubmit(saveMode) {
@@ -180,18 +203,13 @@ class ContractFormHandler {
         const formData = new FormData(this.form[0]);
         formData.append('save_mode', saveMode);
 
-        // --- PENANGANAN CHECKBOX s_books[] (Buku Akuntansi) ---
         let selectedBooks = [];
         $('input[name="s_books[]"]:checked').each(function() {
             selectedBooks.push($(this).val());
         });
-        // Hapus format array bawaan HTML form
         formData.delete('s_books[]');
-        // Set ke string gabungan (contoh: "1,4,99") agar sesuai varchar(30) di DB
         formData.set('s_books', selectedBooks.join(','));
-        // --------------------------------------------------------
 
-        // Bersihkan koma pada format uang sebelum kirim
         $('.money-input').each(function() {
             const name = $(this).attr('name');
             if(name) {
@@ -200,16 +218,12 @@ class ContractFormHandler {
             }
         });
         
-        // Gabungkan field yang terpisah menjadi satu sesuai standard schema DB
         formData.set('s_office_tel', `${$('input[name="tel1"]').val()}-${$('input[name="tel2"]').val()}-${$('input[name="tel3"]').val()}`);
         formData.set('s_office_pcode', `${$('input[name="zip1"]').val()}${$('input[name="zip2"]').val()}`);
-        
         formData.set('s_rep_tel', `${$('input[name="rep_tel1"]').val()}-${$('input[name="rep_tel2"]').val()}-${$('input[name="rep_tel3"]').val()}`);
         formData.set('s_rep_pcode', `${$('input[name="rep_zip1"]').val()}${$('input[name="rep_zip2"]').val()}`);
-        
         formData.set('s_rep_name', `${$('input[name="rep_name_sei"]').val()} ${$('input[name="rep_name_mei"]').val()}`.trim());
         formData.set('s_rep_kana', `${$('input[name="rep_kana_sei"]').val()} ${$('input[name="rep_kana_mei"]').val()}`.trim());
-        
         formData.set('s_industry_type', `${$('select[name="cat1"]').val()}${$('input[name="cat2"]').val()}${$('input[name="cat3"]').val()}`);
 
         try {

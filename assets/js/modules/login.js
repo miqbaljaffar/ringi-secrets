@@ -1,68 +1,111 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Bersihkan sesi sebelumnya saat berada di halaman login
-    sessionStorage.removeItem('user');
-    localStorage.removeItem('auth_token');
+class LoginHandler {
+    constructor() {
+        this.$form = $('#login-form');
+        this.$errorMsg = $('#login-error');
+        this.$btnSubmit = $('#btn-login');
+        this.$username = $('#username');
+        
+        this.init();
+    }
 
-    const loginForm = document.getElementById('login-form');
-    const btn = document.getElementById('btn-submit');
-    const btnText = document.querySelector('.btn-text');
-    const btnIcon = btn.querySelector('.fa-arrow-right');
-    const spinner = document.getElementById('loading-spinner');
-    const errorMsg = document.getElementById('error-msg');
-    const errorText = document.getElementById('error-text');
-    const usernameInput = document.getElementById('username');
+    init() {
+        if (this.$form.length === 0) return;
 
-    if (loginForm) {
-        loginForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            // Reset state error dan tampilkan loading
-            errorMsg.style.display = 'none';
-            btn.disabled = true;
-            btnText.textContent = '処理中...';
-            if (btnIcon) btnIcon.style.display = 'none';
-            spinner.style.display = 'block';
+        // Cek jika user sudah login, arahkan ke list.html
+        if (sessionStorage.getItem('user')) {
+            window.location.replace('list.html');
+            return;
+        }
 
-            const username = usernameInput.value.trim();
+        this.bindEvents();
+    }
 
-            try {
-                // Memanggil API login via fungsi global ringiSystem dari main.js
-                const response = await ringiSystem.apiRequest('POST', 'auth/login', {
-                    username: username
-                });
+    bindEvents() {
+        const self = this;
 
-                if (response.success) {
-                    // Simpan token dan data user
-                    if (response.token) localStorage.setItem('auth_token', response.token);
-                    sessionStorage.setItem('user', JSON.stringify(response.user));
-                    
-                    // Update UI untuk success
-                    btn.style.background = '#10b981';
-                    btnText.textContent = '成功しました。リダイレクト中...';
-                    spinner.style.display = 'none';
-                    
-                    // Redirect ke halaman list
-                    setTimeout(() => {
-                        window.location.href = 'list.html';
-                    }, 800);
-                } else {
-                    throw new Error(response.error || '社員IDが見つかりません。');
-                }
+        this.$form.on('submit', function(e) {
+            e.preventDefault(); // Ini sangat penting agar halaman tidak refresh!
+            self.handleLogin();
+        });
 
-            } catch (error) {
-                console.error(error);
-                errorText.textContent = error.message;
-                errorMsg.style.display = 'flex';
+        // Hapus pesan error saat user mulai mengetik lagi
+        this.$username.on('input', () => this.hideError());
+    }
+
+    async handleLogin() {
+        const username = this.$username.val().trim();
+
+        if (!username) {
+            this.showError('IDを入力してください。');
+            return;
+        }
+
+        this.setLoading(true);
+
+        try {
+            // Memanggil fungsi login dari auth.js atau main.js
+            // Pastikan Anda sudah membuat sistem API Request yang benar
+            const response = await this.mockLoginApi(username);
+
+            if (response.success) {
+                // Simpan data user ke sessionStorage
+                sessionStorage.setItem('user', JSON.stringify(response.user));
                 
-                // Kembalikan state tombol
-                btn.disabled = false;
-                btn.style.background = '';
-                btnText.textContent = 'ログイン';
-                if (btnIcon) btnIcon.style.display = 'inline-block';
-                spinner.style.display = 'none';
-                
-                usernameInput.focus();
+                // Redirect ke halaman list
+                window.location.replace('list.html');
+            } else {
+                this.showError('IDが間違っています。');
             }
+        } catch (error) {
+            console.error('Login Error:', error);
+            this.showError('システムエラーが発生しました。');
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
+    // Fungsi Mockup API untuk keperluan frontend (Ganti dengan AJAX sungguhan nanti)
+    mockLoginApi(username) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                // Contoh validasi dummy
+                if (username === 'admin' || username === '0036') {
+                    resolve({
+                        success: true,
+                        user: { id: '0036', id_worker: '0036', name: 'Admin User', role: 2 }
+                    });
+                } else if (username === 'user' || username === '0001') {
+                    resolve({
+                        success: true,
+                        user: { id: '0001', id_worker: '0001', name: 'General User', role: 1 }
+                    });
+                } else {
+                    resolve({ success: false });
+                }
+            }, 500); // Simulasi delay jaringan
         });
     }
+
+    showError(message) {
+        this.$errorMsg.text(message).fadeIn(200);
+    }
+
+    hideError() {
+        this.$errorMsg.fadeOut(200);
+    }
+
+    setLoading(isLoading) {
+        if (isLoading) {
+            this.$btnSubmit.prop('disabled', true).text('ログイン中...');
+            this.$username.prop('disabled', true);
+        } else {
+            this.$btnSubmit.prop('disabled', false).text('ログイン');
+            this.$username.prop('disabled', false);
+        }
+    }
+}
+
+// Inisialisasi saat dokumen siap
+$(document).ready(function() {
+    new LoginHandler();
 });

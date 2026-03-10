@@ -4,8 +4,7 @@ class AuthHandler {
     }
 
     async init() {
-        const isLoginPage = window.location.pathname.includes('/pages/login.html') || 
-                            window.location.pathname.endsWith('login.html');
+        const isLoginPage = window.location.pathname.includes('login.html');
 
         // Pengecekan sesi langsung ke Backend PHP 
         // Ini memastikan SSO dari portal (yang men-set $_SESSION['UID']) terbaca dengan benar
@@ -28,7 +27,8 @@ class AuthHandler {
                 
                 if (isLoginPage) {
                     // Jika sudah login tapi akses halaman login, lempar ke list
-                    window.location.href = '/pages/list.html';
+                    // PERBAIKAN: Gunakan relative path agar aman di sub-folder
+                    window.location.href = 'list.html';
                 } else {
                     this.updateUI();
                 }
@@ -40,7 +40,8 @@ class AuthHandler {
             sessionStorage.removeItem('user');
             if (!isLoginPage) {
                 console.warn('Auth Guard: User belum login. Redirecting ke login.');
-                window.location.href = '/pages/login.html';
+                // PERBAIKAN: Gunakan relative path 'login.html' alih-alih '/pages/login.html'
+                window.location.href = 'login.html';
             }
         }
     }
@@ -48,8 +49,7 @@ class AuthHandler {
     bindLoginEvent() {
         $('#login-form').on('submit', async (e) => {
             e.preventDefault();
-            const workerId = $('#id_worker').val();
-            const password = $('#password').val(); // Opsional jika backend meminta
+            const workerId = $('#username').val(); // PERBAIKAN: Id input Anda di HTML adalah 'username', bukan 'id_worker'
 
             if (!workerId) {
                 alert('ID karyawan wajib diisi.');
@@ -59,14 +59,15 @@ class AuthHandler {
             try {
                 // Panggil endpoint login manual untuk Development Mode
                 const response = await ringiSystem.apiRequest('POST', 'auth/login', { 
-                    username: workerId, 
-                    password: password 
+                    username: workerId
                 });
                 
                 if (response.success) {
                     sessionStorage.setItem('user', JSON.stringify(response.user));
-                    sessionStorage.setItem('token', response.token);
-                    window.location.href = '/pages/list.html';
+                    if (response.token) {
+                        sessionStorage.setItem('token', response.token);
+                    }
+                    window.location.href = 'list.html';
                 } else {
                     alert(response.error || 'Login gagal.');
                 }

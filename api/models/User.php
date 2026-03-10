@@ -9,6 +9,12 @@ class User extends BaseModel {
         return $this->db->fetch($sql, [':id' => $employeeId]);
     }
     
+    // 全ユーザーを取得する (Get all users for dropdowns)
+    public function getAllUsers() {
+        $sql = "SELECT id_worker, s_name, s_department FROM {$this->table} WHERE n_delete = 0 ORDER BY id_worker ASC";
+        return $this->db->fetchAll($sql);
+    }
+    
     // ロールを計算する (Calculate user role)
     public function calculateRole($workerId) {
         // 1. Admin (管理者)

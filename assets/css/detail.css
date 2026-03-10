@@ -201,7 +201,7 @@ textarea {
     color: #0088cc;
     border-color: #0088cc;
 }
-.stamp-approved::after { content: "承認"; }
+.stamp-approved::after { content: "認"; }
 
 .stamp-rejected {
     color: #dc3545;

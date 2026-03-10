@@ -15,7 +15,6 @@
         </a>
       </div>
 
-      <!-- Stamp status dikendalikan display-nya via JS -->
       <div id="stamp-approved" class="stamp stamp-approved" style="display: none;"></div>
       <div id="stamp-rejected" class="stamp stamp-rejected" style="display: none;"></div>
       <div id="stamp-withdrawn" class="stamp stamp-withdrawn" style="display: none;"></div>
@@ -24,57 +23,107 @@
       
       <p style="text-align:center; font-weight:bold; color: #555;">申請者: <span id="lbl_applicant"></span> | 申請日: <span id="lbl_date"></span></p>
 
-      <!-- BAGIAN FORM PAJAK (Hanya ditampilkan jika docType === tax) -->
       <div id="tax-section" style="display: none;">
           <h2>基本情報 (Basic Info)</h2>
           <table class="detail-table" style="width: 100%; text-align: left; line-height: 1.8;">
               <tr>
+                  <th width="150">法人・個人</th><td colspan="3"><span id="tax_n_type"></span></td>
+              </tr>
+              <tr>
                   <th width="150">商号 (Company)</th>
-                  <td><span id="tax_s_name"></span> (<span id="tax_s_kana"></span>)</td>
+                  <td colspan="3"><span id="tax_s_name"></span> (<span id="tax_s_kana"></span>)</td>
+              </tr>
+              <tr class="tax-corp-only">
+                  <th>設立年月日</th><td><span id="tax_dt_establishment"></span></td>
+                  <th>資本金 / 直前期</th><td><span id="tax_n_capital"></span> 円 / <span id="tax_n_before"></span> 期</td>
+              </tr>
+              <tr>
+                  <th>業種情報</th>
+                  <td colspan="3">業種名: <span id="tax_s_industry"></span> | コード: <span id="tax_s_industry_type"></span> | OMS: <span id="tax_s_industry_oms"></span></td>
               </tr>
               <tr>
                   <th>代表者 (Rep)</th>
-                  <td>
-                      <span id="tax_s_rep_name"></span><br>
+                  <td colspan="3">
+                      <span id="tax_s_rep_name"></span> (<span id="tax_s_rep_kana"></span>) | 役職: <span id="tax_s_rep_title"></span><br>
+                      生年月日: <span id="tax_dt_rep_birth"></span> | Email: <span id="tax_s_rep_email"></span><br>
                       <span style="font-size: 0.9em; color: #666;">
-                          自宅: 〒<span id="tax_s_rep_pcode"></span> <span id="tax_s_rep_address"></span> <span id="tax_s_rep_address2"></span>
+                          自宅: 〒<span id="tax_s_rep_pcode"></span> <span id="tax_s_rep_address"></span> <span id="tax_s_rep_address2"></span> | TEL: <span id="tax_s_rep_tel"></span>
                       </span>
                   </td>
               </tr>
               <tr>
-                  <th>住所 (Address)</th>
-                  <td>〒<span id="tax_s_office_pcode"></span><br><span id="tax_s_office_address"></span> <span id="tax_s_office_address2"></span></td>
+                  <th>事業所住所</th>
+                  <td colspan="3">〒<span id="tax_s_office_pcode"></span> <span id="tax_s_office_address"></span> <span id="tax_s_office_address2"></span></td>
               </tr>
               <tr>
-                  <th>電話番号 (Tel)</th>
-                  <td><span id="tax_s_office_tel"></span></td>
+                  <th>事業所TEL</th><td colspan="3"><span id="tax_s_office_tel"></span></td>
               </tr>
           </table>
 
           <h2>税務情報 (Tax Info)</h2>
           <table class="detail-table" style="width: 100%; text-align: left; line-height: 1.8;">
               <tr>
-                  <th width="150">管轄税務署</th><td id="tax_s_tax_office"></td>
-                  <th width="150">決算月</th><td id="tax_n_closing_month"></td>
+                  <th width="150">管轄税務署</th><td><span id="tax_s_tax_office"></span></td>
+                  <th width="150">決算月</th><td class="tax-corp-only"><span id="tax_n_closing_month"></span></td>
               </tr>
               <tr>
-                  <th>納税No</th><td id="tax_s_tax_num"></td>
+                  <th>申告区分</th><td><span id="tax_s_declaration_type"></span></td>
+                  <th>納税地区分</th><td><span id="tax_n_tax_place"></span></td>
+              </tr>
+              <tr>
+                  <th>納税No</th><td colspan="3"><span id="tax_s_tax_num"></span></td>
+              </tr>
+              <tr>
+                  <th>電子申告開始届</th><td><span id="tax_n_e_filing"></span></td>
+                  <th>理由</th><td><span id="tax_s_e_filing_reason"></span></td>
+              </tr>
+              <tr>
                   <th>電子申告ID</th>
-                  <td>
-                      国税: <span id="tax_s_national_tax_id"></span><br>
-                      地方税: <span id="tax_s_local_tax_id"></span>
+                  <td colspan="3">
+                      国税: <span id="tax_s_national_tax_id"></span> | 地方税: <span id="tax_s_local_tax_id"></span>
                   </td>
+              </tr>
+          </table>
+
+          <h2>会社概要・経理状況 (Financials)</h2>
+          <table class="detail-table" style="width: 100%; text-align: left; line-height: 1.8;">
+               <tr>
+                  <th width="150">直前期データ</th>
+                  <td colspan="3">
+                      総資産: <span id="tax_n_pre_total"></span> 円 | 売上高: <span id="tax_n_pre_sales"></span> 円 | 金融債務: <span id="tax_n_pre_debt"></span> 円<br>
+                      当期利益: <span id="tax_n_pre_income"></span> 円 | 従事者数: <span id="tax_n_pre_workers"></span> 名
+                  </td>
+              </tr>
+              <tr>
+                  <th>消費税区分</th><td><span id="tax_n_comsumption_tax"></span></td>
+                  <th>貿易 / 関連会社</th><td><span id="tax_n_trade"></span> / <span id="tax_n_affiliated_company"></span></td>
+              </tr>
+              <tr>
+                  <th>自計化状況</th><td colspan="3"><span id="tax_n_self_accounting"></span></td>
+              </tr>
+              <tr>
+                  <th>会計ソフト</th><td colspan="3"><span id="tax_n_accounting_apps"></span></td>
+              </tr>
+              <tr>
+                  <th>作成帳簿</th><td colspan="3"><span id="tax_s_books"></span></td>
+              </tr>
+              <tr>
+                  <th>伝票枚数 / 担当者</th><td colspan="3"><span id="tax_n_slip_count"></span> 枚 / <span id="tax_n_accounting_staff"></span></td>
               </tr>
           </table>
 
           <h2>契約内容 (Contract)</h2>
           <div class="section">
+              <p><strong>前関与:</strong> <span id="tax_pre_accountant"></span></p>
+              <p><strong>今回関与形態:</strong> <span id="tax_n_account_type"></span></p>
+              <p><strong>契約概要:</strong> <br><span id="tax_s_contract_overview" style="white-space: pre-wrap;"></span></p>
+              <p><strong>担当者:</strong> 開拓: <span id="tax_s_incharge_bigin"></span> | クロージング: <span id="tax_s_incharge_close"></span> | 顧客担当: <span id="tax_s_incharge"></span></p>
+              <p><strong>紹介者:</strong> <span id="tax_s_introducer"></span> (<span id="tax_n_introducer_type"></span>)</p>
               <p><strong>経緯:</strong> <br><span id="tax_s_situation" style="white-space: pre-wrap;"></span></p>
               <p><strong>開始日:</strong> <span id="tax_dt_contract_start"></span></p>
           </div>
       </div>
 
-      <!-- BAGIAN FORM UMUM (Hanya ditampilkan jika docType === common) -->
       <div id="common-section" style="display: none;">
           <div class="section">
              <div class="form-group">
@@ -85,12 +134,13 @@
                 <label class="form-label">概要</label>
                 <div class="form-control-wrapper" style="white-space: pre-wrap;" id="common_s_overview"></div>
              </div>
-             <table class="approval-table" style="margin-top:20px;">
-                 <thead><tr><th>分類</th><th>支払先</th><th>金額</th></tr></thead>
-                 <tbody id="details-tbody">
-                     <!-- Diisi melalui JS jQuery -->
-                 </tbody>
-             </table>
+             <div style="max-height: 150px; overflow-y: auto; border: 1px solid #ccc; margin-top:20px;">
+                 <table class="approval-table" style="margin-top: 0; border: none;">
+                     <thead><tr><th>分類</th><th>支払先</th><th>金額</th></tr></thead>
+                     <tbody id="details-tbody">
+                     </tbody>
+                 </table>
+             </div>
           </div>
       </div>
 
@@ -106,12 +156,10 @@
                     </tr>
                 </thead>
                 <tbody id="approval-route-tbody">
-                    <!-- Diisi melalui JS jQuery -->
                 </tbody>
             </table>
       </div>
 
-      <!-- Tombol Aksi (Hanya ditampilkan sesuai logic js permission) -->
       <div class="btn-area action-approval" style="display:none;">
             <button type="button" class="btn btn-danger" id="btn-reject">
               <i class="fas fa-times"></i> 否認 (Reject)

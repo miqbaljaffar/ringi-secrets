@@ -3,62 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ログイン | 稟議システム</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>ログイン | 稟議書管理システム</title>
     <link rel="stylesheet" href="../assets/css/login.css">
 </head>
 <body>
 
     <div class="login-wrapper">
-        <div class="login-container">
-            <div class="brand-section">
-                <div class="brand-icon">
-                    <i class="fas fa-layer-group"></i>
-                </div>
-                <h1>稟議システム</h1>
-                <p>セキュアな社内ワークフロー</p>
+        <div class="login-box">
+            <div class="login-header">
+                <h1>稟議書管理システム</h1>
             </div>
             
-            <div id="error-msg" class="alert-box alert-error" style="display: none;">
-                <i class="fas fa-circle-exclamation fa-lg"></i>
-                <span id="error-text">IDが見つかりません</span>
+            <div class="login-body">
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="username">ログインID (社員番号)</label>
+                        <input type="text" id="username" name="username" class="input-control" required autofocus>
+                    </div>
+                    
+                    <div id="login-error" class="error-message" style="display: none;">
+                        IDが間違っています。
+                    </div>
+                    
+                    <div class="btn-area">
+                        <button type="submit" id="btn-login" class="btn-submit">ログイン</button>
+                    </div>
+                </form>
             </div>
-
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="username">社員ID / SSO</label>
-                    <div class="input-wrapper">
-                        <input type="text" id="username" name="username" class="form-control" placeholder="社員ID（例：0001）" required autofocus autocomplete="off">
-                        <i class="fas fa-id-card input-icon"></i>
-                    </div>
-                    <div class="helper-text">
-                        <i class="fas fa-shield-alt" style="color: #64748b;"></i>
-                        <span>シングルサインオン（SSO）にアクセスするには社員IDを入力してください。</span>
-                    </div>
-                </div>
-                
-                <button type="submit" class="btn-login" id="btn-submit">
-                    <span class="btn-text">ログイン</span>
-                    <i class="fas fa-arrow-right" style="font-size: 12px;"></i>
-                    <div class="spinner" id="loading-spinner"></div>
-                </button>
-            </form>
-
+            
             <div class="login-footer">
-                <p>&copy; 2025 社内システム. セキュア接続。</p>
+                &copy; 2026 稟議管理システム
             </div>
         </div>
     </div>
 
-    <!-- 1. LOAD JQUERY TERLEBIH DAHULU KARENA main.js MEMBUTUHKANNYA -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-    <!-- 2. LOAD MAIN JS (ringiSystem) -->
     <script src="../assets/js/main.js"></script>
-    
-    <!-- 3. LOAD LOGIN SCRIPT YANG SUDAH DIPISAH -->
+    <script src="../assets/js/modules/auth.js"></script>
     <script src="../assets/js/modules/login.js"></script>
-    
+
 </body>
 </html>

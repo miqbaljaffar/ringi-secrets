@@ -4,6 +4,7 @@ return [
     'auth/logout' => ['POST' => 'AuthController@logout'],
     'auth/user' => ['GET' => 'AuthController@getUserInfo'],
     'auth/validate' => ['GET' => 'AuthController@validateToken'], 
+    'users/list' => ['GET' => 'AuthController@getUsersList'],
     
     'common' => [
         'GET' => 'CommonController@index',

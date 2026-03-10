@@ -10,6 +10,7 @@ class ListHandler {
             payer: ''       
         };
 
+        this.$header = $('#list-header'); // PERBAIKAN: Target Header
         this.$container = $('#list-container'); 
         this.$containerSP = $('#list-container-sp'); 
 
@@ -19,14 +20,17 @@ class ListHandler {
         this.init();
     }
 
-    // 初期化関数 - タブの初期状態設定、イベントのバインド、データの取得を行う
     init() {
         this.bindEvents();
         this.setInitialState(); 
     }
 
-    // タブの初期状態を設定し、ユーザーの権限に応じて適切なタブを表示する関数
     setInitialState() {
+        const today = new Date().toISOString().split('T')[0];
+        $('input[name="date_start"]').val(today);
+        
+        this.updateFilters();
+
         const sessionUser = sessionStorage.getItem('user');
         const user = sessionUser ? JSON.parse(sessionUser) : ringiSystem.user;
         
@@ -42,7 +46,6 @@ class ListHandler {
         this.fetchPendingCount();
     }
 
-    // タブのクリックイベントや検索ボタンのイベントをバインドする関数
     bindEvents() {
         const self = this;
 
@@ -68,7 +71,6 @@ class ListHandler {
         });
     }
 
-    // フィルタの値を更新する関数 - ユーザーが入力した検索キーワードや日付範囲、フォームタイプなどを取得してフィルタオブジェクトに保存する
     updateFilters() {
         this.filters.keyword = $('#search-keyword').val() || '';
         this.filters.date_start = $('input[name="date_start"]').val() || '';
@@ -82,7 +84,6 @@ class ListHandler {
         this.filters.payer = $('input[name="payer"]').val() || '';
     }
 
-    // データをAPIから取得し、リストを更新する関数 - APIリクエストの前にローディングインジケーターを表示し、リクエストが完了したらデータをリストにレンダリングする。エラーが発生した場合はエラーメッセージを表示する。
     async fetchData() {
         this.$loading.show();
         this.$container.empty();
@@ -103,13 +104,14 @@ class ListHandler {
             const response = await ringiSystem.apiRequest('GET', `search?${params.toString()}`);
 
             if (response.success && response.data.length > 0) {
+                this.renderHeader(); // PERBAIKAN: Render tabel header sesuai tipe (Dinamis)
                 this.renderList(response.data);
             } else {
                 this.$empty.show();
             }
         } catch (error) {
             console.error('List Error:', error);
-            const errHtml = `<tr><td colspan="7" class="text-center text-danger">Error: ${error.message}</td></tr>`;
+            const errHtml = `<tr><td colspan="9" class="text-center text-danger">Error: ${error.message}</td></tr>`;
             const errHtmlSp = `<div class="alert alert-danger">Error: ${error.message}</div>`;
             
             this.$container.html(errHtml);
@@ -119,10 +121,57 @@ class ListHandler {
         }
     }
 
-    // 文書のステータスコードを取得する関数 - 文書オブジェクトのプロパティをチェックして、適切なステータスコードを返す。ステータスコードは、文書の状態（承認待ち、承認済み、否認、取下げなど）を表す文字列で、リスト表示やバッジのスタイルに使用される。
+    // PERBAIKAN: Header Tabel Dinamis Berdasarkan Spesifikasi Halaman 11-12
+    renderHeader() {
+        const type = this.filters.form_type;
+        let html = '';
+        
+        if (type === 'common') {
+            html = `
+                <tr>
+                    <th width="10%">文書No</th>
+                    <th width="8%">申請書</th>
+                    <th width="22%">件名</th>
+                    <th width="12%">金額(総額)</th>
+                    <th width="12%">決済期限</th>
+                    <th width="10%">申請者</th>
+                    <th width="10%">申請日</th>
+                    <th width="10%">ステータス</th>
+                    <th width="6%">Link</th>
+                </tr>
+            `;
+        } else if (type === 'tax' || type === 'contract' || type === 'vendor') {
+            html = `
+                <tr>
+                    <th width="12%">文書No</th>
+                    <th width="8%">申請書</th>
+                    <th width="25%">商号・屋号</th>
+                    <th width="15%">代表者名</th>
+                    <th width="10%">申請者</th>
+                    <th width="12%">申請日</th>
+                    <th width="12%">ステータス</th>
+                    <th width="6%">Link</th>
+                </tr>
+            `;
+        } else {
+            // Default jika 'Semua (All)' dipilih
+            html = `
+                <tr>
+                    <th width="12%">文書No</th>
+                    <th width="10%">申請書</th>
+                    <th width="30%">題名 / 商号</th>
+                    <th width="15%">氏名</th>
+                    <th width="12%">申請日</th>
+                    <th width="10%">ステータス</th>
+                    <th width="6%">Link</th>
+                </tr>
+            `;
+        }
+        this.$header.html(html);
+    }
+
     getStatusCode(doc) {
         if (doc.status_code) return doc.status_code; 
-        
         if (doc.dt_deleted) return 'withdrawn';
         if (doc.dt_rejected) return 'rejected';
         if (doc.dt_approved_2 || (doc.dt_approved_1 && !doc.s_approved_2)) return 'approved';
@@ -130,50 +179,92 @@ class ListHandler {
         return 'pending';
     }
 
-    // データをリスト形式でレンダリングする関数 - APIから取得した文書データの配列をループして、PC版とスマホ版の両方のHTMLを生成する。各文書のタイプ、ステータス、申請日などに基づいて適切な表示形式やスタイルを適用する。生成されたHTMLは、それぞれのコンテナに挿入される。
+    formatDateDot(dateString) {
+        if(!dateString) return '-';
+        const d = new Date(dateString);
+        return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    fmtMoney(val) {
+        return val ? new Intl.NumberFormat('ja-JP').format(val) : '0';
+    }
+
+    // PERBAIKAN: Konten Tabel Dinamis berdasarkan Form Type
     renderList(data) {
+        const typeFilter = this.filters.form_type;
+
         const htmlPC = data.map(doc => {
             const formName = this.mapTypeToName(doc.type);
             const statusCode = this.getStatusCode(doc);
             const statusText = this.mapStatusText(statusCode);
-            const dateStr = new Date(doc.ts_applied).toLocaleDateString('ja-JP');
+            const dateStr = this.formatDateDot(doc.ts_applied);
             const link = `detail.html?id=${doc.id_doc}&type=${doc.type}`;
             const badgeClass = this.getBadgeClass(statusCode);
 
-            return `
-                <tr>
+            let trContent = '';
+
+            if (typeFilter === 'common') {
+                const amount = this.fmtMoney(doc.n_amount || doc.total_amount);
+                const deadline = this.formatDateDot(doc.dt_deadline);
+                trContent = `
                     <td><a href="${link}" class="text-primary font-weight-bold">${doc.id_doc}</a></td>
                     <td><span class="badge badge-light border">${formName}</span></td>
-                    <td>${doc.title || '(無題)'}</td>
+                    <td>${doc.title || doc.s_title || '-'}</td>
+                    <td class="text-right">${amount} 円</td>
+                    <td>${deadline}</td>
                     <td>${doc.applicant_name}</td>
                     <td>${dateStr}</td>
                     <td><span class="badge ${badgeClass}">${statusText}</span></td>
-                    <td>
-                        <a href="${link}" class="btn btn-sm btn-outline-info">詳細</a>
-                    </td>
-                </tr>
-            `;
+                    <td><a href="${link}" class="btn btn-sm btn-outline-info">詳細</a></td>
+                `;
+            } else if (typeFilter === 'tax' || typeFilter === 'contract' || typeFilter === 'vendor') {
+                trContent = `
+                    <td><a href="${link}" class="text-primary font-weight-bold">${doc.id_doc}</a></td>
+                    <td><span class="badge badge-light border">${formName}</span></td>
+                    <td>${doc.s_name || doc.company_name || '-'}</td>
+                    <td>${doc.s_rep_name || doc.rep_name || '-'}</td>
+                    <td>${doc.applicant_name}</td>
+                    <td>${dateStr}</td>
+                    <td><span class="badge ${badgeClass}">${statusText}</span></td>
+                    <td><a href="${link}" class="btn btn-sm btn-outline-info">詳細</a></td>
+                `;
+            } else {
+                trContent = `
+                    <td><a href="${link}" class="text-primary font-weight-bold">${doc.id_doc}</a></td>
+                    <td><span class="badge badge-light border">${formName}</span></td>
+                    <td>${doc.title || doc.s_title || doc.s_name || '(無題)'}</td>
+                    <td>${doc.applicant_name}</td>
+                    <td>${dateStr}</td>
+                    <td><span class="badge ${badgeClass}">${statusText}</span></td>
+                    <td><a href="${link}" class="btn btn-sm btn-outline-info">詳細</a></td>
+                `;
+            }
+
+            return `<tr>${trContent}</tr>`;
         }).join('');
 
         const htmlSP = data.map(doc => {
             const formName = this.mapTypeToName(doc.type);
             const statusCode = this.getStatusCode(doc);
             const statusText = this.mapStatusText(statusCode);
-            const dateStr = new Date(doc.ts_applied).toLocaleDateString('ja-JP');
+            const dateStr = this.formatDateDot(doc.ts_applied);
             const link = `detail.html?id=${doc.id_doc}&type=${doc.type}`;
             const badgeClass = this.getBadgeClass(statusCode);
+            const displayTitle = doc.title || doc.s_title || doc.s_name || '(無題)';
 
             return `
-                <div class="card-item" onclick="window.location.href='${link}'">
-                    <div class="card-header">
-                        <span class="badge badge-light border">${formName}</span>
-                        <span class="text-muted" style="font-size:12px;">${dateStr}</span>
-                    </div>
-                    <div class="card-subject">${doc.title || '(無題)'}</div>
-                    <div class="d-flex justify-content-between align-items-center mt-2">
-                        <span style="font-size:13px; color:#555;">
-                            <i class="icon-user"></i> ${doc.applicant_name}
+                <div class="card-item" onclick="window.location.href='${link}'" style="cursor: pointer;">
+                    <div class="card-header" style="justify-content: flex-start; gap: 10px;">
+                        <span class="badge badge-light border" style="font-size:11px;">${formName}</span>
+                        <span style="font-size:13px; color:#333; font-weight:bold;">
+                            <i class="fas fa-user" style="color:#888;"></i> ${doc.applicant_name}
                         </span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div>
+                            <span class="text-muted" style="font-size:12px; margin-right: 8px;">${dateStr}</span>
+                            <span class="card-subject" style="font-size:14px; margin-bottom:0; display:inline-block; max-width: 150px;">${displayTitle}</span>
+                        </div>
                         <span class="badge ${badgeClass}">${statusText}</span>
                     </div>
                 </div>
@@ -184,7 +275,6 @@ class ListHandler {
         this.$containerSP.html(htmlSP);
     }
     
-    // ステータスコードに対応するバッジのクラスを取得する関数 - ステータスコードに基づいて、Bootstrapのバッジクラスを返す。例えば、承認済みは緑色のバッジ、否認は赤色のバッジ、承認待ちは黄色のバッジなど。これにより、リスト内で文書の状態が視覚的にわかりやすくなる。
     getBadgeClass(code) {
         if (code === 'approved') return 'badge-success';
         if (code === 'rejected') return 'badge-danger';
@@ -193,11 +283,23 @@ class ListHandler {
         return 'badge-secondary';
     }
 
-    // 承認待ちの文書の数をAPIから取得し、タブにバッジで表示する関数 - APIリクエストを送信して、承認待ちの文書の数を取得する。取得した数を「承認待ち」タブの右側に赤いバッジで表示する。これにより、ユーザーは承認待ちの文書があるかどうかを一目で確認できる。
     async fetchPendingCount() {
+        try {
+            const response = await ringiSystem.apiRequest('GET', `search?tab=to_approve`);
+            if (response.success && response.data) {
+                const count = response.data.length;
+                const badge = $('#badge-to-approve');
+                if (count > 0) {
+                    badge.text(count).show();
+                } else {
+                    badge.hide();
+                }
+            }
+        } catch(e) {
+            console.warn("Could not fetch pending count");
+        }
     }
 
-    // フォームタイプを人間が読みやすい名前に変換する関数 - フォームのタイプコードを日本語のテキストにマッピングする。例えば、'common'は「通常稟議」、'tax'は「税務契約」、'contract'は「契約稟議」、'vendor'は「取引開始」、'others'は「その他」など。これにより、リスト内でフォームの種類がわかりやすく表示される。
     mapTypeToName(type) {
         const types = {
             'common': '通常稟議',
@@ -209,7 +311,6 @@ class ListHandler {
         return types[type] || type.toUpperCase();
     }
 
-    // ステータスコードを人間が読みやすいテキストに変換する関数 - ステータスコードを日本語のテキストにマッピングする。例えば、'pending'は「承認待ち (1)」、'approved'は「承認済」、'rejected'は「否認」、'withdrawn'は「取下げ」など。これにより、リスト内で文書の状態がわかりやすく表示される。
     mapStatusText(code) {
         const statuses = {
             'pending': '承認待ち (1)',
