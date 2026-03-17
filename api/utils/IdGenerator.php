@@ -7,9 +7,10 @@ class IdGenerator {
         $dateStr = date('ymd');
         $baseId = $prefix . $dateStr;
         
+        // MENAMBAHKAN "FOR UPDATE" UNTUK MENCEGAH RACE CONDITION (ID COLLISION)
         $sql = "SELECT {$colName} FROM {$table} 
                 WHERE {$colName} LIKE :pattern 
-                ORDER BY {$colName} DESC LIMIT 1";
+                ORDER BY {$colName} DESC LIMIT 1 FOR UPDATE";
         
         $lastRecord = $db->fetch($sql, [
             ':pattern' => $baseId . '%'

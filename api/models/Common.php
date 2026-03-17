@@ -5,9 +5,8 @@ class Common extends BaseModel {
     protected $table = 't_common';
     protected $primaryKey = 'id_doc';
     
-    // 新しいその他契約書ドキュメントを作成する (Create new other contract document)
     public function createDocument($data) {
-        $this->beginTransaction();
+        // DIHAPUS: $this->beginTransaction();
         
         try {
             $docId = $data['id_doc'] ?? IdGenerator::generate('AR', $this->table);
@@ -37,17 +36,16 @@ class Common extends BaseModel {
             
             $this->setApprovalRoute($docId, $data['n_type']);
             
-            $this->commit();
+            // DIHAPUS: $this->commit();
             return $docId;
             
         } catch (Exception $e) {
-            $this->rollback();
+            // DIHAPUS: $this->rollback();
             error_log("Common Create Document Failed: " . $e->getMessage());
-            throw $e;
+            throw $e; // Lempar error ke atas agar ditangkap Controller
         }
     }
     
-    // 承認ルートを設定する (Set Approval Route)
     private function setApprovalRoute($docId, $nType) {
         $userModel = new User();
         
@@ -79,7 +77,6 @@ class Common extends BaseModel {
         }
     }
     
-    // その他契約書の新規作成を処理する (Handle new other contract creation)
     public function search($filters, $user) {
         $sql = "SELECT c.*, 
                 (SELECT SUM(n_amount) FROM t_common_details WHERE n_doc = c.id_doc) as total_amount,
@@ -90,11 +87,6 @@ class Common extends BaseModel {
         
         $params = [];
         $conditions = [];
-        
-        if ($user['role'] < ROLE_ADMIN) {
-            $sql .= " AND (c.s_applied = :user_id OR c.s_approved_1 = :user_id OR c.s_approved_2 = :user_id)";
-            $params[':user_id'] = $user['id'];
-        }
         
         if (!empty($filters['type'])) {
             $conditions[] = "c.n_type = :type";
@@ -140,7 +132,6 @@ class Common extends BaseModel {
         return $this->db->fetchAll($sql, $params);
     }
     
-    // 取下げ処理 (Handle withdrawal)
     public function withdraw($docId, $userId) {
         $document = $this->find($docId);
         
@@ -155,7 +146,6 @@ class Common extends BaseModel {
         return $this->delete($docId);
     }
     
-    // ドキュメントのステータスを取得する (Get document status)
     public function getStatus($document) {
         if ($document['dt_deleted'] !== null) {
             return 'withdrawn';

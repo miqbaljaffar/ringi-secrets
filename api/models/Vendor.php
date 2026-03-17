@@ -5,14 +5,12 @@ class Vendor extends BaseModel {
     protected $table = 't_vendors';
     protected $primaryKey = 'id_doc';
     
-    // 新しい仕入先ドキュメントを作成する (Create new vendor document)
     public function createDocument($data) {
-        $this->beginTransaction();
+        // DIHAPUS: $this->beginTransaction();
         
         try {
             $docId = IdGenerator::generate('CV', $this->table);
             
-            // 郵便番号のハイフンを削除 (Remove hyphens from postal code)
             $postalCode = $data['s_office_pcode'] ?? ($data['zip1'] . $data['zip2'] ?? '');
             $postalCode = str_replace('-', '', $postalCode);
             
@@ -21,7 +19,6 @@ class Vendor extends BaseModel {
                 's_name' => $data['s_name'],
                 's_kana' => $data['s_kana'] ?? '',
                 
-                // Address & Contact
                 's_office_pcode' => substr($postalCode, 0, 7),
                 's_office_address' => $data['s_office_address'] ?? '',
                 's_office_address2' => $data['s_office_address2'] ?? '',
@@ -30,11 +27,11 @@ class Vendor extends BaseModel {
                 'n_send_to' => $data['n_send_to'] ?? 1,
                 's_send_to_others' => $data['s_send_to_others'] ?? '',
                 
-                // Representative
                 's_rep_name' => $data['s_rep_name'] ?? '',
                 's_rep_kana' => $data['s_rep_kana'] ?? '',
                 's_rep_title' => $data['s_rep_title'] ?? 1,
                 's_rep_title_others' => $data['s_rep_title_others'] ?? '',
+                's_rep_tel' => $data['s_rep_tel'] ?? '',
                 
                 's_contract_overview' => $data['s_contract_overview'] ?? '',
                 's_situation' => $data['s_situation'] ?? '',
@@ -48,17 +45,16 @@ class Vendor extends BaseModel {
             
             $this->setApprovalRoute($docId);
             
-            $this->commit();
+            // DIHAPUS: $this->commit();
             return $docId;
             
         } catch (Exception $e) {
-            $this->rollback();
+            // DIHAPUS: $this->rollback();
             error_log("Vendor Insert Error: " . $e->getMessage());
-            throw $e;
+            throw $e; // Lempar ke Controller
         }
     }
 
-    // 承認ルートを設定する (Set approval route)
     private function setApprovalRoute($docId) {
         $userModel = new User();
         $approvers = $userModel->getApprovers(5); 

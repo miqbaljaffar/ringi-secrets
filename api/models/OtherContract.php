@@ -5,14 +5,12 @@ class OtherContract extends BaseModel {
     protected $table = 't_others';
     protected $primaryKey = 'id_doc';
     
-    // 新しいその他契約書ドキュメントを作成する (Create new other contract document)
     public function createDocument($data) {
-        $this->beginTransaction();
+        // DIHAPUS: $this->beginTransaction();
         
         try {
             $docId = IdGenerator::generate('CO', $this->table);
             
-            // 契約書の概要や状況などのテキストフィールドは、データベースの制限に合わせて切り詰める (Truncate text fields to fit database limits)
             $postalCode = $data['s_office_pcode'] ?? ($data['zip1'] . $data['zip2'] ?? '');
             $postalCode = str_replace('-', '', $postalCode);
             
@@ -65,17 +63,16 @@ class OtherContract extends BaseModel {
             
             $this->setApprovalRoute($docId);
             
-            $this->commit();
+            // DIHAPUS: $this->commit();
             return $docId;
             
         } catch (Exception $e) {
-            $this->rollback();
+            // DIHAPUS: $this->rollback();
             error_log("OtherContract Insert Error: " . $e->getMessage());
-            throw $e;
+            throw $e; // Lempar ke Controller
         }
     }
 
-    // 承認ルートを設定する (Set approval route)
     private function setApprovalRoute($docId) {
         $userModel = new User();
         $approvers = $userModel->getApprovers(5); 

@@ -123,7 +123,7 @@ abstract class BaseModel {
     }
     
     // 承認プロセスを処理する (Handle approval process)
-    public function approve($docId, $userId, $action, $comment = '') {
+    public function approve($docId, $userId, $action, $comment = '', $userRole = 0) {
         $document = $this->find($docId);
         
         if (!$document) {
@@ -158,6 +158,10 @@ abstract class BaseModel {
                 throw new Exception("このドキュメントを却下する権限がありません。");
             }
         } elseif ($action === 'complete') {
+             // Otorisasi sederhana untuk Role / User Penerima Khusus
+             if ($document['s_confirmed'] !== $userId && $userRole < 2) { // 2 = ROLE_ADMIN
+                 throw new Exception("Tidak memiliki hak untuk menyelesaikan kontrak.");
+             }
              $updateData['dt_confirmed'] = $now;
         }
         
@@ -172,18 +176,19 @@ abstract class BaseModel {
         return false;
     }
     
+    // MENGUBAH VISIBILITAS KE PUBLIC AGAR BISA DIPANGGIL DARI CONTROLLER
     // トランザクション開始 (Begin transaction)
-    protected function beginTransaction() {
+    public function beginTransaction() {
         $this->db->beginTransaction();
     }
     
     // コミット (Commit transaction)
-    protected function commit() {
+    public function commit() {
         $this->db->commit();
     }
     
     // ロールバック (Rollback transaction)
-    protected function rollback() {
+    public function rollback() {
         $this->db->rollback();
     }
 }

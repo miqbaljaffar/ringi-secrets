@@ -7,7 +7,6 @@ class TaxController {
     private $taxModel;
     private $mailer; 
     
-    // コンストラクタで必要なクラスを初期化 (Initialize necessary classes in constructor)
     public function __construct() {
         $this->validator = new Validator();
         $this->fileUpload = new FileUpload('ct'); 
@@ -15,9 +14,11 @@ class TaxController {
         $this->mailer = new Mailer(); 
     }
     
-    // 税務書類の申請を処理するメソッド (Method to handle tax document application)
     public function store($request) {
         try {
+            // MULAI TRANSAKSI DI SINI
+            $this->taxModel->beginTransaction();
+
             $data = $request['body'] ?? $_POST; 
             $files = $request['files'] ?? $_FILES;
             
@@ -33,8 +34,17 @@ class TaxController {
             } else {
                 $data['s_office_tel'] = $data['s_office_tel'] ?? '';
             }
+
+            // Parsing telepon perwakilan (representative)
+            $rep_tel1 = $data['rep_tel1'] ?? '';
+            $rep_tel2 = $data['rep_tel2'] ?? '';
+            $rep_tel3 = $data['rep_tel3'] ?? '';
+            if (!empty($rep_tel1) || !empty($rep_tel2) || !empty($rep_tel3)) {
+                $data['s_rep_tel'] = $rep_tel1 . '-' . $rep_tel2 . '-' . $rep_tel3;
+            } else {
+                $data['s_rep_tel'] = $data['s_rep_tel'] ?? '';
+            }
             
-            // --- バリデーションルールの定義 --- (Define validation rules)
             $rules = [
                 'n_type' => 'required|in:1,2',
                 's_name' => 'required|max:100',
@@ -47,8 +57,16 @@ class TaxController {
                 's_tax_num' => 'required|regex:/^[0-9]{8}$/' 
             ];
             
+            // Validasi Kondisional Khusus Korporat/Badan (n_type = 1)
+            if (isset($data['n_type']) && $data['n_type'] == 1) {
+                $rules['dt_establishment'] = 'required|date';
+                $rules['n_capital'] = 'required';
+                $rules['n_closing_month'] = 'required';
+            }
+
             $validation = $this->validator->validate($data, $rules);
             if (!$validation['valid']) {
+                $this->taxModel->rollback(); // Batalkan TX jika validasi gagal (meski DB blm ditulis)
                 http_response_code(API_BAD_REQUEST);
                 return ['success' => false, 'errors' => $validation['errors'], 'message' => 'バリデーションに失敗しました'];
             }
@@ -61,37 +79,31 @@ class TaxController {
                     $data[$field] = str_replace(',', '', $data[$field]);
                 }
             }
-            // --- データベースに保存してドキュメントIDを取得 --- (Save to database and get document ID)
+
             $docId = $this->taxModel->createDocument($data);
             
-            // --- ファイルアップロード処理 --- (File upload process)
+            // HAPUS TRY CATCH INNER, BIARKAN EXCEPTION NAIK KE ATAS UNTUK ROLLBACK!
             if (!empty($files['estimate_file']) && $files['estimate_file']['error'] === UPLOAD_ERR_OK) {
-                try {
-                    $this->fileUpload->save($files['estimate_file'], $docId, '見積書');
-                } catch (Exception $fileEx) {
-                    error_log("Upload 見積書 gagal: " . $fileEx->getMessage());
-                }
+                $this->fileUpload->save($files['estimate_file'], $docId, '見積書');
             }
 
             if (!empty($files['attachment']) && $files['attachment']['error'] === UPLOAD_ERR_OK) {
-                try {
-                    $this->fileUpload->save($files['attachment'], $docId);
-                } catch (Exception $fileEx) {
-                    error_log("Upload file tambahan gagal: " . $fileEx->getMessage());
-                }
+                $this->fileUpload->save($files['attachment'], $docId);
             }
 
-            // --- メール送信処理 --- (Email notification process)
             $newDoc = $this->taxModel->find($docId);
             if ($newDoc && !empty($newDoc['s_approved_1'])) {
                 $this->mailer->sendRequestNotification(
                     $docId,
                     $newDoc['s_approved_1'],
                     $request['user']['name'],
-                    $data['s_name'] // 税務書類のタイトルとして会社名/クライアント名を使用 (Use company/client name as title for tax document)
+                    $data['s_name']
                 );
             }
-            // --- メール送信終了 --- (End email notification)
+
+            // TRANSAKSI SELESAI, COMMIT KE DB
+            $this->taxModel->commit();
+
             return [
                 'success' => true, 
                 'doc_id' => $docId,
@@ -99,12 +111,13 @@ class TaxController {
             ];
             
         } catch (Throwable $e) {
+            // JIKA TERJADI ERROR (TERMASUK FILE GAGAL DIBUAT), BATALKAN PENYIMPANAN DB!
+            $this->taxModel->rollback();
             http_response_code(API_SERVER_ERROR);
             return ['success' => false, 'error' => 'サーバーエラー: ' . $e->getMessage()];
         }
     }
     
-    // 税務書類の詳細を取得するメソッド (Method to get details of a tax document)
     public function show($request) {
         $id = $request['params']['id'] ?? $_GET['id'] ?? null;
         if (!$id) { 

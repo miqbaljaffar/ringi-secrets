@@ -3,7 +3,6 @@ class Tax extends BaseModel {
     protected $table = 't_tax';
     protected $primaryKey = 'id_doc';
     
-    // 企業税務ドキュメントを作成する (Create tax document)
     private function safeSubstr($str, $start, $length) {
         $str = (string)($str ?? '');
         if (function_exists('mb_substr')) {
@@ -12,9 +11,8 @@ class Tax extends BaseModel {
         return substr($str, $start, $length);
     }
 
-    // 新しい税務ドキュメントを作成する (Create new tax document)
     public function createDocument($data) {
-        $this->beginTransaction();
+        // DIHAPUS: $this->beginTransaction();
         
         try {
             $docId = IdGenerator::generate('CT', $this->table);
@@ -29,7 +27,6 @@ class Tax extends BaseModel {
             }
             $postalCode = str_replace('-', '', $postalCode);
 
-            // 代表者郵便番号も同様に処理 (Same for representative postal code)
             $repPostalCode = $data['s_rep_pcode'] ?? '';
             $repPostalCode = str_replace('-', '', $repPostalCode);
             
@@ -140,17 +137,16 @@ class Tax extends BaseModel {
 
             $this->db->insert($this->table, $dbData);
             
-            $this->commit();
+            // DIHAPUS: $this->commit();
             return $docId;
             
         } catch (Throwable $e) { 
-            $this->rollback();
+            // DIHAPUS: $this->rollback();
             error_log("Tax Create Error: " . $e->getMessage());
-            throw new Exception("Database Error: " . $e->getMessage());
+            throw new Exception("Database Error: " . $e->getMessage()); // Lempar ke Controller
         }
     }
 
-    // 初期承認者を取得する (Get initial approvers)
     private function getInitialApprovers() {
         $userModel = new User();
         $approvers = $userModel->getApprovers(5); 

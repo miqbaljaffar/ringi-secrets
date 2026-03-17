@@ -9,7 +9,6 @@ class CommonController {
     private $fileUpload;
     private $mailer;
     
-    // コンストラクタで必要なクラスを初期化 (Initialize necessary classes in constructor)
     public function __construct() {
         $this->commonModel = new Common();
         $this->detailModel = new CommonDetail();
@@ -18,7 +17,6 @@ class CommonController {
         $this->mailer = new Mailer();
     }
     
-    // ドキュメントの一覧を取得する (Get list of documents)
     public function index($request) {
         $filters = [
             'type' => $_GET['type'] ?? null,
@@ -53,7 +51,6 @@ class CommonController {
         }
     }
     
-    // ドキュメントの詳細を取得する (Get document details)
     private function filterByTab($document, $tab, $user) {
         $status = $this->commonModel->getStatus($document);
         
@@ -69,7 +66,6 @@ class CommonController {
         }
     }
     
-    // ドキュメントの検索 (Search documents)
     public function show($request) {
         $docId = $request['params']['id'] ?? $_GET['id'] ?? null;
 
@@ -109,7 +105,6 @@ class CommonController {
         }
     }
     
-    // ドキュメントの検索 (Search documents)
     public function store($request) {
         if ($_SERVER['CONTENT_TYPE'] === 'application/x-www-form-urlencoded' || 
             strpos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') !== false) {
@@ -137,21 +132,24 @@ class CommonController {
         }
         
         try {
+            // MEMULAI TRANSAKSI DI TINGKAT CONTROLLER
+            $this->commonModel->beginTransaction();
+
             $data['s_applied'] = $request['user']['id'];
-            
             $docId = IdGenerator::generate('AR', 't_common');
-            $data['id_doc'] = $docId; // Modelで使用するためにデータに挿入
+            $data['id_doc'] = $docId;
             
             if (!empty($files['attachment']) && $files['attachment']['error'] === UPLOAD_ERR_OK) {
-                // 生成したdocIdを使用
+                // Jika proses file ini gagal/Exception, proses di bawahnya tidak dieksekusi,
+                // dan block catch akan menjalankan rollback DB.
                 $filename = $this->fileUpload->save($files['attachment'], $docId);
                 $data['s_file'] = $filename;
             }
+
             if (is_string($data['details'])) {
                 $data['details'] = json_decode($data['details'], true);
             }
             
-            // createDocumentは作成済みのIDを使用
             $createdDocId = $this->commonModel->createDocument($data);
             
             $newDoc = $this->commonModel->find($createdDocId);
@@ -164,6 +162,9 @@ class CommonController {
                 );
             }
             
+            // COMMIT TRANSAKSI KARENA SEMUA BERHASIL
+            $this->commonModel->commit();
+
             return [
                 'success' => true,
                 'doc_id' => $createdDocId,
@@ -171,6 +172,8 @@ class CommonController {
             ];
             
         } catch (Throwable $e) {
+            // MENGGULUNG BALIK (ROLLBACK) DB JIKA FILE GAGAL / ERROR LAINNYA
+            $this->commonModel->rollback();
             http_response_code(API_SERVER_ERROR);
             return [
                 'success' => false,
@@ -179,7 +182,6 @@ class CommonController {
         }
     }
     
-    // ドキュメントの更新 (Update document)
     public function update($request) {
         $docId = $request['params']['id'] ?? $_GET['id'] ?? null;
 
@@ -208,30 +210,38 @@ class CommonController {
                     break;
             }
 
-            $result = $targetModel->update($docId, $data);
+            // WHITELIST PARAMETER: Hanya s_memo yang boleh diupdate oleh Admin
+            $safeData = [];
+            if (isset($data['s_memo'])) {
+                $safeData['s_memo'] = $data['s_memo'];
+            }
+
+            if (empty($safeData)) {
+                return ['success' => false, 'error' => '更新する有効なデータがありません。'];
+            }
+
+            $result = $targetModel->update($docId, $safeData);
             
             if ($result) {
-                if (isset($data['s_memo']) && !empty($data['s_memo'])) {
-                    $docData = $targetModel->find($docId);
-                    $adminName = $request['user']['name'];
-                    $newMemo = $data['s_memo'];
+                $docData = $targetModel->find($docId);
+                $adminName = $request['user']['name'];
+                $newMemo = $safeData['s_memo'];
 
-                    $recipients = [];
-                    if (!empty($docData['s_applied'])) $recipients[] = $docData['s_applied'];
-                    if (!empty($docData['s_approved_1'])) $recipients[] = $docData['s_approved_1'];
-                    if (!empty($docData['s_approved_2'])) $recipients[] = $docData['s_approved_2'];
-                    
-                    $recipients = array_unique($recipients);
+                $recipients = [];
+                if (!empty($docData['s_applied'])) $recipients[] = $docData['s_applied'];
+                if (!empty($docData['s_approved_1'])) $recipients[] = $docData['s_approved_1'];
+                if (!empty($docData['s_approved_2'])) $recipients[] = $docData['s_approved_2'];
+                
+                $recipients = array_unique($recipients);
 
-                    foreach ($recipients as $recipientId) {
-                        if ($recipientId !== $request['user']['id']) {
-                            $this->mailer->sendMemoUpdateNotification(
-                                $docId,
-                                $recipientId,
-                                $adminName,
-                                $newMemo
-                            );
-                        }
+                foreach ($recipients as $recipientId) {
+                    if ($recipientId !== $request['user']['id']) {
+                        $this->mailer->sendMemoUpdateNotification(
+                            $docId,
+                            $recipientId,
+                            $adminName,
+                            $newMemo
+                        );
                     }
                 }
                 
@@ -245,7 +255,6 @@ class CommonController {
         }
     }
     
-    // ドキュメントの申請 (Submit document application)
     public function approve($request) {
         $data = json_decode(file_get_contents('php://input'), true);
         
@@ -271,7 +280,8 @@ class CommonController {
                 $docId,
                 $request['user']['id'],
                 $data['action'],
-                $data['comment'] ?? ''
+                $data['comment'] ?? '',
+                $request['user']['role'] ?? 0
             );
             
             if ($result) {
@@ -324,7 +334,6 @@ class CommonController {
         }
     }
     
-    // ドキュメントの撤回 (Withdraw document application)
     public function withdraw($request) {
         $docId = $request['params']['id'] ?? $_GET['id'] ?? null;
         
@@ -364,7 +373,6 @@ class CommonController {
         }
     }
     
-    // カテゴリの取得 (Get categories)
     public function getCategories() {
         try {
             $db = DB::getInstance();

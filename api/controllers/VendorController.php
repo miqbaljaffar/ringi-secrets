@@ -7,7 +7,6 @@ class VendorController {
     private $model;
     private $mailer;
     
-    // コンストラクタで必要なクラスを初期化 (Initialize necessary classes in constructor)
     public function __construct() {
         $this->validator = new Validator();
         $this->fileUpload = new FileUpload('cv'); 
@@ -15,17 +14,23 @@ class VendorController {
         $this->mailer = new Mailer(); 
     }
     
-    // ベンダー申請を処理するメソッド (Method to handle vendor application)
     public function store($request) {
         $data = $_POST;
         $files = $_FILES;
         
-        // --- Pre-process data dari form yang mungkin terpisah (seperti telepon dan kodepos) ---
         $tel1 = $data['tel1'] ?? '';
         $tel2 = $data['tel2'] ?? '';
         $tel3 = $data['tel3'] ?? '';
         if (!empty($tel1) || !empty($tel2) || !empty($tel3)) {
             $data['s_office_tel'] = $tel1 . '-' . $tel2 . '-' . $tel3;
+        }
+
+        // Parsing telepon perwakilan (representative)
+        $rep_tel1 = $data['rep_tel1'] ?? '';
+        $rep_tel2 = $data['rep_tel2'] ?? '';
+        $rep_tel3 = $data['rep_tel3'] ?? '';
+        if (!empty($rep_tel1) || !empty($rep_tel2) || !empty($rep_tel3)) {
+            $data['s_rep_tel'] = $rep_tel1 . '-' . $rep_tel2 . '-' . $rep_tel3;
         }
 
         $zip1 = $data['zip1'] ?? '';
@@ -34,7 +39,6 @@ class VendorController {
             $data['s_office_pcode'] = $zip1 . $zip2;
         }
 
-        // --- Aturan Validasi Diperketat sesuai Definisi Tabel t_vendors ---
         $rules = [
             's_name' => 'required|max:100',
             's_kana' => 'required|max:100',
@@ -56,26 +60,29 @@ class VendorController {
         }
         
         try {
+            // MULAI TRANSAKSI
+            $this->model->beginTransaction();
+
             $data['s_applied'] = $request['user']['id'];
-            
             $docId = $this->model->createDocument($data);
             
             if (!empty($files['estimate_file'])) {
                 $this->fileUpload->save($files['estimate_file'], $docId, '見積書');
             }
 
-            // --- メール通知 開始 --- (Start email notification)
             $newDoc = $this->model->find($docId);
             if ($newDoc && !empty($newDoc['s_approved_1'])) {
                 $this->mailer->sendRequestNotification(
                     $docId,
-                    $newDoc['s_approved_1'],      // 承認者1へ (Approver 1)
-                    $request['user']['name'],     // 申請者より (Applicant's name)
-                    $data['s_name']               // タイトル（ベンダー名） (Title (Vendor name))
+                    $newDoc['s_approved_1'],      
+                    $request['user']['name'],     
+                    $data['s_name']               
                 );
             }
-            // --- メール通知 終了 --- (End email notification)
             
+            // COMMIT JIKA SUKSES
+            $this->model->commit();
+
             return [
                 'success' => true, 
                 'doc_id' => $docId,
@@ -83,12 +90,13 @@ class VendorController {
             ];
             
         } catch (Exception $e) {
+            // ROLLBACK JIKA GAGAL
+            $this->model->rollback();
             http_response_code(API_SERVER_ERROR);
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
 
-    // ベンダー申請の詳細を取得するメソッド (Method to get details of a vendor application)
     public function show($request) {
         $id = $request['params']['id'];
         $doc = $this->model->find($id);

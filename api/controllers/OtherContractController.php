@@ -35,24 +35,19 @@ class OtherContractController {
         }
         
         try {
+            // MULAI TRANSAKSI
+            $this->model->beginTransaction();
+
             $data['s_applied'] = $request['user']['id'];
-            
             $docId = $this->model->createDocument($data);
             
+            // Hapus Exception khusus agar ter-rollback saat error upload
             if (!empty($files['estimate_file']) && $files['estimate_file']['error'] === UPLOAD_ERR_OK) {
-                try {
-                    $this->fileUpload->save($files['estimate_file'], $docId, '見積書');
-                } catch (Exception $fileEx) {
-                    error_log("Upload 見積書 gagal: " . $fileEx->getMessage());
-                }
+                $this->fileUpload->save($files['estimate_file'], $docId, '見積書');
             }
 
             if (!empty($files['attachment']) && $files['attachment']['error'] === UPLOAD_ERR_OK) {
-                try {
-                    $this->fileUpload->save($files['attachment'], $docId);
-                } catch (Exception $fileEx) {
-                    error_log("Upload file tambahan gagal: " . $fileEx->getMessage());
-                }
+                $this->fileUpload->save($files['attachment'], $docId);
             }
 
             $newDoc = $this->model->find($docId);
@@ -65,6 +60,9 @@ class OtherContractController {
                 );
             }
             
+            // COMMIT JIKA SUKSES
+            $this->model->commit();
+
             return [
                 'success' => true, 
                 'doc_id' => $docId,
@@ -72,6 +70,8 @@ class OtherContractController {
             ];
             
         } catch (Exception $e) {
+            // ROLLBACK JIKA GAGAL
+            $this->model->rollback();
             http_response_code(API_SERVER_ERROR);
             return ['success' => false, 'error' => $e->getMessage()];
         }
