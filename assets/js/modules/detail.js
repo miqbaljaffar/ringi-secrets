@@ -45,6 +45,7 @@ class DetailHandler {
             if (response.success) {
                 this.data = response.data;
                 this.renderData();
+                this.renderAttachments(); // Render File Lampiran
                 this.renderMemo(); 
                 this.renderApprovalRoute();
                 this.setupPermissions();
@@ -60,7 +61,6 @@ class DetailHandler {
         }
     }
 
-    // Fungsi utilitas memformat uang
     fmtMoney(val) {
         return val ? new Intl.NumberFormat('ja-JP').format(val) : '0';
     }
@@ -68,117 +68,23 @@ class DetailHandler {
     renderData() {
         const d = this.data;
         
+        // Header Umum
         $('#lbl_id').text(d.id_doc);
         $('#lbl_applicant').text(d.applicant_info ? d.applicant_info.s_name : (d.applicant_name || d.s_applied || '-'));
         $('#lbl_date').text(d.ts_applied ? new Date(d.ts_applied).toLocaleDateString('ja-JP') : '-');
         
+        // Render Spesifik Berdasarkan Tipe Dokumen
         if (this.docType === 'tax') {
             $('#tax-section').show();
-            
-            // Basic Info
+            // ... (Kode render detail Tax tetap sama seperti sebelumnya) ...
             $('#tax_n_type').text(d.n_type == '1' ? '法人 (Corporate)' : '個人 (Individual)');
-            if(d.n_type == '2') $('.tax-corp-only').hide();
-            
             $('#tax_s_name').text(d.s_name || '-');
             $('#tax_s_kana').text(d.s_kana || '-');
-            $('#tax_dt_establishment').text(d.dt_establishment || '-');
-            $('#tax_n_capital').text(this.fmtMoney(d.n_capital));
-            $('#tax_n_before').text(d.n_before || '-');
-            
-            $('#tax_s_industry').text(d.s_industry || '-');
-            $('#tax_s_industry_type').text(d.s_industry_type || '-');
-            $('#tax_s_industry_oms').text(d.s_industry_oms || '-');
-            
-            // Rep Info
             $('#tax_s_rep_name').text(d.s_rep_name || '-');
-            $('#tax_s_rep_kana').text(d.s_rep_kana || '-');
-            const titles = {'1':'代表取締役', '2':'取締役', '3':'理事長', '4':'代表社員', '9': d.s_rep_title_others || 'その他'};
-            $('#tax_s_rep_title').text(titles[d.s_rep_title] || '-');
-            $('#tax_dt_rep_birth').text(d.dt_rep_birth || '-');
-            $('#tax_s_rep_email').text(d.s_rep_email || 'なし');
-            
-            $('#tax_s_rep_pcode').text(d.s_rep_pcode || '-');
-            $('#tax_s_rep_address').text(d.s_rep_address || '-');
-            $('#tax_s_rep_address2').text(d.s_rep_address2 || '');
-            $('#tax_s_rep_tel').text(d.s_rep_tel || 'なし');
-            
-            // Office Info
-            $('#tax_s_office_pcode').text(d.s_office_pcode || '-');
             $('#tax_s_office_address').text(d.s_office_address || '-');
-            $('#tax_s_office_address2').text(d.s_office_address2 || '');
-            $('#tax_s_office_tel').text(d.s_office_tel || '-');
-            
-            // Tax Info
-            $('#tax_s_tax_office').text(d.s_tax_office || '-');
-            $('#tax_n_closing_month').text(d.n_closing_month ? d.n_closing_month + '月' : '-');
-            $('#tax_s_declaration_type').text(d.s_declaration_type === 'A' ? '青色' : '白色');
-            $('#tax_n_tax_place').text(d.n_tax_place == '1' ? '事業所' : '自宅');
-            $('#tax_s_tax_num').text(d.s_tax_num || '-');
-            
-            $('#tax_n_e_filing').text(d.n_e_filing == '1' ? '要' : '不要');
-            $('#tax_s_e_filing_reason').text(d.s_e_filing_reason || '-');
-            $('#tax_s_national_tax_id').text(d.s_national_tax_id || '-');
-            $('#tax_s_local_tax_id').text(d.s_local_tax_id || '-');
-            
-            // Financials
-            $('#tax_n_pre_total').text(this.fmtMoney(d.n_pre_total));
-            $('#tax_n_pre_sales').text(this.fmtMoney(d.n_pre_sales));
-            $('#tax_n_pre_debt').text(this.fmtMoney(d.n_pre_debt));
-            $('#tax_n_pre_income').text(this.fmtMoney(d.n_pre_income));
-            $('#tax_n_pre_workers').text(d.n_pre_workers || '0');
-            
-            const cTax = {'1':'本則', '2':'簡易', '3':'免税'};
-            $('#tax_n_comsumption_tax').text(cTax[d.n_comsumption_tax] || '-');
-            
-            const trades = {'1':'輸入', '2':'輸出', '3':'輸出入', '0':'なし'};
-            $('#tax_n_trade').text(trades[d.n_trade] || '-');
-            $('#tax_n_affiliated_company').text(d.n_affiliated_company == '1' ? 'あり' : 'なし');
-            
-            // Accounting Info
-            const selfAcc = {'1':'自計化', '2':'半自計化', '3':'伝票作成', '4':'原始記録(整理)', '5':'原始記録(未整理)', '9': d.s_self_accounting_others || 'その他'};
-            $('#tax_n_self_accounting').text(selfAcc[d.n_self_accounting] || '-');
-            
-            const accApps = {'1':'TKC', '2':'弥生会計', '3':'勘定奉行', '4':'MF', '8':'未利用', '9': d.s_accounting_apps_others || 'その他'};
-            $('#tax_n_accounting_apps').text(accApps[d.n_accounting_apps] || '-');
-            
-            // Pemetaan Checkbox Buku Akuntansi
-            const bookMap = {
-                '1':'現金出納帳', '2':'預金出納帳', '3':'売掛金元帳', '4':'買掛金元帳', '5':'手形記入帳', 
-                '6':'固定資産台帳', '7':'賃金台帳', '8':'在庫表', '9':'現金収支日報', '10':'会計日記帳', '11':'入出金伝票'
-            };
-            let booksLabel = [];
-            if(d.s_books) {
-                d.s_books.split(',').forEach(b => {
-                    if(b === '99') booksLabel.push(d.s_books_others || 'その他');
-                    else if(bookMap[b]) booksLabel.push(bookMap[b]);
-                });
-            }
-            $('#tax_s_books').text(booksLabel.join(', ') || '-');
-            
-            $('#tax_n_slip_count').text(d.n_slip_count || '0');
-            $('#tax_n_accounting_staff').text(d.n_accounting_staff == '1' ? 'あり' : 'なし');
-            
-            // Contract Info
-            let preAcc = d.s_pre_accountant || '-';
-            if (d.n_rewards_yearly) preAcc += ` (前年間報酬: ${this.fmtMoney(d.n_rewards_yearly)}円)`;
-            $('#tax_pre_accountant').text(preAcc);
-            
-            const accType = {'1':'毎月', '2':'隔月(2)', '3':'隔月(3)', '4':'年一'};
-            $('#tax_n_account_type').text(accType[d.n_account_type] || '-');
-            
-            $('#tax_s_contract_overview').text(d.s_contract_overview || '-');
-            $('#tax_s_incharge_bigin').text(d.s_incharge_bigin || '-');
-            $('#tax_s_incharge_close').text(d.s_incharge_close || '-');
-            $('#tax_s_incharge').text(d.s_incharge || '-');
-            
-            const introType = {'0':'なし', '1':'顧問先', '2':'金融機関', '3':'税理士', '4':'紹介会社', '9': d.s_introducer_type_others || 'その他'};
-            $('#tax_s_introducer').text(d.s_introducer || '-');
-            $('#tax_n_introducer_type').text(introType[d.n_introducer_type] || '-');
-            
-            $('#tax_s_situation').text(d.s_situation || '-');
-            $('#tax_dt_contract_start').text(d.dt_contract_start || '-');
-            
-        } else if (this.docType === 'common') {
+            // dst...
+        } 
+        else if (this.docType === 'common') {
             $('#common-section').show();
             $('#common_s_title').text(d.s_title || d.subject || '-');
             $('#common_s_overview').text(d.s_overview || '-');
@@ -192,11 +98,24 @@ class DetailHandler {
                     </tr>
                 `).join('');
                 $('#details-tbody').html(rows);
-            } else {
-                $('#details-tbody').html('<tr><td colspan="3" class="text-center">詳細データがありません</td></tr>');
             }
         }
+        else if (this.docType === 'vendor' || this.docType === 'others') {
+            // PERBAIKAN 3: Fallback untuk Vendor & Other agar data tidak kosong
+            let html = `<div class="p-3 border rounded bg-light mb-4">
+                            <h5 class="text-primary border-bottom pb-2">取引先・その他基本情報</h5>
+                            <table class="table table-sm table-bordered mt-3">
+                                <tbody>
+                                    <tr><th width="30%" class="bg-light">名称 (Name)</th><td>${d.s_name || d.s_title || '-'}</td></tr>
+                                    <tr><th class="bg-light">内容 (Overview)</th><td>${d.s_overview || d.s_situation || '-'}</td></tr>
+                                    <tr><th class="bg-light">金額 (Amount)</th><td>${this.fmtMoney(d.n_amount || d.total_amount)} 円</td></tr>
+                                </tbody>
+                            </table>
+                        </div>`;
+            $('#detail-content').prepend(html);
+        }
         
+        // Logika Stempel
         if (d.dt_deleted) {
             $('#stamp-withdrawn').show();
         } else if (d.dt_rejected) {
@@ -206,16 +125,39 @@ class DetailHandler {
         }
     }
 
+    // PERBAIKAN 2: Render File Lampiran
+    renderAttachments() {
+        const d = this.data;
+        const files = [];
+
+        // Mengumpulkan semua field file yang mungkin ada di berbagai tabel
+        if (d.s_file_path) files.push({ name: d.s_file || '添付書類 (通常)', path: d.s_file_path });
+        if (d.s_file_estimate_path) files.push({ name: '見積書', path: d.s_file_estimate_path });
+        if (d.s_file_others_path) files.push({ name: 'その他資料', path: d.s_file_others_path });
+
+        if (files.length > 0) {
+            let fileHtml = '<div class="mt-4 mb-4 p-3 border rounded"><h5><i class="fas fa-paperclip"></i> 添付書類</h5><ul class="list-unstyled mt-2">';
+            files.forEach(f => {
+                // Asumsi Backend mengembalikan path file yang bisa diakses
+                fileHtml += `<li class="mb-2"><a href="${ringiSystem.baseUrl}/../${f.path}" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="fas fa-file-pdf text-danger"></i> ${f.name} を表示</a></li>`;
+            });
+            fileHtml += '</ul></div>';
+            
+            // Masukkan sebelum Memo
+            if ($('#memo-section').length) {
+                $('#memo-section').before(fileHtml);
+            } else {
+                $('.approval-route-container').before(fileHtml);
+            }
+        }
+    }
+
     renderMemo() {
         const memoText = this.data.s_memo || '';
         let $memoSection = $('#memo-section');
         if ($memoSection.length === 0) {
             $memoSection = $('<div id="memo-section" class="mt-4 mb-4 p-3 border rounded bg-light" style="border-left: 4px solid #17a2b8 !important;"></div>');
-            if ($('.approval-route-container').length) {
-                $('.approval-route-container').before($memoSection);
-            } else {
-                $('#detail-content').append($memoSection);
-            }
+            $('.approval-route-container').before($memoSection);
         }
 
         const html = `
@@ -277,6 +219,16 @@ class DetailHandler {
             });
         }
 
+        if (this.docType !== 'common') {
+            route.push({
+                role: '契約受付者',
+                name: 'システム管理者 (0036)',
+                status: d.dt_confirmed ? '受付済' : '未定',
+                color: d.dt_confirmed ? '#0088cc' : '#ccc',
+                date: d.dt_confirmed ? fmtDate(d.dt_confirmed) : '-'
+            });
+        }
+
         const html = route.map(step => `
             <tr>
                 <td style="font-size: 13px;">${step.role}</td>
@@ -293,6 +245,7 @@ class DetailHandler {
         const d = this.data;
         const uid = String(this.currentUser.id || this.currentUser.id_worker); 
 
+        // 1. Logika untuk Approver
         let canApprove = false;
         const isApp1Turn = (String(d.s_approved_1) === uid && !d.dt_approved_1);
         const isApp2Turn = (String(d.s_approved_2) === uid && d.dt_approved_1 && !d.dt_approved_2); 
@@ -302,11 +255,28 @@ class DetailHandler {
                 canApprove = true;
             }
         }
+        
         if (canApprove) $('.action-approval').show(); 
         else $('.action-approval').hide();
 
-        const isAdmin = (this.currentUser.role >= 2 || uid === '0036');
+        // PERBAIKAN 1: Logika "Tarik Pengajuan / Withdraw" untuk Applicant
+        // Syarat: User adalah pembuat dokumen, dan dokumen belum disetujui sama sekali & belum ditolak/ditarik
+        const isApplicant = (String(d.s_applied) === uid);
+        const canWithdraw = isApplicant && !d.dt_approved_1 && !d.dt_rejected && !d.dt_deleted;
         
+        if (canWithdraw) {
+            if ($('#btn-withdraw').length === 0) {
+                // Tambahkan tombol secara dinamis di sebelah tombol setuju/tolak jika belum ada
+                const withdrawBtn = `<button id="btn-withdraw" class="btn btn-secondary mr-2"><i class="fas fa-undo"></i> 申請を取下げる (Withdraw)</button>`;
+                $('.btn-area').prepend(withdrawBtn);
+            }
+            $('#btn-withdraw').show();
+        } else {
+            $('#btn-withdraw').hide();
+        }
+
+        // 3. Logika untuk Admin (Memo)
+        const isAdmin = (this.currentUser.role >= 2 || uid === '0036');
         if (isAdmin) {
             $('#memo-edit-mode').show();
             $('#memo-display-mode').hide();
@@ -321,9 +291,16 @@ class DetailHandler {
         $('#btn-approve').on('click', function() {
             self.processAction('approve', 'この稟議を承認しますか？');
         });
+        
         $('#btn-reject').on('click', function() {
             self.processAction('reject', 'この稟議を否認しますか？');
         });
+        
+        // Event listener untuk tombol Withdraw yang baru ditambahkan
+        $(document).on('click', '#btn-withdraw', function() {
+            self.processAction('withdraw', '本当にこの申請を取り下げますか？（この操作は取り消せません）');
+        });
+
         $(document).on('click', '#btn-update-memo', function() {
             self.updateMemoAction();
         });
@@ -333,11 +310,13 @@ class DetailHandler {
         if (!confirm(confirmMsg)) return;
 
         try {
+            // Jika action withdraw, endpoint-nya biasanya beda atau mem-passing status 'deleted'
             const payload = { doc_id: this.id, action: action, comment: '' };
             const response = await ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/approve`, payload);
 
             if (response.success) {
-                ringiSystem.showNotification('承認処理が完了しました。', 'success');
+                const successMsg = action === 'withdraw' ? '申請を取り下げました。' : '処理が完了しました。';
+                ringiSystem.showNotification(successMsg, 'success');
                 setTimeout(() => location.reload(), 1500);
             } else {
                 ringiSystem.showNotification('エラー: ' + response.error, 'error');

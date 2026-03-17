@@ -21,22 +21,47 @@
                 <input type="date" name="date_end" class="input-date">
             </div>
 
-            <div class="form-item">
-                <label>申請書</label>
-                <select name="form_type" class="input-select">
-                    <option value="">(すべて)</option>
-                    <option value="tax">税務契約 (Tax)</option>
-                    <option value="contract">契約稟議 (Other)</option>
-                    <option value="vendor">取引開始 (Vendor)</option>
-                    <option value="common">通常稟議 (Common)</option>
-                </select>
+            <!-- PERBAIKAN 1: Tipe Input menjadi Radio Button -->
+            <div class="form-item" style="width: 100%;">
+                <label style="margin-right: 15px; font-weight: bold;">稟議種別</label>
+                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                    <label><input type="radio" name="form_type" value="" checked> すべて</label>
+                    <label><input type="radio" name="form_type" value="common"> 通常稟議 (Common)</label>
+                    <label><input type="radio" name="form_type" value="tax"> 税務契約 (Tax)</label>
+                    <label><input type="radio" name="form_type" value="contract"> 契約稟議 (Other)</label>
+                    <label><input type="radio" name="form_type" value="vendor"> 取引開始 (Vendor)</label>
+                </div>
             </div>
 
-            <div class="form-item">
-                <input type="text" id="search-keyword" name="keyword" class="input-text" placeholder="検索語 部分一致">
+            <!-- PERBAIKAN 1: Filter Khusus Common Ringi (Tersembunyi secara default) -->
+            <div id="common-filters" style="display: none; width: 100%; margin-top: 5px; gap: 15px; flex-wrap: wrap; background-color: #e6f7ff; padding: 10px; border-radius: 4px; border: 1px dashed #8ec6eb;">
+                <div class="form-item">
+                    <label style="font-weight:bold; color:#005580;">分類 (Common)</label>
+                    <select name="n_category" class="input-select">
+                        <option value="">(すべて)</option>
+                        <option value="1">書籍購入</option>
+                        <option value="2">物品購入(1万円以上)</option>
+                        <option value="3">役務の提供</option>
+                        <option value="4">教育研修費</option>
+                        <option value="5">会場費</option>
+                        <option value="6">交際費</option>
+                        <option value="7">厚生費</option>
+                        <option value="8">広告協賛</option>
+                        <option value="9">外注</option>
+                    </select>
+                </div>
+                <div class="form-item">
+                    <label style="font-weight:bold; color:#005580;">支払先</label>
+                    <input type="text" name="payer" class="input-text" placeholder="支払先名">
+                </div>
             </div>
 
-            <div class="action-buttons">
+            <!-- PERBAIKAN 1: Placeholder dinamis akan ditangani via JS -->
+            <div class="form-item" style="margin-top: 5px; width: 100%;">
+                <input type="text" id="search-keyword" name="keyword" class="input-text" placeholder="検索語 部分一致" style="width: 100%; max-width: 400px;">
+            </div>
+
+            <div class="action-buttons" style="margin-top: 10px;">
                 <button type="button" id="btn-search" class="btn btn-blue">
                     <i class="fas fa-search"></i> 検索
                 </button>

@@ -10,7 +10,7 @@ class ListHandler {
             payer: ''       
         };
 
-        this.$header = $('#list-header'); // PERBAIKAN: Target Header
+        this.$header = $('#list-header'); 
         this.$container = $('#list-container'); 
         this.$containerSP = $('#list-container-sp'); 
 
@@ -69,6 +69,24 @@ class ListHandler {
                 $('#btn-search').click();
             }
         });
+
+        // PERBAIKAN 1: Dinamika Placeholder Keyword & Toggle Filter Khusus
+        $('input[name="form_type"]').on('change', function() {
+            const type = $(this).val();
+            if(type === 'common') {
+                $('#search-keyword').attr('placeholder', '件名 (Subject) 部分一致');
+                $('#common-filters').css('display', 'flex'); 
+            } else if (type === '') {
+                $('#search-keyword').attr('placeholder', '検索語 部分一致');
+                $('#common-filters').hide();
+            } else {
+                $('#search-keyword').attr('placeholder', '商号・カナ (Nama/Kana) 部分一致');
+                $('#common-filters').hide();
+            }
+        });
+        
+        // Trigger saat halaman di-load
+        setTimeout(() => $('input[name="form_type"]:checked').trigger('change'), 100);
     }
 
     updateFilters() {
@@ -76,9 +94,9 @@ class ListHandler {
         this.filters.date_start = $('input[name="date_start"]').val() || '';
         this.filters.date_end = $('input[name="date_end"]').val() || '';
         
-        const typeSelect = $('select[name="form_type"]').val();
+        // PERBAIKAN 1: Ambil nilai dari Radio Button
         const typeRadio = $('input[name="form_type"]:checked').val();
-        this.filters.form_type = typeSelect || typeRadio || '';
+        this.filters.form_type = typeRadio || '';
 
         this.filters.n_category = $('select[name="n_category"]').val() || '';
         this.filters.payer = $('input[name="payer"]').val() || '';
@@ -104,7 +122,7 @@ class ListHandler {
             const response = await ringiSystem.apiRequest('GET', `search?${params.toString()}`);
 
             if (response.success && response.data.length > 0) {
-                this.renderHeader(); // PERBAIKAN: Render tabel header sesuai tipe (Dinamis)
+                this.renderHeader(); 
                 this.renderList(response.data);
             } else {
                 this.$empty.show();
@@ -121,7 +139,6 @@ class ListHandler {
         }
     }
 
-    // PERBAIKAN: Header Tabel Dinamis Berdasarkan Spesifikasi Halaman 11-12
     renderHeader() {
         const type = this.filters.form_type;
         let html = '';
@@ -154,7 +171,6 @@ class ListHandler {
                 </tr>
             `;
         } else {
-            // Default jika 'Semua (All)' dipilih
             html = `
                 <tr>
                     <th width="12%">文書No</th>
@@ -189,12 +205,11 @@ class ListHandler {
         return val ? new Intl.NumberFormat('ja-JP').format(val) : '0';
     }
 
-    // PERBAIKAN: Konten Tabel Dinamis berdasarkan Form Type
     renderList(data) {
         const typeFilter = this.filters.form_type;
 
         const htmlPC = data.map(doc => {
-            const formName = this.mapTypeToName(doc.type);
+            const formName = this.mapTypeToName(doc.type, doc); // PERBAIKAN 3: Parsing doc ke mapper
             const statusCode = this.getStatusCode(doc);
             const statusText = this.mapStatusText(statusCode);
             const dateStr = this.formatDateDot(doc.ts_applied);
@@ -244,7 +259,7 @@ class ListHandler {
         }).join('');
 
         const htmlSP = data.map(doc => {
-            const formName = this.mapTypeToName(doc.type);
+            const formName = this.mapTypeToName(doc.type, doc); // PERBAIKAN 3: Badge Dinamis di Mobile
             const statusCode = this.getStatusCode(doc);
             const statusText = this.mapStatusText(statusCode);
             const dateStr = this.formatDateDot(doc.ts_applied);
@@ -300,10 +315,18 @@ class ListHandler {
         }
     }
 
-    mapTypeToName(type) {
+    // PERBAIKAN 3: Pengecekan Kategori Detail Berdasarkan Spesifikasi
+    mapTypeToName(type, doc = null) {
+        if (type === 'common') {
+            return (doc && doc.s_category_name) ? doc.s_category_name : '通常稟議';
+        }
+        if (type === 'tax') {
+            if (doc && doc.n_type) {
+                return doc.n_type == '1' ? '税務-法人' : '税務-個人';
+            }
+            return '税務契約';
+        }
         const types = {
-            'common': '通常稟議',
-            'tax': '税務契約',
             'contract': '契約稟議',
             'vendor': '取引開始',
             'others': 'その他'

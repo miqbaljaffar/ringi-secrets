@@ -24,7 +24,6 @@ class CommonFormHandler {
             this.addDetailRow();
         });
         
-        // Event listener untuk upload
         document.getElementById('file-upload')?.addEventListener('change', (e) => {
             this.handleFileUpload(e);
         });
@@ -53,6 +52,23 @@ class CommonFormHandler {
                 this.updateApprovalRoute(e.target.value);
             });
         });
+
+        // PERBAIKAN 4: Event listener untuk Radio Button tipe Lampiran (Munculkan input text "Lainnya")
+        document.querySelectorAll('input[name="s_file_type"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const otherInput = document.getElementById('file-type-others');
+                if (otherInput) {
+                    if (e.target.value === 'その他') {
+                        otherInput.style.display = 'inline-block';
+                        otherInput.required = true;
+                    } else {
+                        otherInput.style.display = 'none';
+                        otherInput.required = false;
+                        otherInput.value = '';
+                    }
+                }
+            });
+        });
     }
     
     async loadCategories() {
@@ -64,6 +80,13 @@ class CommonFormHandler {
             }
         } catch (error) {
             console.error('Error category:', error);
+            // Mockup Category for development
+            this.categories = [
+                {id_category: 1, s_category: '書籍購入'},
+                {id_category: 2, s_category: '物品購入'},
+                {id_category: 3, s_category: '役務の提供'}
+            ];
+            this.populateCategorySelects();
         }
     }
     
@@ -112,25 +135,24 @@ class CommonFormHandler {
     }
     
     addDetailRow() {
-        // Baris tak terbatas sesuai update sebelumnya
         const detailId = this.detailCounter++;
         const rowHtml = `
-            <div class="detail-row" data-detail-id="${detailId}">
-                <div class="form-group">
-                    <select name="details[${detailId}][category]" class="category-select form-control" required>
+            <div class="detail-row" data-detail-id="${detailId}" style="display:flex; gap:10px; margin-bottom: 10px; align-items: center;">
+                <div class="form-group" style="margin-bottom:0; flex:1;">
+                    <select name="details[${detailId}][category]" class="category-select" style="width:100%; padding:8px;" required>
                         <option value="">分類を選択</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <input type="text" name="details[${detailId}][payer]" class="payer-input form-control" 
-                           placeholder="支払先" required maxlength="255">
+                <div class="form-group" style="margin-bottom:0; flex:2;">
+                    <input type="text" name="details[${detailId}][payer]" class="payer-input" 
+                           placeholder="支払先" required maxlength="255" style="width:100%; padding:8px;">
                 </div>
-                <div class="form-group">
-                    <input type="number" name="details[${detailId}][amount]" class="amount-input form-control" 
-                           placeholder="金額（税込）" required min="0" step="1">
+                <div class="form-group" style="margin-bottom:0; flex:1;">
+                    <input type="number" name="details[${detailId}][amount]" class="amount-input" 
+                           placeholder="金額" required min="0" step="1" style="width:100%; padding:8px;">
                 </div>
-                <div class="form-group">
-                    <button type="button" class="remove-detail-btn btn btn-danger">削除</button>
+                <div class="form-group" style="margin-bottom:0;">
+                    <button type="button" class="remove-detail-btn btn btn-danger btn-sm" style="height:35px;">削除</button>
                 </div>
             </div>
         `;
@@ -143,7 +165,6 @@ class CommonFormHandler {
         });
         
         this.populateCategorySelect(rowElement);
-
         this.detailsContainer.scrollTop = this.detailsContainer.scrollHeight;
     }
     
@@ -245,30 +266,11 @@ class CommonFormHandler {
     }
     
     markFieldError(field, message) {
-        const formGroup = field.closest('.form-group');
-        if (formGroup) {
-            formGroup.classList.add('has-error');
-            let errorDiv = formGroup.querySelector('.error-message');
-            if (!errorDiv) {
-                errorDiv = document.createElement('div');
-                errorDiv.className = 'error-message';
-                errorDiv.style.color = 'red';
-                errorDiv.style.fontSize = '12px';
-                formGroup.appendChild(errorDiv);
-            }
-            errorDiv.textContent = message;
-        }
+        field.style.borderColor = 'red';
     }
     
     clearFieldError(field) {
-        const formGroup = field.closest('.form-group');
-        if (formGroup) {
-            formGroup.classList.remove('has-error');
-            const errorDiv = formGroup.querySelector('.error-message');
-            if (errorDiv) {
-                errorDiv.remove();
-            }
-        }
+        field.style.borderColor = '#aaa';
     }
     
     getTotalAmount() {
@@ -291,12 +293,20 @@ class CommonFormHandler {
         formData.append('details', JSON.stringify(details));
         formData.append('total_amount', this.getTotalAmount());
         formData.append('save_mode', saveMode);
+
+        // PERBAIKAN 4: Menangani nilai dari Radio Button File
+        const fileTypeRadio = this.form.querySelector('input[name="s_file_type"]:checked');
+        let sFileValue = fileTypeRadio ? fileTypeRadio.value : '';
+        if (sFileValue === 'その他') {
+            sFileValue = document.getElementById('file-type-others')?.value || 'その他';
+        }
+        formData.append('s_file', sFileValue);
         
         try {
             const response = await ringiSystem.apiRequest('POST', 'common', formData, true);
             
             if (response.success) {
-                const msg = saveMode === 'draft' ? '下書き保存しました (Draft Tersimpan)' : '申請が完了しました (Berhasil Diajukan)';
+                const msg = saveMode === 'draft' ? '下書き保存しました' : '申請が完了しました';
                 ringiSystem.showNotification(msg, 'success');
                 setTimeout(() => {
                     window.location.href = `detail.html?id=${response.doc_id}&type=common`;
@@ -341,22 +351,19 @@ class CommonFormHandler {
         const file = event.target.files[0];
         if (!file) return;
         
-        // 1. Validasi Ukuran
         if (file.size > 5 * 1024 * 1024) {
             ringiSystem.showNotification('ファイルサイズは5MB以下にしてください', 'error');
             event.target.value = '';
             return;
         }
         
-        // 2. Validasi Tipe
         if (file.type !== 'application/pdf') {
             ringiSystem.showNotification('PDFファイルのみアップロード可能です', 'error');
             event.target.value = '';
             return;
         }
 
-        // 3. Konfirmasi Invoice (jQuery Style - tapi native JS cukup)
-        const confirmMsg = "【注意事項】\n請求書（インボイス）の添付は禁止されています。\n\nアップロードするファイルは請求書ではありませんか？\n(Perhatian: Dilarang melampirkan invoice. Apakah file ini bukan invoice?)";
+        const confirmMsg = "【注意事項】\n請求書（インボイス）の添付は禁止されています。\n\nアップロードするファイルは請求書ではありませんか？";
         
         if (!window.confirm(confirmMsg)) {
             event.target.value = ''; 

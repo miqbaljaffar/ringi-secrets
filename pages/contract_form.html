@@ -103,15 +103,15 @@
                         <option value="P">P</option><option value="Q">Q</option><option value="R">R</option>
                         <option value="S">S</option><option value="T">T</option>
                     </select>
-                    <input type="text" name="cat2" maxlength="2" pattern="\d{2}" class="input-short" placeholder="中(01)" required>
-                    <input type="text" name="cat3" maxlength="1" pattern="\d{1}" class="input-short" placeholder="小(1)" required>
+                    <input type="text" name="cat2" maxlength="2" pattern="\d{2}" title="数値2桁で入力してください" class="input-short" placeholder="中(01)" required>
+                    <input type="text" name="cat3" maxlength="1" pattern="\d{1}" title="数値1桁で入力してください" class="input-short" placeholder="小(1)" required>
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label required">業種コード (OMS)</label>
                 <div class="form-control-wrapper">
-                    <input type="text" name="s_industry_oms" maxlength="4" pattern="\d{4}" class="input-mid" placeholder="0000" required>
+                    <input type="text" name="s_industry_oms" maxlength="4" pattern="\d{4}" title="数値4桁で入力してください" class="input-mid" placeholder="0000" required>
                 </div>
             </div>
 
@@ -155,7 +155,7 @@
             <div class="form-group">
                 <label class="form-label required">納税No</label>
                 <div class="form-control-wrapper">
-                    <input type="text" name="s_tax_num" maxlength="8" pattern="\d{8}" placeholder="数値8桁" required>
+                    <input type="text" name="s_tax_num" maxlength="8" pattern="\d{8}" title="数値8桁で入力してください" placeholder="数値8桁" required>
                 </div>
             </div>
 
@@ -291,25 +291,29 @@
             <div class="form-group">
                  <label class="form-label">国税利用者識別番号</label>
                  <div class="form-control-wrapper">
-                     <input type="text" name="s_national_tax_id" class="input-mid" maxlength="16" pattern="\d{16}" placeholder="数値16桁">
+                     <!-- PERBAIKAN: Validasi Pola Regex (Halaman 16) -->
+                     <input type="text" name="s_national_tax_id" class="input-mid" maxlength="16" pattern="\d{16}" title="数値16桁で入力してください" placeholder="数値16桁">
                  </div>
             </div>
             <div class="form-group">
                  <label class="form-label">国税暗証番号</label>
                  <div class="form-control-wrapper">
-                     <input type="text" name="s_national_tax_pw" class="input-mid" placeholder="英数字8~50桁" maxlength="50">
+                     <!-- PERBAIKAN: Validasi Pola Regex (Halaman 16) -->
+                     <input type="text" name="s_national_tax_pw" class="input-mid" pattern="[A-Za-z0-9]{8,50}" title="英数字8~50桁で入力してください" placeholder="英数字8~50桁" maxlength="50">
                  </div>
             </div>
             <div class="form-group">
                 <label class="form-label">地方税利用者ID</label>
                 <div class="form-control-wrapper">
-                    <input type="text" name="s_local_tax_id" class="input-mid" maxlength="11" placeholder="英3桁+数値8桁">
+                    <!-- PERBAIKAN: Validasi Pola Regex (Halaman 16) "英3桁+数値8桁固定" -->
+                    <input type="text" name="s_local_tax_id" class="input-mid" maxlength="11" pattern="[A-Za-z]{3}\d{8}" title="英3桁+数値8桁で入力してください" placeholder="英3桁+数値8桁">
                 </div>
            </div>
            <div class="form-group">
                 <label class="form-label">地方税暗証番号</label>
                 <div class="form-control-wrapper">
-                    <input type="text" name="s_local_tax_pw" class="input-mid" placeholder="英数字8~16桁" maxlength="16">
+                    <!-- PERBAIKAN: Validasi Pola Regex (Halaman 16) -->
+                    <input type="text" name="s_local_tax_pw" class="input-mid" pattern="[A-Za-z0-9]{8,16}" title="英数字8~16桁で入力してください" placeholder="英数字8~16桁" maxlength="16">
                 </div>
            </div>
         </div>
@@ -502,14 +506,24 @@
             <div class="form-group">
                 <label class="form-label required">担当者・紹介者</label>
                 <div class="form-control-wrapper flex-column" style="width: 100%;">
-                    <div class="flex-row">
-                        <input type="text" name="s_incharge_bigin" placeholder="開拓担当者" class="input-mid" required maxlength="50">
-                        <input type="text" name="s_incharge_close" placeholder="クロージング担当者" class="input-mid" maxlength="50">
-                        <select name="s_incharge" class="input-mid" required>
-                            <option value="" disabled selected>顧客担当者を選択</option>
-                        </select>
+                    
+                    <div class="flex-row" style="align-items: flex-start;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <input type="text" name="s_incharge_bigin" placeholder="開拓担当者" class="input-mid" required maxlength="50">
+                            <span class="note" style="color: #dc3545; font-size: 11px;">※複数の場合は列記する</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <input type="text" name="s_incharge_close" placeholder="クロージング担当者" class="input-mid" maxlength="50">
+                            <span class="note" style="color: #dc3545; font-size: 11px;">※複数の場合は列記する</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <select name="s_incharge" class="input-mid" required>
+                                <option value="" disabled selected>顧客担当者を選択</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="flex-row" style="margin-top: 10px;">
+                    
+                    <div class="flex-row" style="margin-top: 15px;">
                         <input type="text" name="s_introducer" placeholder="紹介者名" class="input-mid" maxlength="50">
                         <select name="n_introducer_type" class="input-mid">
                             <option value="0">紹介者区分：なし</option>
@@ -525,7 +539,7 @@
             </div>
             
             <div class="form-group">
-                <label class="form-label required">きっかけ (経経)</label>
+                <label class="form-label required">きっかけ (経緯)</label>
                 <div class="form-control-wrapper">
                     <textarea name="s_situation" placeholder="契約に至った経緯..." required></textarea>
                 </div>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>通常稟議申請 | 稟議書管理システム</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+
+<div class="container">
+    <h1>新規稟議申請 (通常稟議)</h1>
+
+    <form id="common-form">
+        <div class="section">
+            <div class="form-group">
+                <label class="form-label required">稟議書No</label>
+                <div class="form-control-wrapper">
+                    <input type="text" name="id_doc" id="doc-number" class="input-mid" readonly style="background-color: #e9ecef; font-weight: bold; color: #0088cc;" placeholder="自動採番">
+                    <span class="note">※自動採番 (Prefix: AR)</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label required">申請日</label>
+                <div class="form-control-wrapper">
+                     <input type="date" name="ts_applied" id="application-date" readonly>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label required">業務区分</label>
+                <div class="form-control-wrapper">
+                     <label><input type="radio" name="n_type" value="1" checked> 部課</label>
+                     <label><input type="radio" name="n_type" value="2"> 委員会</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label required">件名</label>
+                <div class="form-control-wrapper">
+                     <input type="text" name="s_title" placeholder="稟議の件名を入力" required maxlength="30">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label required">実施(決済)期限</label>
+                <div class="form-control-wrapper">
+                     <input type="date" name="dt_deadline" id="deadline" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label required">概要、理由</label>
+                <div class="form-control-wrapper">
+                     <textarea name="s_overview" required placeholder="詳細や申請理由を記入" style="height: 100px;"></textarea>
+                     <!-- PERBAIKAN 5: Penambahan Note "品名、金額の内訳等..." -->
+                     <span class="note" style="color: #dc3545;">※品名、金額の内訳等の詳細や申請理由を記入</span>
+                </div>
+            </div>
+        </div>
+
+        <h2>明細情報 (分類・支払先・金額)</h2>
+        <div class="section">
+            <div id="details-container" style="background: #f8f9fa; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">
+                <!-- Baris Detail akan di-generate via JS -->
+            </div>
+            
+            <div style="margin-top: 10px; text-align: right;">
+                <button type="button" id="add-detail-btn" class="btn btn-sm btn-secondary">+ 明細行を追加</button>
+            </div>
+
+            <div class="form-group" style="margin-top: 20px; border-top: 2px solid #ccc; padding-top: 15px;">
+                <label class="form-label" style="font-size: 16px; font-weight: bold;">金額(総額)</label>
+                <div class="form-control-wrapper" style="flex-direction: column; align-items: flex-start;">
+                    <span id="total-amount" style="font-size: 20px; font-weight: bold; color: #0056b3;">0円</span>
+                    <!-- PERBAIKAN 5: Penambahan Note "税込、毎月支払い..." -->
+                    <span class="note" style="color: #dc3545; margin-top: 5px;">※税込、毎月支払いの場合は年額を記入</span>
+                </div>
+            </div>
+        </div>
+
+        <h2>添付書類</h2>
+        <div class="section">
+            <!-- PERBAIKAN 4: Radio Button Jenis Lampiran -->
+            <div class="form-group">
+                <label class="form-label">添付書類区分</label>
+                <div class="form-control-wrapper">
+                    <label><input type="radio" name="s_file_type" value="収支予算書"> 収支予算書</label>
+                    <label><input type="radio" name="s_file_type" value="見積書"> 見積書</label>
+                    <label><input type="radio" name="s_file_type" value="パンフレット"> パンフレット</label>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
+                        <label><input type="radio" name="s_file_type" value="その他"> その他</label>
+                        <input type="text" id="file-type-others" style="display:none; width: 250px;" placeholder="その他の書類名" maxlength="50">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">ファイル (PDF)</label>
+                <div class="form-control-wrapper">
+                    <input type="file" id="file-upload" name="file_upload" accept=".pdf">
+                    <span id="file-name-display" style="font-weight: bold; margin-left: 10px;"></span>
+                    <span class="note" style="color: #dc3545; font-weight: bold; margin-top: 5px;">※注意事項: 請求書（インボイス）は添付しない</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="btn-area">
+            <button type="button" id="btn-save-draft" class="btn btn-secondary">下書き保存 (Draft)</button>
+            <button type="submit" id="btn-submit" class="btn btn-primary">申請する (Apply)</button>
+        </div>
+    </form>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="../assets/js/main.js"></script>
+<script src="../assets/js/modules/common-form.js"></script>
+</body>
+</html>
