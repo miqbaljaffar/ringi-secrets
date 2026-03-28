@@ -6,8 +6,6 @@ class Common extends BaseModel {
     protected $primaryKey = 'id_doc';
     
     public function createDocument($data) {
-        // DIHAPUS: $this->beginTransaction();
-        
         try {
             $docId = $data['id_doc'] ?? IdGenerator::generate('AR', $this->table);
             
@@ -36,13 +34,11 @@ class Common extends BaseModel {
             
             $this->setApprovalRoute($docId, $data['n_type']);
             
-            // DIHAPUS: $this->commit();
             return $docId;
             
         } catch (Exception $e) {
-            // DIHAPUS: $this->rollback();
             error_log("Common Create Document Failed: " . $e->getMessage());
-            throw $e; // Lempar error ke atas agar ditangkap Controller
+            throw $e; 
         }
     }
     
@@ -132,19 +128,7 @@ class Common extends BaseModel {
         return $this->db->fetchAll($sql, $params);
     }
     
-    public function withdraw($docId, $userId) {
-        $document = $this->find($docId);
-        
-        if ($document['s_applied'] !== $userId) {
-            throw new Exception("取下げ権限がありません");
-        }
-        
-        if ($document['dt_approved_1'] !== null) {
-            throw new Exception("承認済みのため取下げできません");
-        }
-        
-        return $this->delete($docId);
-    }
+    // FUNGSI withdraw() DIHAPUS KARENA SUDAH DITANGANI OLEH BaseModel.php
     
     public function getStatus($document) {
         if ($document['dt_deleted'] !== null) {

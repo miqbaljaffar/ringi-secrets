@@ -33,7 +33,7 @@ class SearchController {
 
             // --- サブクエリの構築 (Build subqueries) ---
             
-            // 1. 通常稟議 (Common / AR)
+            // 1. 通常稟議 (Common / AR) - Menambahkan total_amount
             if (empty($type) || $type === 'common') {
                 $sqlCommon = "SELECT 
                                 c.id_doc, 
@@ -48,7 +48,8 @@ class SearchController {
                                 c.s_approved_2,
                                 c.s_applied as applicant_id,
                                 w.s_name as applicant_name,
-                                c.dt_deadline as sort_date
+                                c.dt_deadline as sort_date,
+                                (SELECT COALESCE(SUM(n_amount), 0) FROM t_common_details cd WHERE cd.n_doc = c.id_doc) as total_amount
                               FROM t_common c
                               LEFT JOIN v_worker w ON c.s_applied = w.id_worker
                               WHERE 1=1";
@@ -69,7 +70,6 @@ class SearchController {
                     $params[':kw_c2'] = "%$keyword%";
                 }
 
-                // --- PERBAIKAN: Filter Kategori & Payer khusus t_common (Sesuai Spesifikasi Hal.11) ---
                 if (!empty($n_category)) {
                     $sqlCommon .= " AND EXISTS (SELECT 1 FROM t_common_details cd WHERE cd.n_doc = c.id_doc AND cd.n_category = :n_category)";
                     $params[':n_category'] = $n_category;
@@ -81,7 +81,7 @@ class SearchController {
                 $subQueries[] = $sqlCommon;
             }
 
-            // 2. 税務契約 (Tax / CT)
+            // 2. 税務契約 (Tax / CT) - Kolom total_amount di-set 0 untuk menyeimbangkan struktur UNION ALL
             if (empty($type) || $type === 'tax') {
                 $sqlTax = "SELECT 
                             t.id_doc, 
@@ -96,7 +96,8 @@ class SearchController {
                             t.s_approved_2,
                             t.s_applied as applicant_id,
                             w.s_name as applicant_name,
-                            t.dt_contract_start as sort_date
+                            t.dt_contract_start as sort_date,
+                            0 as total_amount
                            FROM t_tax t
                            LEFT JOIN v_worker w ON t.s_applied = w.id_worker
                            WHERE 1=1";
@@ -117,7 +118,7 @@ class SearchController {
                 $subQueries[] = $sqlTax;
             }
 
-            // 3. その他契約稟議 (Other Contracts / CO)
+            // 3. その他契約稟議 (Other Contracts / CO) - Kolom total_amount = 0
             if (empty($type) || $type === 'contract' || $type === 'others') {
                 $sqlOther = "SELECT 
                                 o.id_doc, 
@@ -132,7 +133,8 @@ class SearchController {
                                 o.s_approved_2,
                                 o.s_applied as applicant_id,
                                 w.s_name as applicant_name,
-                                o.dt_contract_start as sort_date
+                                o.dt_contract_start as sort_date,
+                                0 as total_amount
                              FROM t_others o
                              LEFT JOIN v_worker w ON o.s_applied = w.id_worker
                              WHERE 1=1";
@@ -153,7 +155,7 @@ class SearchController {
                 $subQueries[] = $sqlOther;
             }
 
-            // 4. 取引先契約稟議 (Vendor / CV)
+            // 4. 取引先契約稟議 (Vendor / CV) - Kolom total_amount = 0
             if (empty($type) || $type === 'vendor') {
                 $sqlVendor = "SELECT 
                                 v.id_doc, 
@@ -168,7 +170,8 @@ class SearchController {
                                 v.s_approved_2,
                                 v.s_applied as applicant_id,
                                 w.s_name as applicant_name,
-                                v.ts_applied as sort_date
+                                v.ts_applied as sort_date,
+                                0 as total_amount
                               FROM t_vendors v
                               LEFT JOIN v_worker w ON v.s_applied = w.id_worker
                               WHERE 1=1";
@@ -270,6 +273,7 @@ class SearchController {
                     'dt_approved_1' => $row['dt_approved_1'],
                     'dt_approved_2' => $row['dt_approved_2'],
                     'dt_rejected' => $row['dt_rejected'],
+                    'total_amount' => $row['total_amount'] ?? 0, // Mengambil properti total
                     'status_code' => $status,
                     'is_my_approval' => ($row['s_approved_1'] == $userId && !$row['dt_approved_1']) || 
                                         ($row['s_approved_2'] == $userId && !$row['dt_approved_2'])

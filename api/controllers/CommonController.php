@@ -132,7 +132,6 @@ class CommonController {
         }
         
         try {
-            // MEMULAI TRANSAKSI DI TINGKAT CONTROLLER
             $this->commonModel->beginTransaction();
 
             $data['s_applied'] = $request['user']['id'];
@@ -140,8 +139,6 @@ class CommonController {
             $data['id_doc'] = $docId;
             
             if (!empty($files['attachment']) && $files['attachment']['error'] === UPLOAD_ERR_OK) {
-                // Jika proses file ini gagal/Exception, proses di bawahnya tidak dieksekusi,
-                // dan block catch akan menjalankan rollback DB.
                 $filename = $this->fileUpload->save($files['attachment'], $docId);
                 $data['s_file'] = $filename;
             }
@@ -162,7 +159,6 @@ class CommonController {
                 );
             }
             
-            // COMMIT TRANSAKSI KARENA SEMUA BERHASIL
             $this->commonModel->commit();
 
             return [
@@ -172,7 +168,6 @@ class CommonController {
             ];
             
         } catch (Throwable $e) {
-            // MENGGULUNG BALIK (ROLLBACK) DB JIKA FILE GAGAL / ERROR LAINNYA
             $this->commonModel->rollback();
             http_response_code(API_SERVER_ERROR);
             return [
@@ -210,7 +205,6 @@ class CommonController {
                     break;
             }
 
-            // WHITELIST PARAMETER: Hanya s_memo yang boleh diupdate oleh Admin
             $safeData = [];
             if (isset($data['s_memo'])) {
                 $safeData['s_memo'] = $data['s_memo'];
@@ -344,22 +338,17 @@ class CommonController {
         
         try {
              $prefix = strtoupper(substr($docId, 0, 2));
-             $targetModel = ($prefix === 'AR') ? $this->commonModel : null;
              
-             if(!$targetModel && $prefix == 'CT') $targetModel = new Tax();
-             if(!$targetModel && $prefix == 'CO') $targetModel = new OtherContract();
-             if(!$targetModel && $prefix == 'CV') $targetModel = new Vendor();
+             switch ($prefix) {
+                 case 'AR': $targetModel = $this->commonModel; break;
+                 case 'CT': $targetModel = new Tax(); break;
+                 case 'CO': $targetModel = new OtherContract(); break;
+                 case 'CV': $targetModel = new Vendor(); break;
+                 default: throw new Exception('無効なタイプです');
+             }
 
-             if(!$targetModel) throw new Exception('無効なタイプです');
-
-            if(method_exists($targetModel, 'withdraw')) {
-                $result = $targetModel->withdraw($docId, $request['user']['id']);
-            } else {
-                $doc = $targetModel->find($docId);
-                if($doc['s_applied'] !== $request['user']['id']) throw new Exception('権限がありません');
-                if(!empty($doc['dt_approved_1'])) throw new Exception('承認済みのドキュメントは撤回できません');
-                $result = $targetModel->delete($docId);
-            }
+            // Memanggil fitur perlindungan withdraw dari BaseModel
+            $result = $targetModel->withdraw($docId, $request['user']['id']);
             
             if ($result) {
                 return ['success' => true, 'message' => '申請が撤回されました。'];

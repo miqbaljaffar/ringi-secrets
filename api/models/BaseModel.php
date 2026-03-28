@@ -63,7 +63,27 @@ abstract class BaseModel {
         return $this->db->update($this->table, $data, $where, $whereParams);
     }
     
-    // 論理削除 (Soft delete)
+    // 取下げ (Withdraw / Membatalkan pengajuan)
+    // Dipindahkan dari Common.php ke sini agar semua kontrak (Tax, Vendor, dll) juga terlindungi secara valid.
+    public function withdraw($docId, $userId) {
+        $document = $this->find($docId);
+        
+        if (!$document) {
+            throw new Exception("ドキュメントが見つかりません。"); // Dokumen tidak ditemukan
+        }
+        
+        if ($document['s_applied'] !== $userId) {
+            throw new Exception("取下げ権限がありません。"); // Tidak punya wewenang untuk withdraw
+        }
+        
+        if (!empty($document['dt_approved_1'])) {
+            throw new Exception("承認済みのため取下げできません。"); // Tidak bisa withdraw karena sudah disetujui (1 tahap sekalipun)
+        }
+        
+        return $this->delete($docId);
+    }
+    
+    // DELETE (論理削除)
     public function delete($id) {
         return $this->db->softDelete($this->table, $id, $this->primaryKey);
     }
@@ -158,7 +178,6 @@ abstract class BaseModel {
                 throw new Exception("このドキュメントを却下する権限がありません。");
             }
         } elseif ($action === 'complete') {
-             // Otorisasi sederhana untuk Role / User Penerima Khusus
              if ($document['s_confirmed'] !== $userId && $userRole < 2) { // 2 = ROLE_ADMIN
                  throw new Exception("Tidak memiliki hak untuk menyelesaikan kontrak.");
              }
@@ -176,7 +195,6 @@ abstract class BaseModel {
         return false;
     }
     
-    // MENGUBAH VISIBILITAS KE PUBLIC AGAR BISA DIPANGGIL DARI CONTROLLER
     // トランザクション開始 (Begin transaction)
     public function beginTransaction() {
         $this->db->beginTransaction();
