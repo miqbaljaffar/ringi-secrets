@@ -38,10 +38,17 @@ class FileUpload {
         }
         
         $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        
         if ($customName) {
             $filename = $customName . '.' . $extension;
         } else {
-            $filename = preg_replace('/[^a-zA-Z0-9._-]/', '_', $file['name']);
+            // PERBAIKAN : Potong nama file untuk mencegah Data Too Long Error di database
+            $nameWithoutExt = pathinfo($file['name'], PATHINFO_FILENAME);
+            $cleanName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nameWithoutExt);
+            
+            // Potong menjadi maksimal 35 karakter + timestamp (10 karakter) + '.' + ekstensi(3 karakter) = Aman < 50 karakter
+            $shortName = substr($cleanName, 0, 35); 
+            $filename = $shortName . '_' . time() . '.' . $extension;
         }
         
         $destination = $targetDir . '/' . $filename;

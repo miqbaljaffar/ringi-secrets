@@ -37,7 +37,8 @@ class SearchController {
             if (empty($type) || $type === 'common') {
                 $sqlCommon = "SELECT 
                                 c.id_doc, 
-                                'common' as doc_type, 
+                                'common' as doc_type,
+                                c.n_type as sub_type, 
                                 c.s_title as title, 
                                 c.ts_applied, 
                                 c.dt_approved_1, 
@@ -86,9 +87,10 @@ class SearchController {
                 $sqlTax = "SELECT 
                             t.id_doc, 
                             'tax' as doc_type, 
+                            t.n_type as sub_type,
                             t.s_name as title, 
                             t.ts_applied, 
-                            t.dt_approved_1, 
+                            t.dt_approved_1,  
                             t.dt_approved_2, 
                             t.dt_rejected, 
                             t.dt_deleted,
@@ -123,9 +125,10 @@ class SearchController {
                 $sqlOther = "SELECT 
                                 o.id_doc, 
                                 'others' as doc_type, 
+                                0 as sub_type,
                                 o.s_name as title, 
                                 o.ts_applied, 
-                                o.dt_approved_1, 
+                                o.dt_approved_1,
                                 o.dt_approved_2, 
                                 o.dt_rejected, 
                                 o.dt_deleted,
@@ -160,6 +163,7 @@ class SearchController {
                 $sqlVendor = "SELECT 
                                 v.id_doc, 
                                 'vendor' as doc_type, 
+                                0 as sub_type,
                                 v.s_name as title, 
                                 v.ts_applied, 
                                 v.dt_approved_1, 
@@ -266,6 +270,7 @@ class SearchController {
                 return [
                     'id_doc' => $row['id_doc'],
                     'type' => $row['doc_type'],
+                    'sub_type' => $row['sub_type'],
                     'title' => $row['title'] ?? '(タイトルなし)',
                     'applicant_name' => $row['applicant_name'] ?? $row['applicant_id'] ?? 'Unknown',
                     'ts_applied' => $row['ts_applied'],

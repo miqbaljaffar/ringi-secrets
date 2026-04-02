@@ -6,7 +6,6 @@ class Vendor extends BaseModel {
     protected $primaryKey = 'id_doc';
     
     public function createDocument($data) {
-        // DIHAPUS: $this->beginTransaction();
         
         try {
             $docId = IdGenerator::generate('CV', $this->table);
@@ -45,11 +44,9 @@ class Vendor extends BaseModel {
             
             $this->setApprovalRoute($docId);
             
-            // DIHAPUS: $this->commit();
             return $docId;
             
         } catch (Exception $e) {
-            // DIHAPUS: $this->rollback();
             error_log("Vendor Insert Error: " . $e->getMessage());
             throw $e; // Lempar ke Controller
         }

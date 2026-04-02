@@ -6,7 +6,6 @@ class OtherContract extends BaseModel {
     protected $primaryKey = 'id_doc';
     
     public function createDocument($data) {
-        // DIHAPUS: $this->beginTransaction();
         
         try {
             $docId = IdGenerator::generate('CO', $this->table);
@@ -63,11 +62,9 @@ class OtherContract extends BaseModel {
             
             $this->setApprovalRoute($docId);
             
-            // DIHAPUS: $this->commit();
             return $docId;
             
         } catch (Exception $e) {
-            // DIHAPUS: $this->rollback();
             error_log("OtherContract Insert Error: " . $e->getMessage());
             throw $e; // Lempar ke Controller
         }

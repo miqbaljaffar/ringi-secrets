@@ -9,6 +9,7 @@ class CommonController {
     private $fileUpload;
     private $mailer;
     
+    
     public function __construct() {
         $this->commonModel = new Common();
         $this->detailModel = new CommonDetail();
@@ -17,6 +18,7 @@ class CommonController {
         $this->mailer = new Mailer();
     }
     
+    // ドキュメント一覧を取得し、フィルターとタブ条件を適用する処理 (Retrieve document list and apply filters and tab conditions)
     public function index($request) {
         $filters = [
             'type' => $_GET['type'] ?? null,
@@ -51,6 +53,7 @@ class CommonController {
         }
     }
     
+    // タブに応じてドキュメントをフィルタリングする処理 (Filter documents based on selected tab)
     private function filterByTab($document, $tab, $user) {
         $status = $this->commonModel->getStatus($document);
         
@@ -66,6 +69,7 @@ class CommonController {
         }
     }
     
+    // 指定されたIDのドキュメント詳細を取得する処理 (Retrieve detailed information of a document by ID)
     public function show($request) {
         $docId = $request['params']['id'] ?? $_GET['id'] ?? null;
 
@@ -105,6 +109,7 @@ class CommonController {
         }
     }
     
+    // 新規申請データを登録し、ファイルアップロードと通知を行う処理 (Store new application data, handle file upload and send notifications)
     public function store($request) {
         if ($_SERVER['CONTENT_TYPE'] === 'application/x-www-form-urlencoded' || 
             strpos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') !== false) {
@@ -177,6 +182,7 @@ class CommonController {
         }
     }
     
+    // ドキュメントのメモなどを更新し、関係者へ通知する処理 (Update document memo and notify related users)
     public function update($request) {
         $docId = $request['params']['id'] ?? $_GET['id'] ?? null;
 
@@ -249,6 +255,7 @@ class CommonController {
         }
     }
     
+    // 承認・却下・完了などの承認処理を実行する (Handle approval actions such as approve, reject, complete)
     public function approve($request) {
         $data = json_decode(file_get_contents('php://input'), true);
         
@@ -315,6 +322,15 @@ class CommonController {
                         $approverName,
                         $data['comment'] ?? ''
                     );
+                // PERBAIKAN : Notifikasi Email Saat Dokumen Complete/Diterima
+                } elseif ($data['action'] === 'complete') {
+                    $this->mailer->sendResultNotification(
+                        $docId,
+                        $applicantId,
+                        'completed',
+                        $approverName,
+                        $data['comment'] ?? ''
+                    );
                 }
 
                 return ['success' => true, 'message' => '承認処理が成功しました。'];
@@ -328,6 +344,7 @@ class CommonController {
         }
     }
     
+    // 申請を撤回する処理 (Withdraw an application)
     public function withdraw($request) {
         $docId = $request['params']['id'] ?? $_GET['id'] ?? null;
         
@@ -347,7 +364,6 @@ class CommonController {
                  default: throw new Exception('無効なタイプです');
              }
 
-            // Memanggil fitur perlindungan withdraw dari BaseModel
             $result = $targetModel->withdraw($docId, $request['user']['id']);
             
             if ($result) {
@@ -362,6 +378,7 @@ class CommonController {
         }
     }
     
+    // カテゴリ一覧を取得する処理 (Retrieve category list)
     public function getCategories() {
         try {
             $db = DB::getInstance();

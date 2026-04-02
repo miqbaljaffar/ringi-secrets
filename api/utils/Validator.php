@@ -26,12 +26,14 @@ class Validator {
     private function applyRule($field, $rule) {
         $value = $this->getValue($field);
         
-        if (strpos($rule, 'required') === 0 && empty($value)) {
+        // PERBAIKAN : Memastikan angka 0 tidak dianggap kosong
+        if (strpos($rule, 'required') === 0 && ($value === '' || $value === null || (is_array($value) && empty($value)))) {
             $this->addError($field, "{$field}は必須項目です");
             return;
         }
         
-        if (empty($value) && !strpos($rule, 'required') === 0) {
+        // PERBAIKAN : Cek empty untuk non-required (biarkan 0 lolos)
+        if (($value === '' || $value === null) && !strpos($rule, 'required') === 0) {
             return; // 必須でない空値はスキップ
         }
         

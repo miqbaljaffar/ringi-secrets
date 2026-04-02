@@ -13,14 +13,11 @@ class AuthMiddleware {
         }
         
         // 公開エンドポイント（開発用手動ログイン/ログアウト）
-        // BEST PRACTICE: Jangan masukkan 'auth/user' ke sini, karena kita tetap ingin
-        // mengecek SSO session jika ada.
         $publicEndpoints = ['auth/login', 'auth/logout'];
         if (in_array($request['endpoint'], $publicEndpoints)) {
             return $request;
         }
 
-        // --- 認証ロジック（SSO優先） --- (SSO-first authentication logic)
         
         // 1. Ringiアプリケーション内でユーザーが既に認証済みかチェック（内部セッション）
         if (isset($_SESSION['user_id'])) {

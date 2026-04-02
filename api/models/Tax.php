@@ -3,6 +3,7 @@ class Tax extends BaseModel {
     protected $table = 't_tax';
     protected $primaryKey = 'id_doc';
     
+    // 文字列を安全に切り出す関数（マルチバイト対応） (Function to safely substring a string with multibyte support)
     private function safeSubstr($str, $start, $length) {
         $str = (string)($str ?? '');
         if (function_exists('mb_substr')) {
@@ -11,9 +12,8 @@ class Tax extends BaseModel {
         return substr($str, $start, $length);
     }
 
+    // 新規ドキュメントを作成してデータベースに保存する処理 (Process to create a new document and save it to the database)
     public function createDocument($data) {
-        // DIHAPUS: $this->beginTransaction();
-        
         try {
             $docId = IdGenerator::generate('CT', $this->table);
             
@@ -74,7 +74,7 @@ class Tax extends BaseModel {
                 's_rep_title' => $data['s_rep_title'] ?? 1,
                 's_rep_title_others' => $this->safeSubstr($data['s_rep_title_others'] ?? '', 0, 30), 
                 
-                'dt_rep_birth' => !empty($data['dt_rep_birth']) ? $data['dt_rep_birth'] : '1970-01-01', 
+                'dt_rep_birth' => !empty($data['dt_rep_birth']) ? $data['dt_rep_birth'] : null, 
                 
                 's_rep_pcode' => $this->safeSubstr($repPostalCode, 0, 7), 
                 's_rep_address' => $this->safeSubstr($data['s_rep_address'] ?? '', 0, 100),
@@ -137,16 +137,15 @@ class Tax extends BaseModel {
 
             $this->db->insert($this->table, $dbData);
             
-            // DIHAPUS: $this->commit();
             return $docId;
             
         } catch (Throwable $e) { 
-            // DIHAPUS: $this->rollback();
             error_log("Tax Create Error: " . $e->getMessage());
-            throw new Exception("Database Error: " . $e->getMessage()); // Lempar ke Controller
+            throw new Exception("Database Error: " . $e->getMessage()); 
         }
     }
 
+    // 初期承認者情報を取得する処理 (Process to retrieve initial approver information)
     private function getInitialApprovers() {
         $userModel = new User();
         $approvers = $userModel->getApprovers(5); 

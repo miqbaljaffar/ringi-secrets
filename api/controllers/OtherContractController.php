@@ -14,6 +14,7 @@ class OtherContractController {
         $this->fileUpload = new FileUpload('co'); 
     }
     
+    // 新規申請を保存する処理 (Store new application)
     public function store($request) {
         $data = $_POST;
         $files = $_FILES;
@@ -41,32 +42,32 @@ class OtherContractController {
             }
         }
         
-        // Memperketat validasi agar sesuai dengan Spesifikasi Dokumen Halaman 6-8 dan Halaman 18
+        // PERBAIKAN 2 & 3: Konsistensi regex kode industri & Batasan nilai untuk opsi pilihan radio
         $rules = [
             's_name' => 'required|max:100',
             's_kana' => 'required|max:100',
             's_industry' => 'required|max:50',
-            's_industry_type' => 'required|max:4',
+            's_industry_type' => 'required|regex:/^[A-T][0-9]{2}[0-9]$/',
             's_office_pcode' => 'required',
             's_office_address' => 'required|max:100',
             's_office_tel' => 'required',
-            'n_send_to' => 'required',
+            'n_send_to' => 'required|in:1,2,9',
             's_rep_name' => 'required|max:30',
             's_rep_kana' => 'required|max:30',
-            's_rep_title' => 'required',
+            's_rep_title' => 'required|in:1,2,3,4,9',
             's_rep_email' => 'required|max:100',
             'n_pre_total' => 'required',
             'n_pre_sales' => 'required',
             'n_pre_debt' => 'required',
             'n_pre_income' => 'required',
             'n_pre_workers' => 'required',
-            'n_comsumption_tax' => 'required',
-            'n_trade' => 'required',
-            'n_affiliated_company' => 'required',
+            'n_comsumption_tax' => 'required|in:1,2,3',
+            'n_trade' => 'required|in:0,1,2,3',
+            'n_affiliated_company' => 'required|in:0,1',
             'dt_contract_start' => 'required|date',
             's_incharge' => 'required',
             's_introducer' => 'required',
-            'n_introducer_type' => 'required',
+            'n_introducer_type' => 'required|in:0,1,2,3,4,9',
             's_situation' => 'required'
         ];
         
@@ -120,6 +121,7 @@ class OtherContractController {
         }
     }
 
+    // ドキュメントの詳細を取得する処理 (Retrieve document details)
     public function show($request) {
         $id = $request['params']['id'] ?? $_GET['id'] ?? null;
         

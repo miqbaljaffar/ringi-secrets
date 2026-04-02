@@ -178,8 +178,8 @@ abstract class BaseModel {
                 throw new Exception("このドキュメントを却下する権限がありません。");
             }
         } elseif ($action === 'complete') {
-             if ($document['s_confirmed'] !== $userId && $userRole < 2) { // 2 = ROLE_ADMIN
-                 throw new Exception("Tidak memiliki hak untuk menyelesaikan kontrak.");
+             if (array_key_exists('s_confirmed', $document) && $document['s_confirmed'] !== $userId && $userRole < 2) { // 2 = ROLE_ADMIN
+                 throw new Exception("このドキュメントを完了する権限がありません。");
              }
              $updateData['dt_confirmed'] = $now;
         }

@@ -14,6 +14,7 @@ class VendorController {
         $this->mailer = new Mailer(); 
     }
     
+    // 新規申請を保存する処理 (Store new application)
     public function store($request) {
         $data = $_POST;
         $files = $_FILES;
@@ -39,16 +40,17 @@ class VendorController {
             $data['s_office_pcode'] = $zip1 . $zip2;
         }
 
+        // PERBAIKAN : Batasan nilai untuk opsi pilihan radio (in:1,2,9 dll)
         $rules = [
             's_name' => 'required|max:100',
             's_kana' => 'required|max:100',
             's_office_pcode' => 'required',
             's_office_address' => 'required|max:100',
             's_office_tel' => 'required',
-            'n_send_to' => 'required',
+            'n_send_to' => 'required|in:1,2,9',
             's_rep_name' => 'required|max:30',
             's_rep_kana' => 'required|max:30',
-            's_rep_title' => 'required',
+            's_rep_title' => 'required|in:1,2,3,4,9',
             's_situation' => 'required'
         ];
         
@@ -97,6 +99,7 @@ class VendorController {
         }
     }
 
+    // ドキュメントの詳細を取得する処理 (Retrieve document details)
     public function show($request) {
         $id = $request['params']['id'];
         $doc = $this->model->find($id);

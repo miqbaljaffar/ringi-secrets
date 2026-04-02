@@ -5,6 +5,7 @@ class Common extends BaseModel {
     protected $table = 't_common';
     protected $primaryKey = 'id_doc';
     
+    // 文字列を安全に切り出す関数（マルチバイト対応） (Function to safely substring a string with multibyte support)
     public function createDocument($data) {
         try {
             $docId = $data['id_doc'] ?? IdGenerator::generate('AR', $this->table);
@@ -42,6 +43,7 @@ class Common extends BaseModel {
         }
     }
     
+    // 承認ルートを設定する関数 (Function to set approval route)
     private function setApprovalRoute($docId, $nType) {
         $userModel = new User();
         
@@ -127,8 +129,6 @@ class Common extends BaseModel {
         
         return $this->db->fetchAll($sql, $params);
     }
-    
-    // FUNGSI withdraw() DIHAPUS KARENA SUDAH DITANGANI OLEH BaseModel.php
     
     public function getStatus($document) {
         if ($document['dt_deleted'] !== null) {
