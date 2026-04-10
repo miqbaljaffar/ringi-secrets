@@ -31,15 +31,15 @@ class AuthController {
                 if (session_status() === PHP_SESSION_NONE) session_start();
                 session_regenerate_id(true);
                 
-                // 1. SSOポータル変数のシミュレーション
+                // 1. SSOポータル変数のシミュレーション (Simulate SSO portal variable)
                 $_SESSION['UID'] = $worker['id_worker'];
 
-                // 2. アプリケーション内部セッションの設定
+                // 2. アプリケーション内部セッションの設定 (Set internal application session)
                 $_SESSION['user_id'] = $worker['id_worker'];
                 $_SESSION['user_name'] = $worker['s_name'];
                 $_SESSION['user_department'] = $worker['s_department'];
                 
-                // 3. 集中ロジックを使用してロール（管理者/承認者/ユーザー）を計算
+                // 3. 集中ロジックを使用してロール（管理者/承認者/ユーザー）を計算 (Use centralized logic to calculate role)
                 $role = $userModel->calculateRole($worker['id_worker']);
                 $_SESSION['user_role'] = $role;
                 
@@ -75,7 +75,7 @@ class AuthController {
     
     // 情報取得 (Get user info)
     public function getUserInfo($request) {
-        // ユーザーデータはAuthMiddlewareによって既に注入されています
+        // ユーザーデータはAuthMiddlewareによって既に注入されています (User data is already injected by AuthMiddleware)
         if (isset($request['user'])) {
             return [
                 'success' => true,
@@ -103,6 +103,57 @@ class AuthController {
         } catch (Exception $e) {
             http_response_code(500);
             return ['success' => false, 'error' => 'ユーザーデータの取得に失敗しました'];
+        }
+    }
+
+    // 承認ルートの取得 (Get Approval Route) 
+    public function getApprovalRoute($request) {
+        try {
+            $type = $_GET['type'] ?? 1; // 1: 部課 (Department), 2: 委員会 (Committee)
+            $docCategoryMap = [
+                1 => 5, 
+                2 => 6
+            ];
+            $targetCategory = $docCategoryMap[$type] ?? 5;
+            
+            $userModel = $this->getUserModel();
+            $approvers = $userModel->getApprovers($targetCategory);
+            
+            $formattedApprovers = [];
+            
+            if (!empty($approvers) && isset($approvers[0])) {
+                $appData = $approvers[0];
+                
+                // Fetch Data Approver 1
+                if (!empty($appData['s_approved_1'])) {
+                    $user1 = $userModel->findByEmployeeId($appData['s_approved_1']);
+                    if ($user1) {
+                        $formattedApprovers[] = [
+                            'id' => $user1['id_worker'],
+                            'name' => $user1['s_name'],
+                            'role' => $user1['s_post'] ?? '役職なし'
+                        ];
+                    }
+                }
+                
+                // Fetch Data Approver 2
+                if (!empty($appData['s_approved_2'])) {
+                    $user2 = $userModel->findByEmployeeId($appData['s_approved_2']);
+                    if ($user2) {
+                        $formattedApprovers[] = [
+                            'id' => $user2['id_worker'],
+                            'name' => $user2['s_name'],
+                            'role' => $user2['s_post'] ?? '役職なし'
+                        ];
+                    }
+                }
+            }
+            
+            return ['success' => true, 'data' => $formattedApprovers];
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            return ['success' => false, 'error' => '承認ルートの取得に失敗しました'];
         }
     }
 }

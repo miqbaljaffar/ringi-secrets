@@ -5,6 +5,7 @@ class Vendor extends BaseModel {
     protected $table = 't_vendors';
     protected $primaryKey = 'id_doc';
     
+    // ドキュメントを作成するメソッド (Method to create a document)
     public function createDocument($data) {
         
         try {
@@ -30,7 +31,7 @@ class Vendor extends BaseModel {
                 's_rep_kana' => $data['s_rep_kana'] ?? '',
                 's_rep_title' => $data['s_rep_title'] ?? 1,
                 's_rep_title_others' => $data['s_rep_title_others'] ?? '',
-                's_rep_tel' => $data['s_rep_tel'] ?? '',
+                
                 
                 's_contract_overview' => $data['s_contract_overview'] ?? '',
                 's_situation' => $data['s_situation'] ?? '',
@@ -48,10 +49,11 @@ class Vendor extends BaseModel {
             
         } catch (Exception $e) {
             error_log("Vendor Insert Error: " . $e->getMessage());
-            throw $e; // Lempar ke Controller
+            throw $e; 
         }
     }
 
+    // ファイルを保存するメソッド (Save file method)
     private function setApprovalRoute($docId) {
         $userModel = new User();
         $approvers = $userModel->getApprovers(5); 

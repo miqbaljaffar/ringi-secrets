@@ -30,8 +30,6 @@ class SearchController {
             $subQueries = [];
 
             $isAllTab = ($tab === 'all');
-
-            // --- サブクエリの構築 (Build subqueries) ---
             
             // 1. 通常稟議 (Common / AR) - Menambahkan total_amount
             if (empty($type) || $type === 'common') {
@@ -215,7 +213,8 @@ class SearchController {
                     $params[':uid2'] = $userId;
                     break;
                 case 'approved':
-                    $whereClauses[] = "u.dt_approved_2 IS NOT NULL AND u.dt_deleted IS NULL";
+                    // PERBAIKAN BUG #2: Menambahkan toleransi jika s_approved_2 NULL dan dt_approved_1 sudah diisi
+                    $whereClauses[] = "(u.dt_approved_2 IS NOT NULL OR (u.dt_approved_1 IS NOT NULL AND u.s_approved_2 IS NULL)) AND u.dt_deleted IS NULL";
                     break;
                 case 'rejected':
                     $whereClauses[] = "(u.dt_rejected IS NOT NULL OR u.dt_deleted IS NOT NULL)";
@@ -261,10 +260,12 @@ class SearchController {
             $rows = $this->db->fetchAll($mainSql, $params);
 
             $formattedData = array_map(function($row) use ($userId) {
+                // ステータスの計算 (Calculate status)
                 $status = 'pending';
                 if ($row['dt_deleted']) $status = 'withdrawn';
                 elseif ($row['dt_rejected']) $status = 'rejected';
-                elseif ($row['dt_approved_2']) $status = 'approved';
+                // PERBAIKAN BUG : Menambahkan status 'approved' jika dt_approved_1 sudah diisi dan s_approved_2 masih kosong
+                elseif ($row['dt_approved_2'] || ($row['dt_approved_1'] && empty($row['s_approved_2']))) $status = 'approved';
                 elseif ($row['dt_approved_1']) $status = 'pending_second';
 
                 return [
@@ -278,7 +279,7 @@ class SearchController {
                     'dt_approved_1' => $row['dt_approved_1'],
                     'dt_approved_2' => $row['dt_approved_2'],
                     'dt_rejected' => $row['dt_rejected'],
-                    'total_amount' => $row['total_amount'] ?? 0, // Mengambil properti total
+                    'total_amount' => $row['total_amount'] ?? 0,
                     'status_code' => $status,
                     'is_my_approval' => ($row['s_approved_1'] == $userId && !$row['dt_approved_1']) || 
                                         ($row['s_approved_2'] == $userId && !$row['dt_approved_2'])

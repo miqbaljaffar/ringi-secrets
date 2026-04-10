@@ -45,7 +45,7 @@ class DetailHandler {
             if (response.success) {
                 this.data = response.data;
                 this.renderData();
-                this.renderAttachments(); // Render File Lampiran
+                this.renderAttachments(); 
                 this.renderMemo(); 
                 this.renderApprovalRoute();
                 this.setupPermissions();
@@ -68,21 +68,17 @@ class DetailHandler {
     renderData() {
         const d = this.data;
         
-        // Header Umum
         $('#lbl_id').text(d.id_doc);
         $('#lbl_applicant').text(d.applicant_info ? d.applicant_info.s_name : (d.applicant_name || d.s_applied || '-'));
         $('#lbl_date').text(d.ts_applied ? new Date(d.ts_applied).toLocaleDateString('ja-JP') : '-');
         
-        // Render Spesifik Berdasarkan Tipe Dokumen
         if (this.docType === 'tax') {
             $('#tax-section').show();
-            // ... (Kode render detail Tax tetap sama seperti sebelumnya) ...
             $('#tax_n_type').text(d.n_type == '1' ? '法人 (Corporate)' : '個人 (Individual)');
             $('#tax_s_name').text(d.s_name || '-');
             $('#tax_s_kana').text(d.s_kana || '-');
             $('#tax_s_rep_name').text(d.s_rep_name || '-');
             $('#tax_s_office_address').text(d.s_office_address || '-');
-            // dst...
         } 
         else if (this.docType === 'common') {
             $('#common-section').show();
@@ -101,7 +97,6 @@ class DetailHandler {
             }
         }
         else if (this.docType === 'vendor' || this.docType === 'others') {
-            // PERBAIKAN 3: Fallback untuk Vendor & Other agar data tidak kosong
             let html = `<div class="p-3 border rounded bg-light mb-4">
                             <h5 class="text-primary border-bottom pb-2">取引先・その他基本情報</h5>
                             <table class="table table-sm table-bordered mt-3">
@@ -115,7 +110,6 @@ class DetailHandler {
             $('#detail-content').prepend(html);
         }
         
-        // Logika Stempel
         if (d.dt_deleted) {
             $('#stamp-withdrawn').show();
         } else if (d.dt_rejected) {
@@ -125,12 +119,10 @@ class DetailHandler {
         }
     }
 
-    // PERBAIKAN 2: Render File Lampiran
     renderAttachments() {
         const d = this.data;
         const files = [];
 
-        // Mengumpulkan semua field file yang mungkin ada di berbagai tabel
         if (d.s_file_path) files.push({ name: d.s_file || '添付書類 (通常)', path: d.s_file_path });
         if (d.s_file_estimate_path) files.push({ name: '見積書', path: d.s_file_estimate_path });
         if (d.s_file_others_path) files.push({ name: 'その他資料', path: d.s_file_others_path });
@@ -138,12 +130,10 @@ class DetailHandler {
         if (files.length > 0) {
             let fileHtml = '<div class="mt-4 mb-4 p-3 border rounded"><h5><i class="fas fa-paperclip"></i> 添付書類</h5><ul class="list-unstyled mt-2">';
             files.forEach(f => {
-                // Asumsi Backend mengembalikan path file yang bisa diakses
                 fileHtml += `<li class="mb-2"><a href="${ringiSystem.baseUrl}/../${f.path}" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="fas fa-file-pdf text-danger"></i> ${f.name} を表示</a></li>`;
             });
             fileHtml += '</ul></div>';
             
-            // Masukkan sebelum Memo
             if ($('#memo-section').length) {
                 $('#memo-section').before(fileHtml);
             } else {
@@ -245,7 +235,7 @@ class DetailHandler {
         const d = this.data;
         const uid = String(this.currentUser.id || this.currentUser.id_worker); 
 
-        // 1. Logika untuk Approver
+        // 1. Approver Logic
         let canApprove = false;
         const isApp1Turn = (String(d.s_approved_1) === uid && !d.dt_approved_1);
         const isApp2Turn = (String(d.s_approved_2) === uid && d.dt_approved_1 && !d.dt_approved_2); 
@@ -259,23 +249,48 @@ class DetailHandler {
         if (canApprove) $('.action-approval').show(); 
         else $('.action-approval').hide();
 
-        // PERBAIKAN 1: Logika "Tarik Pengajuan / Withdraw" untuk Applicant
-        // Syarat: User adalah pembuat dokumen, dan dokumen belum disetujui sama sekali & belum ditolak/ditarik
+        // 2. Applicant Logic (Withdraw & Tehai Kanryou)
         const isApplicant = (String(d.s_applied) === uid);
         const canWithdraw = isApplicant && !d.dt_approved_1 && !d.dt_rejected && !d.dt_deleted;
+        const isFullyApproved = d.dt_approved_1 && (!d.s_approved_2 || d.dt_approved_2);
         
+        // Withdraw Button
         if (canWithdraw) {
             if ($('#btn-withdraw').length === 0) {
-                // Tambahkan tombol secara dinamis di sebelah tombol setuju/tolak jika belum ada
-                const withdrawBtn = `<button id="btn-withdraw" class="btn btn-secondary mr-2"><i class="fas fa-undo"></i> 申請を取下げる (Withdraw)</button>`;
-                $('.btn-area').prepend(withdrawBtn);
+                $('.btn-area').prepend(`<button id="btn-withdraw" class="btn btn-secondary mr-2"><i class="fas fa-undo"></i> 申請を取下げる (Withdraw)</button>`);
             }
             $('#btn-withdraw').show();
         } else {
             $('#btn-withdraw').hide();
         }
 
-        // 3. Logika untuk Admin (Memo)
+        // PERBAIKAN: Tehai Kanryou (Arrangement Complete) Button
+        if (isApplicant && isFullyApproved && !d.dt_confirmed && !d.dt_rejected && !d.dt_deleted) {
+            if ($('#btn-tehai').length === 0) {
+                $('.btn-area').prepend(`<button type="button" id="btn-tehai" class="btn btn-success mr-2"><i class="fas fa-check-circle"></i> 手配完了</button>`);
+            }
+            $('#btn-tehai').show();
+        } else {
+            $('#btn-tehai').hide();
+        }
+
+        // PERBAIKAN: Contract Receiver (Admin 0036) Confirm/Remand Buttons
+        const isContractReceiver = (uid === '0036');
+        const isReadyForConfirm = (this.docType !== 'common' && isFullyApproved && !d.dt_confirmed && !d.dt_rejected && !d.dt_deleted);
+
+        if (isContractReceiver && isReadyForConfirm) {
+            if ($('#btn-confirm').length === 0) {
+                $('.btn-area').prepend(`
+                    <button type="button" id="btn-remand" class="btn btn-warning mr-2"><i class="fas fa-undo"></i> 差戻し (Remand)</button>
+                    <button type="button" id="btn-confirm" class="btn btn-info mr-2"><i class="fas fa-check-double"></i> 確認 (Confirm)</button>
+                `);
+            }
+            $('#btn-confirm, #btn-remand').show();
+        } else {
+            $('#btn-confirm, #btn-remand').hide();
+        }
+
+        // 3. Admin (Memo) Logic
         const isAdmin = (this.currentUser.role >= 2 || uid === '0036');
         if (isAdmin) {
             $('#memo-edit-mode').show();
@@ -296,9 +311,21 @@ class DetailHandler {
             self.processAction('reject', 'この稟議を否認しますか？');
         });
         
-        // Event listener untuk tombol Withdraw yang baru ditambahkan
         $(document).on('click', '#btn-withdraw', function() {
             self.processAction('withdraw', '本当にこの申請を取り下げますか？（この操作は取り消せません）');
+        });
+
+        // Event listener tambahan untuk Tehai, Confirm, dan Remand
+        $(document).on('click', '#btn-tehai', function() {
+            self.processAction('tehai', '手配完了として登録しますか？');
+        });
+
+        $(document).on('click', '#btn-confirm', function() {
+            self.processAction('confirm', 'この契約を受付確認しますか？');
+        });
+
+        $(document).on('click', '#btn-remand', function() {
+            self.processAction('remand', 'この申請を差戻しますか？');
         });
 
         $(document).on('click', '#btn-update-memo', function() {
@@ -310,12 +337,15 @@ class DetailHandler {
         if (!confirm(confirmMsg)) return;
 
         try {
-            // Jika action withdraw, endpoint-nya biasanya beda atau mem-passing status 'deleted'
             const payload = { doc_id: this.id, action: action, comment: '' };
             const response = await ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/approve`, payload);
 
             if (response.success) {
-                const successMsg = action === 'withdraw' ? '申請を取り下げました。' : '処理が完了しました。';
+                let successMsg = '処理が完了しました。';
+                if (action === 'withdraw') successMsg = '申請を取り下げました。';
+                if (action === 'tehai') successMsg = '手配完了として登録しました。';
+                if (action === 'remand') successMsg = '差戻し処理が完了しました。';
+                
                 ringiSystem.showNotification(successMsg, 'success');
                 setTimeout(() => location.reload(), 1500);
             } else {

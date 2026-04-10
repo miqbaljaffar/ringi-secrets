@@ -29,7 +29,8 @@ class FileUpload {
             throw new Exception("設定エラー: UPLOAD_PATHが定義されていません。");
         }
 
-        $targetDir = $this->basePath . '/' . $this->subDirectory . '/' . $docId;
+        // ファイル名を安全に処理し、保存先のディレクトリを作成 (Sanitize file name and create target directory)
+        $targetDir = $this->basePath . '/' . $this->subDirectory . '/' . strtolower($docId);
         
         if (!file_exists($targetDir)) {
             if (!mkdir($targetDir, 0755, true)) {
@@ -42,11 +43,11 @@ class FileUpload {
         if ($customName) {
             $filename = $customName . '.' . $extension;
         } else {
-            // PERBAIKAN : Potong nama file untuk mencegah Data Too Long Error di database
+            // ファイル名を安全に処理し、拡張子を保持して保存 (Sanitize file name, keep extension for saving)
             $nameWithoutExt = pathinfo($file['name'], PATHINFO_FILENAME);
             $cleanName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nameWithoutExt);
             
-            // Potong menjadi maksimal 35 karakter + timestamp (10 karakter) + '.' + ekstensi(3 karakter) = Aman < 50 karakter
+            // ファイル名を35文字に制限し、タイムスタンプと拡張子を追加 (Limit file name to 35 characters, add timestamp and extension)
             $shortName = substr($cleanName, 0, 35); 
             $filename = $shortName . '_' . time() . '.' . $extension;
         }
@@ -109,4 +110,3 @@ class FileUpload {
         }
     }
 }
-?>

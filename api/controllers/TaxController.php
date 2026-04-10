@@ -27,6 +27,11 @@ class TaxController {
                 $data = $_POST;
             }
 
+            // s_booksが配列の場合はカンマ区切りの文字列に変換 (Convert s_books array to comma-separated string if it's an array)
+            if (isset($data['s_books']) && is_array($data['s_books'])) {
+                $data['s_books'] = implode(',', $data['s_books']);
+            }
+
             $tel1 = $data['tel1'] ?? '';
             $tel2 = $data['tel2'] ?? '';
             $tel3 = $data['tel3'] ?? '';
@@ -36,7 +41,6 @@ class TaxController {
                 $data['s_office_tel'] = $data['s_office_tel'] ?? '';
             }
 
-            // Parsing telepon perwakilan (representative)
             $rep_tel1 = $data['rep_tel1'] ?? '';
             $rep_tel2 = $data['rep_tel2'] ?? '';
             $rep_tel3 = $data['rep_tel3'] ?? '';
@@ -46,7 +50,7 @@ class TaxController {
                 $data['s_rep_tel'] = $data['s_rep_tel'] ?? '';
             }
             
-            // PERBAIKAN : Field Mandatory & Validasi pilihan (radio button)
+            // PERBAIKAN BUG : Menambahkan validasi max length untuk Password Pajak
             $rules = [
                 'n_type' => 'required|in:1,2',
                 's_name' => 'required|max:100',
@@ -64,7 +68,8 @@ class TaxController {
                 'n_pre_debt' => 'required',
                 'n_pre_income' => 'required',
                 'n_pre_workers' => 'required',
-                // Validasi rentang nilai untuk boolean-like
+                's_national_tax_pw' => 'max:50', // Validasi keamanan batas varchar
+                's_local_tax_pw' => 'max:16',    // Validasi keamanan batas varchar
                 'n_tax_place' => 'in:1,2',
                 'n_send_to' => 'in:1,2,9',
                 'n_e_filing' => 'in:1,2',
@@ -78,25 +83,24 @@ class TaxController {
                 'n_introducer_type' => 'in:0,1,2,3,4,9'
             ];
             
-            // Validasi Kondisional Khusus Korporat/Badan (n_type = 1)
             if (isset($data['n_type']) && $data['n_type'] == 1) {
                 $rules['dt_establishment'] = 'required|date';
                 $rules['n_capital'] = 'required';
                 $rules['n_before'] = 'required';
-                // PERBAIKAN : Validasi bulan (1-12)
                 $rules['n_closing_month'] = 'required|in:1,2,3,4,5,6,7,8,9,10,11,12'; 
             }
 
             $validation = $this->validator->validate($data, $rules);
             if (!$validation['valid']) {
-                $this->taxModel->rollback(); // Batalkan TX jika validasi gagal
+                $this->taxModel->rollback(); 
                 http_response_code(API_BAD_REQUEST);
                 return ['success' => false, 'errors' => $validation['errors'], 'message' => 'バリデーションに失敗しました'];
             }
             
             $data['s_applied'] = $request['user']['id'] ?? '0000';
             
-            $moneyFields = ['n_capital', 'n_pre_total', 'n_pre_sales', 'n_pre_debt', 'n_pre_income', 'n_rewards_tax', 'n_rewards_account'];
+            // PERBAIKAN BUG : Menambahkan 'n_rewards_yearly' agar bersih dari karakter koma ribuan
+            $moneyFields = ['n_capital', 'n_pre_total', 'n_pre_sales', 'n_pre_debt', 'n_pre_income', 'n_rewards_tax', 'n_rewards_account', 'n_rewards_yearly'];
             foreach($moneyFields as $field) {
                 if(isset($data[$field])) {
                     $data[$field] = str_replace(',', '', $data[$field]);
@@ -123,7 +127,6 @@ class TaxController {
                 );
             }
 
-            // TRANSAKSI SELESAI, COMMIT KE DB
             $this->taxModel->commit();
 
             return [
@@ -138,9 +141,8 @@ class TaxController {
             return ['success' => false, 'error' => 'サーバーエラー: ' . $e->getMessage()];
         }
     }
-    
 
-    // ドキュメントの詳細を取得する処理 (Retrieve document details)
+    // 申請の詳細を取得する処理 (Get application details)
     public function show($request) {
         $id = $request['params']['id'] ?? $_GET['id'] ?? null;
         if (!$id) { 

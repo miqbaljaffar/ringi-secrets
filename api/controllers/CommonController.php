@@ -143,9 +143,19 @@ class CommonController {
             $docId = IdGenerator::generate('AR', 't_common');
             $data['id_doc'] = $docId;
             
+            // ファイルがアップロードされている場合の処理 (Handle file upload if a file is provided)
             if (!empty($files['attachment']) && $files['attachment']['error'] === UPLOAD_ERR_OK) {
                 $filename = $this->fileUpload->save($files['attachment'], $docId);
-                $data['s_file'] = $filename;
+                $fileType = $data['s_file'] ?? '';
+                
+                // ファイル名とタイプを組み合わせて50文字に制限 (Combine file name and type, limit to 50 characters)
+                $combinedName = $fileType ? $fileType . '|' . $filename : $filename;
+                
+                if (function_exists('mb_substr')) {
+                    $data['s_file'] = mb_substr($combinedName, 0, 50);
+                } else {
+                    $data['s_file'] = substr($combinedName, 0, 50);
+                }
             }
 
             if (is_string($data['details'])) {
@@ -322,7 +332,6 @@ class CommonController {
                         $approverName,
                         $data['comment'] ?? ''
                     );
-                // PERBAIKAN : Notifikasi Email Saat Dokumen Complete/Diterima
                 } elseif ($data['action'] === 'complete') {
                     $this->mailer->sendResultNotification(
                         $docId,

@@ -26,21 +26,12 @@ class VendorController {
             $data['s_office_tel'] = $tel1 . '-' . $tel2 . '-' . $tel3;
         }
 
-        // Parsing telepon perwakilan (representative)
-        $rep_tel1 = $data['rep_tel1'] ?? '';
-        $rep_tel2 = $data['rep_tel2'] ?? '';
-        $rep_tel3 = $data['rep_tel3'] ?? '';
-        if (!empty($rep_tel1) || !empty($rep_tel2) || !empty($rep_tel3)) {
-            $data['s_rep_tel'] = $rep_tel1 . '-' . $rep_tel2 . '-' . $rep_tel3;
-        }
-
         $zip1 = $data['zip1'] ?? '';
         $zip2 = $data['zip2'] ?? '';
         if (empty($data['s_office_pcode']) && (!empty($zip1) || !empty($zip2))) {
             $data['s_office_pcode'] = $zip1 . $zip2;
         }
 
-        // PERBAIKAN : Batasan nilai untuk opsi pilihan radio (in:1,2,9 dll)
         $rules = [
             's_name' => 'required|max:100',
             's_kana' => 'required|max:100',
@@ -62,7 +53,6 @@ class VendorController {
         }
         
         try {
-            // MULAI TRANSAKSI
             $this->model->beginTransaction();
 
             $data['s_applied'] = $request['user']['id'];

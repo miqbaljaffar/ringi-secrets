@@ -62,7 +62,8 @@
                         <span style="font-size: 13px;">西暦:</span>
                         <input type="date" name="dt_establishment" id="dt_est_seireki" required>
                         <span style="font-size: 13px; margin-left: 10px;">和暦:</span>
-                        <input type="text" id="dt_est_wareki" class="input-mid wareki-input" placeholder="自動入力 (例:令和5年...)" readonly style="background-color: #f5f5f5;">
+                        <!-- PERBAIKAN: Dihilangkan atribut readonly dan background color agar dapat di-input -->
+                        <input type="text" id="dt_est_wareki" class="input-mid wareki-input" placeholder="例: 令和5年10月1日">
                     </div>
                 </div>
 
@@ -155,6 +156,7 @@
             <div class="form-group">
                 <label class="form-label required">納税No</label>
                 <div class="form-control-wrapper">
+                    <!-- Sesuai konfirmasi, menggunakan type=text -->
                     <input type="text" name="s_tax_num" maxlength="8" pattern="\d{8}" title="数値8桁で入力してください" placeholder="数値8桁" required>
                 </div>
             </div>
@@ -242,7 +244,8 @@
                     <span style="font-size: 13px;">西暦:</span>
                     <input type="date" name="dt_rep_birth" id="dt_birth_seireki" required>
                     <span style="font-size: 13px; margin-left: 10px;">和暦:</span>
-                    <input type="text" id="dt_birth_wareki" class="input-mid wareki-input" placeholder="自動入力" readonly style="background-color: #f5f5f5;">
+                    <!-- PERBAIKAN: Hapus readonly agar mendukung 2 arah -->
+                    <input type="text" id="dt_birth_wareki" class="input-mid wareki-input" placeholder="例: 昭和50年1月1日">
                 </div>
             </div>
 
@@ -291,28 +294,24 @@
             <div class="form-group">
                  <label class="form-label">国税利用者識別番号</label>
                  <div class="form-control-wrapper">
-                     <!-- PERBAIKAN: Validasi Pola Regex (Halaman 16) -->
                      <input type="text" name="s_national_tax_id" class="input-mid" maxlength="16" pattern="\d{16}" title="数値16桁で入力してください" placeholder="数値16桁">
                  </div>
             </div>
             <div class="form-group">
                  <label class="form-label">国税暗証番号</label>
                  <div class="form-control-wrapper">
-                     <!-- PERBAIKAN: Validasi Pola Regex (Halaman 16) -->
                      <input type="text" name="s_national_tax_pw" class="input-mid" pattern="[A-Za-z0-9]{8,50}" title="英数字8~50桁で入力してください" placeholder="英数字8~50桁" maxlength="50">
                  </div>
             </div>
             <div class="form-group">
                 <label class="form-label">地方税利用者ID</label>
                 <div class="form-control-wrapper">
-                    <!-- PERBAIKAN: Validasi Pola Regex (Halaman 16) "英3桁+数値8桁固定" -->
                     <input type="text" name="s_local_tax_id" class="input-mid" maxlength="11" pattern="[A-Za-z]{3}\d{8}" title="英3桁+数値8桁で入力してください" placeholder="英3桁+数値8桁">
                 </div>
            </div>
            <div class="form-group">
                 <label class="form-label">地方税暗証番号</label>
                 <div class="form-control-wrapper">
-                    <!-- PERBAIKAN: Validasi Pola Regex (Halaman 16) -->
                     <input type="text" name="s_local_tax_pw" class="input-mid" pattern="[A-Za-z0-9]{8,16}" title="英数字8~16桁で入力してください" placeholder="英数字8~16桁" maxlength="16">
                 </div>
            </div>
@@ -457,7 +456,8 @@
                     <span style="font-size: 13px;">西暦:</span>
                     <input type="date" name="dt_contract_start" id="dt_start_seireki" required>
                     <span style="font-size: 13px; margin-left: 10px;">和暦:</span>
-                    <input type="text" id="dt_start_wareki" class="input-mid wareki-input" placeholder="自動入力" readonly style="background-color: #f5f5f5;">
+                    <!-- PERBAIKAN: Hapus readonly -->
+                    <input type="text" id="dt_start_wareki" class="input-mid wareki-input" placeholder="例: 令和5年10月1日">
                 </div>
             </div>
             
@@ -472,12 +472,13 @@
                     <div class="pre-accountant-group" style="margin-top: 10px; width: 100%;">
                         <input type="text" name="s_pre_accountant" placeholder="前関与事務所名" style="margin-bottom:5px; width: 100%;" maxlength="50">
                         <div class="flex-row">
-                            <select name="n_pre_account_type" class="input-mid">
-                                <option value="1">毎月</option>
-                                <option value="2">隔月(2)</option>
-                                <option value="3">隔月(3)</option>
-                                <option value="4">年一</option>
-                            </select>
+                            <!-- PERBAIKAN: Berubah dari select menjadi radio untuk sesuai spesifikasi -->
+                            <label><input type="radio" name="n_pre_account_type" value="1" checked> 毎月</label>
+                            <label><input type="radio" name="n_pre_account_type" value="2"> 隔月(2)</label>
+                            <label><input type="radio" name="n_pre_account_type" value="3"> 隔月(3)</label>
+                            <label><input type="radio" name="n_pre_account_type" value="4"> 年一</label>
+                        </div>
+                        <div class="flex-row" style="margin-top:5px;">
                             <input type="text" name="n_rewards_account" placeholder="前報酬(会計)" class="money-input input-mid text-right">
                             <input type="text" name="n_rewards_tax" placeholder="前報酬(税務)" class="money-input input-mid text-right">
                             <input type="text" name="n_rewards_yearly" placeholder="年間報酬" class="money-input input-mid text-right">

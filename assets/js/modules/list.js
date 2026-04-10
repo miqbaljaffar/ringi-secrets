@@ -70,7 +70,6 @@ class ListHandler {
             }
         });
 
-        // PERBAIKAN 1: Dinamika Placeholder Keyword & Toggle Filter Khusus
         $('input[name="form_type"]').on('change', function() {
             const type = $(this).val();
             if(type === 'common') {
@@ -85,7 +84,6 @@ class ListHandler {
             }
         });
         
-        // Trigger saat halaman di-load
         setTimeout(() => $('input[name="form_type"]:checked').trigger('change'), 100);
     }
 
@@ -94,7 +92,6 @@ class ListHandler {
         this.filters.date_start = $('input[name="date_start"]').val() || '';
         this.filters.date_end = $('input[name="date_end"]').val() || '';
         
-        // PERBAIKAN 1: Ambil nilai dari Radio Button
         const typeRadio = $('input[name="form_type"]:checked').val();
         this.filters.form_type = typeRadio || '';
 
@@ -109,6 +106,12 @@ class ListHandler {
         this.$empty.hide();
 
         try {
+            // PERBAIKAN: Tambahkan Sort Order Parameter
+            let sortOrder = 'asc';
+            if (this.currentTab === 'approved' || this.currentTab === 'rejected') {
+                sortOrder = 'desc'; // Berdasarkan spesifikasi: yang sudah selesai diurutkan terbaru ke terlama
+            }
+
             const params = new URLSearchParams({
                 tab: this.currentTab,
                 keyword: this.filters.keyword,
@@ -116,7 +119,8 @@ class ListHandler {
                 date_start: this.filters.date_start,
                 date_end: this.filters.date_end,
                 n_category: this.filters.n_category,
-                payer: this.filters.payer
+                payer: this.filters.payer,
+                sort: sortOrder // Inject Sort
             });
 
             const response = await ringiSystem.apiRequest('GET', `search?${params.toString()}`);
@@ -209,7 +213,7 @@ class ListHandler {
         const typeFilter = this.filters.form_type;
 
         const htmlPC = data.map(doc => {
-            const formName = this.mapTypeToName(doc.type, doc); // PERBAIKAN 3: Parsing doc ke mapper
+            const formName = this.mapTypeToName(doc.type, doc);
             const statusCode = this.getStatusCode(doc);
             const statusText = this.mapStatusText(statusCode);
             const dateStr = this.formatDateDot(doc.ts_applied);
@@ -259,7 +263,7 @@ class ListHandler {
         }).join('');
 
         const htmlSP = data.map(doc => {
-            const formName = this.mapTypeToName(doc.type, doc); // PERBAIKAN 3: Badge Dinamis di Mobile
+            const formName = this.mapTypeToName(doc.type, doc);
             const statusCode = this.getStatusCode(doc);
             const statusText = this.mapStatusText(statusCode);
             const dateStr = this.formatDateDot(doc.ts_applied);
@@ -315,7 +319,6 @@ class ListHandler {
         }
     }
 
-    // PERBAIKAN 3: Pengecekan Kategori Detail Berdasarkan Spesifikasi
     mapTypeToName(type, doc = null) {
         if (type === 'common') {
             return (doc && doc.s_category_name) ? doc.s_category_name : '通常稟議';

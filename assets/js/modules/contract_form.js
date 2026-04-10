@@ -18,7 +18,6 @@ class ContractFormHandler {
     bindEvents() {
         const self = this;
 
-        // 1. Submit & Draft Actions
         $(this.form).on('submit', function(e) {
             e.preventDefault();
             self.handleSubmit('apply');
@@ -29,7 +28,6 @@ class ContractFormHandler {
             self.handleSubmit('draft');
         });
 
-        // 2. Format Input Uang (Comma Separator)
         $(document).on('blur', '.money-input', function() {
             let val = $(this).val().replace(/,/g, '');
             if (!isNaN(val) && val !== '') {
@@ -42,7 +40,6 @@ class ContractFormHandler {
             $(this).val(val);
         });
 
-        // 3. Toggles Radio/Checkbox
         $('input[name="n_type"]').on('change', () => this.toggleCorporateFields());
         
         $('input[name="n_send_to"]').on('change', function() {
@@ -103,15 +100,12 @@ class ContractFormHandler {
             }
         });
 
-        // Logika Auto-fill sesuai Dokumen Spesifikasi Hal 17
-        // "紹介者区分「なし」の場合「なし」と自動表示"
         $('select[name="n_introducer_type"]').on('change', function() {
             const val = $(this).val();
             if (val === '0') {
                 $('input[name="s_introducer"]').val('なし');
             }
             
-            // Tampilkan input tambahan jika memilih 'その他' (9)
             if (val === '9') {
                 $('#introducer_type_others').show().prop('required', true);
             } else {
@@ -119,7 +113,6 @@ class ContractFormHandler {
             }
         });
 
-        // 4. Address Search (AjaxZip3)
         $('.btn-address-search').on('click', function() {
             const target = $(this).data('target');
             if (target === 'office') {
@@ -129,12 +122,10 @@ class ContractFormHandler {
             }
         });
 
-        // 5. Validasi Upload File Peringatan Invoice
         $('input[type="file"]').on('change', function(e) {
             self.handleFileUpload(e);
         });
 
-        // Hitung/Ubah otomatis dari Seireki ke Wareki (Opsional/Sederhana)
         $('#dt_est_seireki').on('change', function() {
             $('#dt_est_wareki').val(self.convertToWareki($(this).val()));
         });
@@ -143,6 +134,16 @@ class ContractFormHandler {
         });
         $('#dt_start_seireki').on('change', function() {
             $('#dt_start_wareki').val(self.convertToWareki($(this).val()));
+        });
+
+        $('#dt_est_wareki').on('change blur', function() {
+            $('#dt_est_seireki').val(self.parseWarekiToSeireki($(this).val()));
+        });
+        $('#dt_birth_wareki').on('change blur', function() {
+            $('#dt_birth_seireki').val(self.parseWarekiToSeireki($(this).val()));
+        });
+        $('#dt_start_wareki').on('change blur', function() {
+            $('#dt_start_seireki').val(self.parseWarekiToSeireki($(this).val()));
         });
     }
 
@@ -170,7 +171,6 @@ class ContractFormHandler {
         const today = new Date().toISOString().split('T')[0];
         $('#applied_date').val(today);
         
-        // Mock data PIC untuk select dropdown
         const $picSelect = $('select[name="s_incharge"]');
         if ($picSelect.length && $picSelect.find('option').length <= 1) {
             $picSelect.append('<option value="1">システム管理者</option>');
@@ -190,12 +190,10 @@ class ContractFormHandler {
         const isCorporate = $('input[name="n_type"]:checked').val() === '1';
         if (isCorporate) {
             $('.corporate-only').slideDown();
-            // Buat wajib isi lagi jika corporate
             $('#dt_est_seireki').prop('required', true);
             $('select[name="n_closing_month"]').prop('required', true);
         } else {
             $('.corporate-only').slideUp();
-            // Hapus wajib isi jika individu
             $('#dt_est_seireki').prop('required', false).val('');
             $('select[name="n_closing_month"]').prop('required', false).val('');
             $('input[name="n_capital"]').val('');
@@ -226,7 +224,6 @@ class ContractFormHandler {
             return;
         }
 
-        // Peringatan Tegas (Spesifikasi: 請求書は添付しない)
         const confirmMsg = "【注意事項】\n請求書（インボイス）の添付は禁止されています。\n\nアップロードするファイルは請求書ではありませんか？";
         
         if (!window.confirm(confirmMsg)) {
@@ -251,6 +248,30 @@ class ContractFormHandler {
         }).format(d);
     }
 
+    parseWarekiToSeireki(warekiStr) {
+        if(!warekiStr) return '';
+        const match = warekiStr.match(/(令和|平成|昭和|大正|明治)([0-9０-９]+|元)年([0-9０-９]+)月([0-9０-９]+)日/);
+        if(!match) return '';
+
+        const era = match[1];
+        let yearStr = match[2] === '元' ? '1' : match[2].replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
+        let monthStr = match[3].replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
+        let dayStr = match[4].replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
+
+        let year = parseInt(yearStr);
+        const month = parseInt(monthStr);
+        const day = parseInt(dayStr);
+
+        let seirekiYear = year;
+        if (era === '令和') seirekiYear += 2018;
+        else if (era === '平成') seirekiYear += 1988;
+        else if (era === '昭和') seirekiYear += 1925;
+        else if (era === '大正') seirekiYear += 1911;
+        else if (era === '明治') seirekiYear += 1867;
+
+        return `${seirekiYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+
     validateForm() {
         const requiredFields = this.form.querySelectorAll('[required]');
         let isValid = true;
@@ -264,7 +285,6 @@ class ContractFormHandler {
             }
         });
 
-        // Validasi Pola Regex HTML5 manual trigger (jika submit di-intercept)
         if (!this.form.checkValidity()) {
             this.form.reportValidity();
             return false;
@@ -282,11 +302,9 @@ class ContractFormHandler {
             if (!this.validateForm()) return;
         }
 
-        // Kumpulkan data form
         const formData = new FormData(this.form);
         formData.append('save_mode', saveMode);
 
-        // Membersihkan koma pada input uang sebelum dikirim ke server
         $('.money-input').each(function() {
             const name = $(this).attr('name');
             if (name) {
@@ -295,25 +313,23 @@ class ContractFormHandler {
             }
         });
 
-        // Gabungkan nilai kode industri (cat1, cat2, cat3 -> s_industry_code) jika ada
         const cat1 = formData.get('cat1') || '';
         const cat2 = formData.get('cat2') || '';
         const cat3 = formData.get('cat3') || '';
         if (cat1 && cat2 && cat3) {
-            formData.append('s_industry_code', `${cat1}${cat2}${cat3}`);
+            // PERBAIKAN 3: Perbaikan nama key formData agar match dengan PHP backend (s_industry_type)
+            formData.append('s_industry_type', `${cat1}${cat2}${cat3}`);
         }
 
         try {
             ringiSystem.showNotification('送信中...', 'info');
             
-            // Endpoint menyesuaikan spesifikasi (misalnya 'tax' untuk Contract/Tax form)
             const response = await ringiSystem.apiRequest('POST', 'tax', formData, true);
             
             if (response.success) {
                 const msg = saveMode === 'draft' ? '下書き保存しました' : '申請が完了しました';
                 ringiSystem.showNotification(msg, 'success');
                 setTimeout(() => {
-                    // Redirect ke halaman detail untuk melihat hasilnya
                     window.location.href = `detail.html?id=${response.doc_id}&type=tax`;
                 }, 1500);
             } else {
@@ -326,7 +342,6 @@ class ContractFormHandler {
     }
 }
 
-// Inisialisasi
 $(document).ready(function() {
     if (document.getElementById('contract-form')) {
         window.contractFormHandler = new ContractFormHandler();

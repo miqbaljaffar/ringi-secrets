@@ -7,6 +7,8 @@ class OtherFormHandler {
     init() {
         if (!this.form) return;
 
+        // PERBAIKAN: Fungsi Generate Document Number dipanggil
+        this.generateDocumentNumber();
         this.setDefaultValues();
         this.loadEmployees();
         this.bindEvents();
@@ -14,6 +16,17 @@ class OtherFormHandler {
         if ($.fn.autoKana) {
             $.fn.autoKana('#s_name', '#s_kana', { katakana: true });
         }
+    }
+
+    // PERBAIKAN: Fungsi pen-generate Nomor ID Dokumen (Prefix CO) ditambahkan
+    generateDocumentNumber() {
+        const now = new Date();
+        const yymmdd = now.getFullYear().toString().slice(-2) +
+                     ('0' + (now.getMonth() + 1)).slice(-2) +
+                     ('0' + now.getDate()).slice(-2);
+        
+        const docIdEl = document.getElementById('id_doc'); 
+        if (docIdEl) docIdEl.value = `CO${yymmdd}..`;
     }
 
     setDefaultValues() {
@@ -63,13 +76,11 @@ class OtherFormHandler {
     }
 
     bindEvents() {
-        // --- MODIFIKASI: Event Listener Apply ---
         this.form.addEventListener('submit', (e) => {
             e.preventDefault();
             this.handleSubmit('apply');
         });
 
-        // --- MODIFIKASI: Event Listener Draft ---
         const draftBtn = document.getElementById('btn-save-draft');
         if(draftBtn) {
             draftBtn.addEventListener('click', (e) => {
@@ -79,9 +90,7 @@ class OtherFormHandler {
         }
     }
 
-    // --- MODIFIKASI: Fungsi Submit Reusable ---
     async handleSubmit(saveMode) {
-        // Validasi HTML5 hanya jika apply
         if (saveMode === 'apply') {
              if (!this.form.checkValidity()) {
                 this.form.reportValidity();
@@ -92,7 +101,7 @@ class OtherFormHandler {
         this.combineFields();
 
         const formData = new FormData(this.form);
-        formData.append('save_mode', saveMode); // PENTING
+        formData.append('save_mode', saveMode); 
         
         const zip1 = formData.get('zip1') || '';
         const zip2 = formData.get('zip2') || '';

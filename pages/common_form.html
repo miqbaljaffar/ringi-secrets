@@ -54,7 +54,6 @@
                 <label class="form-label required">概要、理由</label>
                 <div class="form-control-wrapper">
                      <textarea name="s_overview" required placeholder="詳細や申請理由を記入" style="height: 100px;"></textarea>
-                     <!-- PERBAIKAN 5: Penambahan Note "品名、金額の内訳等..." -->
                      <span class="note" style="color: #dc3545;">※品名、金額の内訳等の詳細や申請理由を記入</span>
                 </div>
             </div>
@@ -62,7 +61,8 @@
 
         <h2>明細情報 (分類・支払先・金額)</h2>
         <div class="section">
-            <div id="details-container" style="background: #f8f9fa; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">
+            <!-- PERBAIKAN: Max Height & Overflow Y diterapkan agar mentok di 3.5 baris -->
+            <div id="details-container" style="background: #f8f9fa; padding: 15px; border: 1px solid #ddd; border-radius: 4px; max-height: 180px; overflow-y: auto;">
                 <!-- Baris Detail akan di-generate via JS -->
             </div>
             
@@ -74,7 +74,6 @@
                 <label class="form-label" style="font-size: 16px; font-weight: bold;">金額(総額)</label>
                 <div class="form-control-wrapper" style="flex-direction: column; align-items: flex-start;">
                     <span id="total-amount" style="font-size: 20px; font-weight: bold; color: #0056b3;">0円</span>
-                    <!-- PERBAIKAN 5: Penambahan Note "税込、毎月支払い..." -->
                     <span class="note" style="color: #dc3545; margin-top: 5px;">※税込、毎月支払いの場合は年額を記入</span>
                 </div>
             </div>
@@ -82,7 +81,6 @@
 
         <h2>添付書類</h2>
         <div class="section">
-            <!-- PERBAIKAN 4: Radio Button Jenis Lampiran -->
             <div class="form-group">
                 <label class="form-label">添付書類区分</label>
                 <div class="form-control-wrapper">
