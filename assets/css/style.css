@@ -1,20 +1,12 @@
-/* =========================================
-   1. VARIABLES & RESET
-   ========================================= */
 :root {
-    /* Warna Utama berdasarkan nuansa biru di dokumen */
-    --primary-color: #0056b3; 
-    --primary-hover: #004494;
-    --secondary-color: #6c757d;
-    --secondary-hover: #5a6268;
-    --bg-color: #f4f7f6;
+    --primary-color: #0088cc; 
+    --primary-hover: #0077b3;
+    --bg-color: #ffffff;
     --text-color: #333;
-    --border-color: #ddd;
-    --danger-color: #dc3545; /* Merah untuk error/required */
-    
-    /* Ukuran */
-    --max-width: 1200px; /* Sesuai spec */
-    --header-height: 60px;
+    --border-color: #aaa;
+    --danger-color: #e53935;
+    --readonly-bg: #e9ecef;
+    --max-width: 1000px; 
 }
 
 * {
@@ -22,70 +14,67 @@
 }
 
 body {
-    font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+    font-family: "Meiryo", "Hiragino Kaku Gothic ProN", sans-serif;
     background-color: var(--bg-color);
     color: var(--text-color);
     margin: 0;
-    padding: 0;
+    padding: 20px;
     line-height: 1.6;
-    font-size: 14px; /* Standar ukuran font aplikasi bisnis */
+    font-size: 14px;
 }
 
-/* =========================================
-   2. LAYOUT CONTAINER
-   ========================================= */
 .container {
     max-width: var(--max-width);
-    margin: 30px auto;
+    margin: 0 auto;
     background: #fff;
-    padding: 40px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    border-radius: 8px;
+    padding: 30px;
 }
 
-/* Judul Halaman */
+/* Judul Halaman - Garis Biru Panjang di bawah */
 h1 {
-    font-size: 24px;
-    color: var(--text-color);
-    border-bottom: 3px solid var(--primary-color);
-    padding-bottom: 10px;
+    font-size: 22px;
+    color: #000;
+    text-align: center;
     margin-bottom: 30px;
-}
-
-/* Judul Section (Pengelompokan Form) */
-h2 {
-    font-size: 18px;
-    background-color: #eef2f7;
-    padding: 10px 15px;
-    border-left: 5px solid var(--primary-color);
-    margin-top: 40px;
-    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 4px solid var(--primary-color);
     font-weight: bold;
 }
 
-/* =========================================
-   3. FORM STYLES (DESKTOP DEFAULT)
-   ========================================= */
-/* Wrapper baris form */
-.form-group {
-    display: flex; /* Flexbox untuk layout horizontal (Label Kiri, Input Kanan) */
-    align-items: flex-start; /* Label sejajar dengan bagian atas input */
+/* Judul Section (Bar Biru Solid) */
+h2 {
+    font-size: 15px;
+    background-color: var(--primary-color);
+    color: #fff;
+    padding: 10px 15px;
+    margin-top: 30px;
     margin-bottom: 20px;
-    border-bottom: 1px solid #f0f0f0;
-    padding-bottom: 20px;
+    font-weight: normal;
+    border-radius: 0;
 }
 
-.form-group:last-child {
-    border-bottom: none;
+.form-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 5px;
 }
 
 /* Label Form */
 .form-label {
-    width: 220px; /* Lebar tetap untuk label di PC */
+    width: 200px;
+    font-weight: normal;
+    color: #000;
+    flex-shrink: 0;
+}
+
+/* Tanda Wajib (Required) Bintang Merah */
+.required::after {
+    content: " *";
+    color: var(--danger-color);
+    font-size: 16px;
     font-weight: bold;
-    color: #444;
-    flex-shrink: 0; /* Mencegah label mengecil */
-    padding-top: 5px; /* Penyesuaian agar sejajar vertikal dengan input text */
+    margin-left: 2px;
 }
 
 /* Area Input */
@@ -94,218 +83,124 @@ h2 {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 10px; /* Jarak antar elemen input yang bersebelahan */
+    gap: 15px;
 }
 
-/* Styling Input Dasar */
+/* Styling Input Dasar - Sudut Tajam */
 input[type="text"],
 input[type="date"],
 input[type="number"],
 input[type="email"],
-input[type="password"],
 select,
 textarea {
-    padding: 10px;
+    padding: 8px 10px;
     border: 1px solid var(--border-color);
-    border-radius: 4px;
+    border-radius: 0; /* Menghilangkan rounded corners */
     width: 100%;
-    max-width: 400px; /* Batas lebar input agar tidak terlalu panjang di layar lebar */
+    max-width: 500px; 
     font-size: 14px;
-    transition: border-color 0.3s;
-}
-
-/* Efek Fokus */
-input:focus, select:focus, textarea:focus {
-    border-color: var(--primary-color);
-    outline: none;
-    box-shadow: 0 0 5px rgba(0, 86, 179, 0.2);
 }
 
 textarea {
-    height: 120px;
-    max-width: 600px; /* Textarea boleh lebih lebar */
-    resize: vertical;
+    height: 100px;
+    resize: none;
+}
+
+/* Readonly Input Styling */
+input[readonly] {
+    background-color: var(--readonly-bg) !important;
+    color: #333 !important;
+    border: 1px solid #ccc;
+    font-weight: normal !important;
 }
 
 /* Radio & Checkbox */
-.radio-group label,
-.checkbox-group label {
-    margin-right: 20px;
+.radio-group label, .form-control-wrapper label {
+    margin-right: 15px;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
 }
 
 input[type="radio"], input[type="checkbox"] {
-    margin-right: 8px;
-    transform: scale(1.1); /* Sedikit memperbesar radio button */
+    margin-right: 5px;
 }
 
-[cite_start]/* Tanda Wajib (Required) [cite: 169] */
-.required::after {
-    content: "必須"; /* Tulisan "Hisshu" (Wajib) dalam bahasa Jepang, atau gunakan "*" */
-    color: #fff;
-    background-color: var(--danger-color);
-    font-size: 10px;
-    padding: 2px 6px;
-    border-radius: 3px;
-    margin-left: 8px;
-    vertical-align: middle;
-    font-weight: normal;
-}
-
-/* Catatan Kecil */
-.note {
-    font-size: 12px;
-    color: #888;
-    margin-top: 4px;
-    display: block; /* Turun ke baris baru jika perlu */
-    width: 100%;
-}
-
-/* =========================================
-   4. BUTTONS
-   ========================================= */
-.btn-area {
-    margin-top: 50px;
-    padding-top: 20px;
-    border-top: 1px solid #ddd;
+.detail-grid-header {
+    display: flex;
+    background-color: #a0a0a0;
+    color: white;
+    font-size: 13px;
     text-align: center;
+}
+.detail-grid-header div {
+    padding: 8px;
+    border-right: 1px solid #fff;
+}
+
+.detail-row {
+    display: flex;
+    background-color: #eaf4fc;
+    margin-bottom: 5px;
+    border: 1px solid #bce0fd;
+}
+.detail-row input, .detail-row select {
+    border: none;
+    background: transparent;
+    border-right: 1px solid #ccc;
+}
+
+.btn-add-detail {
+    width: 100%;
+    background-color: #dcedf9;
+    color: var(--primary-color);
+    border: 1px solid #bce0fd;
+    padding: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-top: 5px;
+}
+.btn-add-detail:hover { background-color: #cce4f7; }
+
+.btn-area {
+    margin-top: 40px;
     display: flex;
     justify-content: center;
     gap: 20px;
 }
 
 .btn {
-    padding: 12px 40px;
+    padding: 12px 0;
+    width: 180px;
     cursor: pointer;
     border: none;
-    border-radius: 4px;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: bold;
-    transition: background-color 0.2s;
-    min-width: 150px;
+    text-align: center;
 }
 
-.btn-primary {
+.btn-gray { background-color: #999; color: white; }
+.btn-red { background-color: #e53935; color: white; }
+.btn-blue { background-color: #0088cc; color: white; }
+
+.btn:hover { opacity: 0.9; }
+
+.approval-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.approval-table th {
     background-color: var(--primary-color);
     color: white;
+    padding: 10px;
+    text-align: left;
+    font-weight: normal;
+    border-right: 1px solid #fff;
 }
-
-.btn-primary:hover {
-    background-color: var(--primary-hover);
-}
-
-.btn-secondary {
-    background-color: var(--secondary-color);
-    color: white;
-}
-
-.btn-secondary:hover {
-    background-color: var(--secondary-hover);
-}
-
-/* Tombol kecil untuk pencarian alamat dll */
-.btn-sm {
-    padding: 8px 15px;
-    font-size: 13px;
-    min-width: auto;
-}
-
-/* =========================================
-   5. STATUS WATERMARKS (STAMPS)
-   [cite_start]Untuk halaman Detail/Approval [cite: 170, 189, 202]
-   ========================================= */
-.stamp {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    border: 3px solid;
-    border-radius: 50%; /* Lingkaran */
-    width: 100px;
-    height: 100px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 24px;
-    font-weight: bold;
-    transform: rotate(-15deg);
-    opacity: 0.8;
-    pointer-events: none; /* Klik tembus ke bawah */
-    z-index: 10;
-}
-
-.stamp-approved {
-    color: var(--primary-color);
-    border-color: var(--primary-color);
-}
-.stamp-approved::after { content: "承認"; }
-
-.stamp-rejected {
-    color: var(--danger-color);
-    border-color: var(--danger-color);
-    border-radius: 10px; /* Kotak rounded untuk Reject */
-}
-.stamp-rejected::after { content: "否認"; }
-
-
-/* =========================================
-   6. MOBILE RESPONSIVE (SMARTPHONE)
-   Breakpoint: 768px (Tablet Portrait & Mobile)
-   ========================================= */
-@media screen and (max-width: 768px) {
-    
-    .container {
-        width: 100%;
-        margin: 0;
-        padding: 20px 15px; /* Mengurangi padding di HP */
-        box-shadow: none;
-        border-radius: 0;
-    }
-
-    /* Ubah Form menjadi Vertikal (Label di atas input) */
-    .form-group {
-        display: block; /* Bukan flex lagi */
-        padding-bottom: 25px;
-    }
-
-    .form-label {
-        width: 100%;
-        margin-bottom: 8px; /* Jarak antara label dan input */
-        display: block;
-    }
-
-    .form-control-wrapper {
-        width: 100%;
-        display: block; /* Input turun ke bawah */
-    }
-
-    /* Input full width di HP agar mudah ditap */
-    input[type="text"],
-    input[type="date"],
-    input[type="number"],
-    select,
-    textarea {
-        max-width: 100%; /* Full width */
-        font-size: 16px; /* Font size 16px mencegah zoom otomatis di iOS */
-        padding: 12px; /* Area tap lebih besar */
-    }
-
-    /* Penyesuaian input alamat/telpon yang berjejer */
-    .form-control-wrapper input[style*="width"] {
-        width: 30% !important; /* Memaksa input pendek jadi proporsional */
-        display: inline-block;
-        margin-right: 2px;
-    }
-    
-    /* Tombol Aksi */
-    .btn-area {
-        flex-direction: column-reverse; /* Tombol 'Batal' di bawah 'Simpan' */
-        gap: 15px;
-    }
-    
-    .btn {
-        width: 100%; /* Tombol full width */
-        padding: 15px;
-    }
+.approval-table td {
+    background-color: #eef7fd;
+    padding: 20px 10px;
+    border-right: 1px solid #fff;
 }

@@ -5,14 +5,16 @@ class ListHandler {
             keyword: '',
             date_start: '',
             date_end: '',
-            form_type: '',
+            form_type: 'common', // Default
             n_category: '', 
-            payer: ''       
+            payer: '',
+            applicant_name: '' 
         };
 
         this.$header = $('#list-header'); 
         this.$container = $('#list-container'); 
         this.$containerSP = $('#list-container-sp'); 
+        this.$pageTitle = $('#dynamic-page-title');
 
         this.$loading = $('#loading-indicator');
         this.$empty = $('#empty-state');
@@ -26,8 +28,8 @@ class ListHandler {
     }
 
     setInitialState() {
-        const today = new Date().toISOString().split('T')[0];
-        $('input[name="date_start"]').val(today);
+        // Set UI ke tipe default
+        $('input[name="form_type"][value="common"]').prop('checked', true).trigger('change');
         
         this.updateFilters();
 
@@ -63,40 +65,54 @@ class ListHandler {
             self.fetchData();
         });
 
-        $('#search-keyword').on('keypress', function(e) {
+        $('.input-text, .input-date').on('keypress', function(e) {
             if (e.which === 13) {
                 e.preventDefault();
                 $('#btn-search').click();
             }
         });
 
+        // Event saat radio button jenis dokumen berubah
         $('input[name="form_type"]').on('change', function() {
             const type = $(this).val();
+            
+            // 1. Ubah Judul Halaman
+            const titles = {
+                'common': '通常の承認一覧',
+                'tax': '税務契約稟議一覧',
+                'contract': 'その他契約稟議一覧',
+                'vendor': '取引先契約稟議一覧'
+            };
+            self.$pageTitle.text(titles[type] || '承認一覧');
+
+            // 2. Sesuaikan input pencarian
             if(type === 'common') {
-                $('#search-keyword').attr('placeholder', '件名 (Subject) 部分一致');
-                $('#common-filters').css('display', 'flex'); 
-            } else if (type === '') {
-                $('#search-keyword').attr('placeholder', '検索語 部分一致');
-                $('#common-filters').hide();
+                $('.common-only').css('display', 'flex'); // Tampilkan Kategori & Payer inline
             } else {
-                $('#search-keyword').attr('placeholder', '商号・カナ (Nama/Kana) 部分一致');
-                $('#common-filters').hide();
+                $('.common-only').hide(); // Sembunyikan untuk selain reguler
+                $('select[name="n_category"]').val('');
+                $('input[name="payer"]').val('');
             }
+
+            // 3. Update Link Tombol Buat Baru (Optional enhancement)
+            let createLink = 'contract_form.html';
+            if(type === 'common') createLink = 'common_form.html';
+            if(type === 'vendor') createLink = 'vendor_form.html';
+            $('#btn-create-new').attr('href', createLink);
+
+            self.updateFilters();
+            self.fetchData();
         });
-        
-        setTimeout(() => $('input[name="form_type"]:checked').trigger('change'), 100);
     }
 
     updateFilters() {
         this.filters.keyword = $('#search-keyword').val() || '';
         this.filters.date_start = $('input[name="date_start"]').val() || '';
         this.filters.date_end = $('input[name="date_end"]').val() || '';
-        
-        const typeRadio = $('input[name="form_type"]:checked').val();
-        this.filters.form_type = typeRadio || '';
-
+        this.filters.form_type = $('input[name="form_type"]:checked').val() || '';
         this.filters.n_category = $('select[name="n_category"]').val() || '';
         this.filters.payer = $('input[name="payer"]').val() || '';
+        this.filters.applicant_name = $('input[name="applicant_name"]').val() || '';
     }
 
     async fetchData() {
@@ -104,14 +120,15 @@ class ListHandler {
         this.$container.empty();
         this.$containerSP.empty();
         this.$empty.hide();
+        this.$header.empty();
 
         try {
-            // PERBAIKAN: Tambahkan Sort Order Parameter
             let sortOrder = 'asc';
             if (this.currentTab === 'approved' || this.currentTab === 'rejected') {
-                sortOrder = 'desc'; // Berdasarkan spesifikasi: yang sudah selesai diurutkan terbaru ke terlama
+                sortOrder = 'desc'; 
             }
 
+            // Gabungkan filter pencarian
             const params = new URLSearchParams({
                 tab: this.currentTab,
                 keyword: this.filters.keyword,
@@ -120,7 +137,8 @@ class ListHandler {
                 date_end: this.filters.date_end,
                 n_category: this.filters.n_category,
                 payer: this.filters.payer,
-                sort: sortOrder // Inject Sort
+                applicant_name: this.filters.applicant_name,
+                sort: sortOrder 
             });
 
             const response = await ringiSystem.apiRequest('GET', `search?${params.toString()}`);
@@ -129,15 +147,13 @@ class ListHandler {
                 this.renderHeader(); 
                 this.renderList(response.data);
             } else {
+                this.renderHeader(); // Tetap render header agar tabel rapi walau kosong
                 this.$empty.show();
             }
         } catch (error) {
             console.error('List Error:', error);
-            const errHtml = `<tr><td colspan="9" class="text-center text-danger">Error: ${error.message}</td></tr>`;
-            const errHtmlSp = `<div class="alert alert-danger">Error: ${error.message}</div>`;
-            
+            const errHtml = `<tr><td colspan="8" class="text-center" style="color:red;">Error: ${error.message}</td></tr>`;
             this.$container.html(errHtml);
-            this.$containerSP.html(errHtmlSp);
         } finally {
             this.$loading.hide();
         }
@@ -148,42 +164,30 @@ class ListHandler {
         let html = '';
         
         if (type === 'common') {
+            // Kolom untuk Reguler (通常)
             html = `
                 <tr>
-                    <th width="10%">文書No</th>
-                    <th width="8%">申請書</th>
-                    <th width="22%">件名</th>
-                    <th width="12%">金額(総額)</th>
-                    <th width="12%">決済期限</th>
-                    <th width="10%">申請者</th>
+                    <th width="12%">稟議書No</th>
                     <th width="10%">申請日</th>
+                    <th width="26%">件名</th>
+                    <th width="12%">実施（決済）期限</th>
+                    <th width="12%">金額（総額）</th>
+                    <th width="12%">申請者</th>
                     <th width="10%">ステータス</th>
-                    <th width="6%">Link</th>
-                </tr>
-            `;
-        } else if (type === 'tax' || type === 'contract' || type === 'vendor') {
-            html = `
-                <tr>
-                    <th width="12%">文書No</th>
-                    <th width="8%">申請書</th>
-                    <th width="25%">商号・屋号</th>
-                    <th width="15%">代表者名</th>
-                    <th width="10%">申請者</th>
-                    <th width="12%">申請日</th>
-                    <th width="12%">ステータス</th>
-                    <th width="6%">Link</th>
+                    <th width="6%" class="text-center">詳細</th>
                 </tr>
             `;
         } else {
+            // Kolom untuk Vendor/Tax/Other Contract
             html = `
                 <tr>
-                    <th width="12%">文書No</th>
-                    <th width="10%">申請書</th>
-                    <th width="30%">題名 / 商号</th>
-                    <th width="15%">氏名</th>
+                    <th width="15%">稟議書No</th>
                     <th width="12%">申請日</th>
+                    <th width="30%">商号・屋号</th>
+                    <th width="15%">代表者名</th>
+                    <th width="12%">申請者</th>
                     <th width="10%">ステータス</th>
-                    <th width="6%">Link</th>
+                    <th width="6%" class="text-center">詳細</th>
                 </tr>
             `;
         }
@@ -196,112 +200,82 @@ class ListHandler {
         if (doc.dt_rejected) return 'rejected';
         if (doc.dt_approved_2 || (doc.dt_approved_1 && !doc.s_approved_2)) return 'approved';
         if (doc.dt_approved_1) return 'pending_second';
+        if (!doc.ts_applied) return 'draft';
         return 'pending';
     }
 
     formatDateDot(dateString) {
-        if(!dateString) return '-';
+        if(!dateString) return '';
         const d = new Date(dateString);
-        return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+        return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
     }
 
     fmtMoney(val) {
         return val ? new Intl.NumberFormat('ja-JP').format(val) : '0';
     }
 
+    getStatusUI(code) {
+        const uiMap = {
+            'pending': { text: '承認待ち', class: 'status-pending' },
+            'pending_second': { text: '承認待ち', class: 'status-pending' },
+            'approved': { text: '承認済み', class: 'status-approved' },
+            'rejected': { text: '拒否', class: 'status-rejected' }, // Mengikuti UI (拒否 bukan 否認)
+            'withdrawn': { text: '取下げ', class: 'status-withdrawn' },
+            'draft': { text: 'Draft', class: 'status-draft' },
+            'done': { text: '完了', class: 'status-approved' } // Dari mockup "完了"
+        };
+        return uiMap[code] || { text: code, class: 'status-draft' };
+    }
+
     renderList(data) {
         const typeFilter = this.filters.form_type;
 
         const htmlPC = data.map(doc => {
-            const formName = this.mapTypeToName(doc.type, doc);
             const statusCode = this.getStatusCode(doc);
-            const statusText = this.mapStatusText(statusCode);
+            const statusObj = this.getStatusUI(statusCode);
             const dateStr = this.formatDateDot(doc.ts_applied);
             const link = `detail.html?id=${doc.id_doc}&type=${doc.type}`;
-            const badgeClass = this.getBadgeClass(statusCode);
+            const detailIcon = `<a href="${link}"><i class="far fa-file-alt icon-detail"></i></a>`;
 
             let trContent = '';
 
             if (typeFilter === 'common') {
                 const amount = this.fmtMoney(doc.n_amount || doc.total_amount);
                 const deadline = this.formatDateDot(doc.dt_deadline);
+                const title = doc.title || doc.s_title || '-';
+                
                 trContent = `
-                    <td><a href="${link}" class="text-primary font-weight-bold">${doc.id_doc}</a></td>
-                    <td><span class="badge badge-light border">${formName}</span></td>
-                    <td>${doc.title || doc.s_title || '-'}</td>
-                    <td class="text-right">${amount} 円</td>
+                    <td>${doc.id_doc}</td>
+                    <td>${dateStr}</td>
+                    <td class="truncate-text" title="${title}">${title}</td>
                     <td>${deadline}</td>
-                    <td>${doc.applicant_name}</td>
-                    <td>${dateStr}</td>
-                    <td><span class="badge ${badgeClass}">${statusText}</span></td>
-                    <td><a href="${link}" class="btn btn-sm btn-outline-info">詳細</a></td>
-                `;
-            } else if (typeFilter === 'tax' || typeFilter === 'contract' || typeFilter === 'vendor') {
-                trContent = `
-                    <td><a href="${link}" class="text-primary font-weight-bold">${doc.id_doc}</a></td>
-                    <td><span class="badge badge-light border">${formName}</span></td>
-                    <td>${doc.s_name || doc.company_name || '-'}</td>
-                    <td>${doc.s_rep_name || doc.rep_name || '-'}</td>
-                    <td>${doc.applicant_name}</td>
-                    <td>${dateStr}</td>
-                    <td><span class="badge ${badgeClass}">${statusText}</span></td>
-                    <td><a href="${link}" class="btn btn-sm btn-outline-info">詳細</a></td>
+                    <td>${amount} 円</td>
+                    <td>${doc.applicant_name || '-'}</td>
+                    <td class="${statusObj.class}">${statusObj.text}</td>
+                    <td class="text-center">${detailIcon}</td>
                 `;
             } else {
+                // Untuk selain reguler
+                const companyName = doc.s_name || doc.company_name || '-';
+                const repName = doc.s_rep_name || doc.rep_name || '-';
+
                 trContent = `
-                    <td><a href="${link}" class="text-primary font-weight-bold">${doc.id_doc}</a></td>
-                    <td><span class="badge badge-light border">${formName}</span></td>
-                    <td>${doc.title || doc.s_title || doc.s_name || '(無題)'}</td>
-                    <td>${doc.applicant_name}</td>
+                    <td>${doc.id_doc}</td>
                     <td>${dateStr}</td>
-                    <td><span class="badge ${badgeClass}">${statusText}</span></td>
-                    <td><a href="${link}" class="btn btn-sm btn-outline-info">詳細</a></td>
+                    <td class="truncate-text" title="${companyName}">${companyName}</td>
+                    <td>${repName}</td>
+                    <td>${doc.applicant_name || '-'}</td>
+                    <td class="${statusObj.class}">${statusObj.text}</td>
+                    <td class="text-center">${detailIcon}</td>
                 `;
             }
 
             return `<tr>${trContent}</tr>`;
         }).join('');
 
-        const htmlSP = data.map(doc => {
-            const formName = this.mapTypeToName(doc.type, doc);
-            const statusCode = this.getStatusCode(doc);
-            const statusText = this.mapStatusText(statusCode);
-            const dateStr = this.formatDateDot(doc.ts_applied);
-            const link = `detail.html?id=${doc.id_doc}&type=${doc.type}`;
-            const badgeClass = this.getBadgeClass(statusCode);
-            const displayTitle = doc.title || doc.s_title || doc.s_name || '(無題)';
-
-            return `
-                <div class="card-item" onclick="window.location.href='${link}'" style="cursor: pointer;">
-                    <div class="card-header" style="justify-content: flex-start; gap: 10px;">
-                        <span class="badge badge-light border" style="font-size:11px;">${formName}</span>
-                        <span style="font-size:13px; color:#333; font-weight:bold;">
-                            <i class="fas fa-user" style="color:#888;"></i> ${doc.applicant_name}
-                        </span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center mt-2">
-                        <div>
-                            <span class="text-muted" style="font-size:12px; margin-right: 8px;">${dateStr}</span>
-                            <span class="card-subject" style="font-size:14px; margin-bottom:0; display:inline-block; max-width: 150px;">${displayTitle}</span>
-                        </div>
-                        <span class="badge ${badgeClass}">${statusText}</span>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
         this.$container.html(htmlPC);
-        this.$containerSP.html(htmlSP);
     }
     
-    getBadgeClass(code) {
-        if (code === 'approved') return 'badge-success';
-        if (code === 'rejected') return 'badge-danger';
-        if (code === 'withdrawn') return 'badge-secondary';
-        if (code && code.includes('pending')) return 'badge-warning';
-        return 'badge-secondary';
-    }
-
     async fetchPendingCount() {
         try {
             const response = await ringiSystem.apiRequest('GET', `search?tab=to_approve`);
@@ -317,35 +291,6 @@ class ListHandler {
         } catch(e) {
             console.warn("Could not fetch pending count");
         }
-    }
-
-    mapTypeToName(type, doc = null) {
-        if (type === 'common') {
-            return (doc && doc.s_category_name) ? doc.s_category_name : '通常稟議';
-        }
-        if (type === 'tax') {
-            if (doc && doc.n_type) {
-                return doc.n_type == '1' ? '税務-法人' : '税務-個人';
-            }
-            return '税務契約';
-        }
-        const types = {
-            'contract': '契約稟議',
-            'vendor': '取引開始',
-            'others': 'その他'
-        };
-        return types[type] || type.toUpperCase();
-    }
-
-    mapStatusText(code) {
-        const statuses = {
-            'pending': '承認待ち (1)',
-            'pending_second': '承認待ち (2)',
-            'approved': '承認済',
-            'rejected': '否認',
-            'withdrawn': '取下げ'
-        };
-        return statuses[code] || code;
     }
 }
 

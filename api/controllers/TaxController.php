@@ -50,6 +50,34 @@ class TaxController {
                 $data['s_rep_tel'] = $data['s_rep_tel'] ?? '';
             }
             
+            // 1. Gabungkan Kode Pos Kantor
+            $zip1 = $data['zip1'] ?? '';
+            $zip2 = $data['zip2'] ?? '';
+            if (!empty($zip1) || !empty($zip2)) {
+                $data['s_office_pcode'] = $zip1 . $zip2;
+            }
+
+            // 2. Gabungkan Nama Representatif (Sei + Mei)
+            $sei = $data['rep_name_sei'] ?? '';
+            $mei = $data['rep_name_mei'] ?? '';
+            if (!empty($sei) || !empty($mei)) {
+                $data['s_rep_name'] = trim($sei . ' ' . $mei);
+            }
+
+            // 3. Gabungkan Kana Representatif
+            $kana_sei = $data['rep_kana_sei'] ?? '';
+            $kana_mei = $data['rep_kana_mei'] ?? '';
+            if (!empty($kana_sei) || !empty($kana_mei)) {
+                $data['s_rep_kana'] = trim($kana_sei . ' ' . $kana_mei);
+            }
+
+            // 4. Gabungkan Kode Pos Representatif (Untuk kebutuhan Database nanti)
+            $rep_zip1 = $data['rep_zip1'] ?? '';
+            $rep_zip2 = $data['rep_zip2'] ?? '';
+            if (!empty($rep_zip1) || !empty($rep_zip2)) {
+                $data['s_rep_pcode'] = $rep_zip1 . $rep_zip2;
+            }
+
             // PERBAIKAN BUG : Menambahkan validasi max length untuk Password Pajak
             $rules = [
                 'n_type' => 'required|in:1,2',

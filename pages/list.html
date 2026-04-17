@@ -4,39 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>申請書一覧 | 稟議書管理システム</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../assets/css/list.css">
 </head>
 <body>
 
 <div id="app" class="list-wrapper">
-    <h1 class="page-title">申請書一覧</h1>
+    <h1 id="dynamic-page-title" class="page-title">通常の承認一覧</h1>
 
     <div class="search-container">
         <form id="search-form" class="search-form">
-            <div class="form-item">
-                <label>日付</label>
-                <input type="date" name="date_start" class="input-date">
-                <span class="tilde">～</span>
-                <input type="date" name="date_end" class="input-date">
-            </div>
-
-            <div class="form-item" style="width: 100%;">
-                <label style="margin-right: 15px; font-weight: bold;">稟議種別</label>
-                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-                    <label><input type="radio" name="form_type" value=""> すべて</label>
-                    <label><input type="radio" name="form_type" value="common" checked> 通常稟議 (Common)</label>
-                    <label><input type="radio" name="form_type" value="tax"> 税務契約 (Tax)</label>
-                    <label><input type="radio" name="form_type" value="contract"> 契約稟議 (Other)</label>
-                    <label><input type="radio" name="form_type" value="vendor"> 取引開始 (Vendor)</label>
+            <div class="form-row type-row">
+                <span class="label-title">稟議種別</span>
+                <div class="radio-group">
+                    <label><input type="radio" name="form_type" value="common" checked> 通常</label>
+                    <label><input type="radio" name="form_type" value="tax"> 税務契約</label>
+                    <label><input type="radio" name="form_type" value="contract"> その他契約</label>
+                    <label><input type="radio" name="form_type" value="vendor"> 取引先契約</label>
                 </div>
             </div>
 
-            <div id="common-filters" style="display: none; width: 100%; margin-top: 5px; gap: 15px; flex-wrap: wrap; background-color: #e6f7ff; padding: 10px; border-radius: 4px; border: 1px dashed #8ec6eb;">
+            <div class="form-row input-row">
+                <div class="form-item date-group">
+                    <label>日付</label>
+                    <div class="date-inputs">
+                        <input type="date" name="date_start" class="input-date">
+                        <span class="tilde">～</span>
+                        <input type="date" name="date_end" class="input-date">
+                    </div>
+                </div>
+
                 <div class="form-item">
-                    <label style="font-weight:bold; color:#005580;">分類 (Common)</label>
+                    <label>申請者</label>
+                    <input type="text" name="applicant_name" class="input-text" placeholder="">
+                </div>
+
+                <div class="form-item common-only" style="display: none;">
+                    <label>分類</label>
                     <select name="n_category" class="input-select">
-                        <option value="">(すべて)</option>
+                        <option value="">すべて</option>
                         <option value="1">書籍購入</option>
                         <option value="2">物品購入(1万円以上)</option>
                         <option value="3">役務の提供</option>
@@ -48,23 +54,25 @@
                         <option value="9">外注</option>
                     </select>
                 </div>
+
                 <div class="form-item">
-                    <label style="font-weight:bold; color:#005580;">支払先</label>
-                    <input type="text" name="payer" class="input-text" placeholder="支払先名">
+                    <label>キーワード</label>
+                    <input type="text" id="search-keyword" name="keyword" class="input-text" placeholder="">
                 </div>
-            </div>
 
-            <div class="form-item" style="margin-top: 5px; width: 100%;">
-                <input type="text" id="search-keyword" name="keyword" class="input-text" placeholder="検索語 部分一致" style="width: 100%; max-width: 400px;">
-            </div>
+                <div class="form-item common-only" style="display: none;">
+                    <label>支払先</label>
+                    <input type="text" name="payer" class="input-text" placeholder="">
+                </div>
 
-            <div class="action-buttons" style="margin-top: 10px;">
-                <button type="button" id="btn-search" class="btn btn-blue">
-                    <i class="fas fa-search"></i> 検索
-                </button>
-                <a href="contract_form.html" class="btn btn-blue">
-                    <i class="fas fa-plus"></i> 新規作成
-                </a>
+                <div class="action-buttons">
+                    <button type="button" id="btn-search" class="btn btn-search-style">
+                        <i class="fas fa-search"></i> 検索
+                    </button>
+                    <a href="contract_form.html" id="btn-create-new" class="btn btn-create-style">
+                        <i class="fas fa-plus"></i> 新規作成
+                    </a>
+                </div>
             </div>
         </form>
     </div>
@@ -74,34 +82,27 @@
         <button class="tab-btn" data-tab="pending">承認待ち</button>
         <button class="tab-btn" data-tab="approved">承認済み</button>
         <button class="tab-btn" data-tab="rejected">否認・取下</button>
-        <button class="tab-btn" data-tab="to_approve" style="position: relative;">要承認 <span class="badge" id="badge-to-approve" style="display:none;">0</span></button>
+        <button class="tab-btn" data-tab="to_approve" style="position: relative;">
+            要承認 <span class="badge" id="badge-to-approve" style="display:none;">0</span>
+        </button>
     </div>
 
     <div class="table-container pc-only">
         <table class="custom-table">
             <thead id="list-header">
-                <tr>
-                    <th width="12%">文書No</th>
-                    <th width="10%">申請書</th>
-                    <th width="30%">題名 / 商号</th>
-                    <th width="15%">申請者</th>
-                    <th width="12%">申請日</th>
-                    <th width="10%">ステータス</th>
-                    <th width="6%">Link</th>
-                </tr>
             </thead>
             <tbody id="list-container">
-                <tr><td colspan="7" class="text-center">Loading...</td></tr>
+                <tr><td colspan="8" class="text-center">Loading...</td></tr>
             </tbody>
         </table>
     </div>
     
     <div id="list-container-sp" class="sp-only table-container"></div>
     
-    <div id="empty-state" class="text-center" style="display:none; padding: 20px;">
+    <div id="empty-state" class="text-center empty-msg" style="display:none;">
         データがありません
     </div>
-    <div id="loading-indicator" class="text-center" style="display:none; padding: 20px;">
+    <div id="loading-indicator" class="text-center empty-msg" style="display:none;">
         <i class="fas fa-spinner fa-spin"></i> 読み込み中...
     </div>
 </div>

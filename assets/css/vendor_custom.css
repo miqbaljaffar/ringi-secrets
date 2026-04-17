@@ -1,0 +1,131 @@
+.form-label.required::after {
+    content: " *" !important;
+    background-color: transparent !important;
+    color: #e53935 !important; /* warna danger merah */
+    font-size: 16px !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    margin-left: 2px !important;
+    vertical-align: baseline !important;
+}
+
+/* Input background memiliki sedikit aksen abu-abu di mockup */
+input[type="text"], textarea {
+    background-color: #f8f9fa;
+    border: 1px solid #b3b3b3;
+    border-radius: 2px;
+}
+input[type="text"]:focus, textarea:focus {
+    background-color: #fff;
+    outline: none;
+    border-color: #0088cc;
+}
+
+/* Styling untuk input yang disabled/readonly di bagian atas */
+.input-readonly {
+    background-color: #e2e2e2 !important;
+    border: 1px solid #ccc !important;
+    color: #555;
+    pointer-events: none;
+}
+
+/* Utility classes untuk lebar input */
+.w-large { width: 100%; max-width: 500px; }
+.w-small { width: 80px; }
+.w-small-plus { width: 120px; }
+
+/* Label dengan warna abu-abu (contoh: pada bagian "その他") */
+.label-gray {
+    color: #999;
+}
+
+/* Wrapper untuk input yang memiliki icon (contoh: kalender) */
+.input-icon-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+}
+.input-icon-wrapper input {
+    width: 100%;
+    padding-right: 35px; /* Memberi ruang agar teks tidak menabrak icon */
+}
+.input-icon-wrapper i {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #555;
+    font-size: 16px;
+}
+
+/* Area Upload File Custom */
+.file-upload-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.btn-choose-file {
+    background-color: #e9ecef;
+    border: 1px solid #777;
+    padding: 4px 12px;
+    border-radius: 3px;
+    font-size: 14px;
+    cursor: pointer;
+    color: #333;
+}
+.btn-choose-file:hover { background-color: #dde2e6; }
+
+/* Tampilan file terpilih seperti di mockup */
+.file-badge {
+    background-color: #8f8f8f;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: bold;
+}
+
+/* Penyesuaian Tabel Route Approval */
+.approval-table th {
+    text-align: center;
+    border-right: 1px solid #fff;
+}
+.approval-table td {
+    background-color: #eaf4fc !important; /* Warna biru muda baris kosong */
+    height: 45px;
+    border-right: 1px solid #fff;
+}
+.route-title {
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: block;
+}
+
+/* Tombol Aksi di bagian bawah */
+.btn-area-custom {
+    margin-top: 40px;
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+}
+.btn-custom {
+    padding: 10px 0;
+    width: 200px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    color: white;
+    transition: opacity 0.2s;
+}
+.btn-custom:hover { opacity: 0.85; }
+.btn-c-red { background-color: #e3342f; }
+.btn-c-gray { background-color: #8f8f8f; }
+.btn-c-blue { background-color: #0088cc; }
+
+.form-group { margin-bottom: 12px; }

@@ -1,7 +1,3 @@
-/**
- * Main Javascript untuk UI & Helper General
- */
-
 const ringiSystem = {
     // --- Helper Notifikasi ---
     showNotification: function(message, type = 'success') {
@@ -22,15 +18,11 @@ const ringiSystem = {
 
     // --- Helper Fetch API ---
     apiRequest: async function(method, endpoint, data = null, isFormData = false) {
-        // PERBAIKAN: Menggunakan relative path '../api' 
-        // Karena script ini dipanggil dari file di dalam folder /pages/
         const BASE_URL = '../api/index.php'; 
         const url = `${BASE_URL}/${endpoint}`;
         
         const options = {
             method: method,
-            // SANGAT PENTING: credentials 'same-origin' memastikan cookie PHPSESSID 
-            // dikirim ke backend, sehingga AuthMiddleware PHP bisa membaca $_SESSION
             credentials: 'same-origin', 
             headers: {}
         };
@@ -59,7 +51,6 @@ const ringiSystem = {
                     sessionStorage.removeItem('user');
                     sessionStorage.removeItem('token');
                     
-                    // PERBAIKAN BUG INFINITE LOOP: 
                     // Cek apakah saat ini sedang di halaman login. Jika iya, JANGAN redirect lagi.
                     if (!window.location.pathname.includes('login.html')) {
                         window.location.href = 'login.html?error=session_expired';
@@ -68,7 +59,14 @@ const ringiSystem = {
                     return { success: false, error: 'Sesi berakhir. Silakan login kembali.' };
                 }
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'Terjadi kesalahan pada server');
+                
+                if (errorData.errors && typeof errorData.errors === 'object') {
+                    // Extract semua pesan error array dari object
+                    const errorString = Object.values(errorData.errors).flat().join('\n');
+                    throw new Error(errorString);
+                }
+                
+                throw new Error(errorData.error || errorData.message || 'Terjadi kesalahan pada server');
             }
             return await response.json();
         } catch (error) {
@@ -77,7 +75,6 @@ const ringiSystem = {
         }
     },
     
-    // Properti global untuk menyimpan data user yang sedang login
     user: null 
 };
 
