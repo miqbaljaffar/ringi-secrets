@@ -98,6 +98,8 @@ class ListHandler {
             let createLink = 'contract_form.html';
             if(type === 'common') createLink = 'common_form.html';
             if(type === 'vendor') createLink = 'vendor_form.html';
+            if(type === 'contract') createLink = 'other_form.html';
+            if(type === 'tax') createLink = 'contract_form.html';
             $('#btn-create-new').attr('href', createLink);
 
             self.updateFilters();

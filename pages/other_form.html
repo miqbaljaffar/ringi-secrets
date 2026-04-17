@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>その他契約稟議 - 申請 | 稟議書管理システム</title>
+    <link rel="stylesheet" href="../assets/css/other_form.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Gaya tambahan untuk input readonly agar menyatu dengan background abu-abu */
+        .readonly-input {
+            background: transparent;
+            border: none;
+            width: 100%;
+            color: inherit;
+            font-size: 14px;
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-other-form" class="form-container">
+        <h1 class="page-title">その他契約稟議</h1>
+        
+        <div class="doc-header-table">
+            <div class="form-row">
+                <div class="label">稟議書No</div>
+                <div class="value readonly-bg">
+                    <input type="text" id="id_doc" name="id_doc" class="readonly-input" style="font-weight: bold;" readonly placeholder="自動採番">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="label">申請者</div>
+                <div class="value readonly-bg">
+                    <input type="text" id="applicant-name" class="readonly-input" readonly>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="label">申請日</div>
+                <div class="value readonly-bg">
+                    <input type="date" id="apply-date" name="ts_applied" class="readonly-input" readonly>
+                </div>
+            </div>
+        </div>
+
+        <form id="other-form">
+            
+            <div class="section-title">会社基本情報</div>
+            <div class="form-table">
+                <div class="form-row">
+                    <div class="label">商号、屋号 <span class="text-red">*</span></div>
+                    <div class="value"><input type="text" name="s_name" id="s_name" class="w-full" required></div>
+                </div>
+                <div class="form-row">
+                    <div class="label">フリガナ <span class="text-red">*</span></div>
+                    <div class="value"><input type="text" name="s_kana" id="s_kana" class="w-full" required></div>
+                </div>
+                <div class="form-row">
+                    <div class="label">業種名 <span class="text-red">*</span></div>
+                    <div class="value"><input type="text" name="s_industry" class="w-half" required></div>
+                </div>
+                <div class="form-row">
+                    <div class="label">業種コード（産業分類）<span class="text-red">*</span></div>
+                    <div class="value input-multi">
+                        <input type="text" name="s_industry_type_1" maxlength="1" class="w-tiny" required> -
+                        <input type="text" name="s_industry_type_2" maxlength="2" class="w-tiny" required> -
+                        <input type="text" name="s_industry_type_3" maxlength="1" class="w-tiny" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="label">事業所郵便番号 <span class="text-red">*</span></div>
+                    <div class="value input-multi">
+                        <input type="text" name="zip1" class="w-tiny" maxlength="3" required> - 
+                        <input type="text" name="zip2" class="w-short" maxlength="4" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="label">事業所住所 <span class="text-red">*</span></div>
+                    <div class="value flex-col">
+                        <input type="text" name="s_office_address" class="w-full mb-1" required placeholder="住所">
+                        <input type="text" name="s_office_address2" class="w-full mb-1" placeholder="ビル名など">
+                        <input type="text" name="s_office_address3" class="w-full">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="label">事業所TEL <span class="text-red">*</span></div>
+                    <div class="value input-multi">
+                        <input type="text" name="tel1" class="w-short" maxlength="5" required> -
+                        <input type="text" name="tel2" class="w-short" maxlength="4" required> -
+                        <input type="text" name="tel3" class="w-short" maxlength="4" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="label">郵送先 <span class="text-red">*</span></div>
+                    <div class="value radio-group flex-wrap">
+                        <label><input type="radio" value="1" name="n_send_to" checked> 事業所</label>
+                        <label><input type="radio" value="2" name="n_send_to"> 代表者自宅</label>
+                        <label><input type="radio" value="9" name="n_send_to"> その他</label>
+                        <input type="text" name="s_send_to_others" class="w-half ms-2" placeholder="その他の郵送先">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title">代表者情報</div>
+            <div class="form-table">
+                <div class="form-row">
+                    <div class="label">氏名 <span class="text-red">*</span></div>
+                    <div class="value input-multi">
+                        <input type="text" name="rep_name_sei" class="w-short" placeholder="姓" required>
+                        <input type="text" name="rep_name_mei" class="w-short ms-2" placeholder="名" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="label">フリガナ <span class="text-red">*</span></div>
+                    <div class="value input-multi">
+                        <input type="text" name="rep_kana_sei" class="w-short" placeholder="セイ" required>
+                        <input type="text" name="rep_kana_mei" class="w-short ms-2" placeholder="メイ" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="label">肩書き <span class="text-red">*</span></div>
+                    <div class="value radio-group flex-wrap">
+                        <label><input type="radio" value="1" name="s_rep_title" checked> 代表取締役</label>
+                        <label><input type="radio" value="2" name="s_rep_title"> 取締役</label>
+                        <label><input type="radio" value="3" name="s_rep_title"> 理事長</label>
+                        <label><input type="radio" value="4" name="s_rep_title"> 代表社員</label>
+                        <label><input type="radio" value="9" name="s_rep_title"> その他</label>
+                        <input type="text" name="s_rep_title_others" class="w-half ms-2" placeholder="その他の肩書き">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="label">メールアドレス <span class="text-red">*</span></div>
+                    <div class="value flex-col">
+                        <div class="radio-group">
+                            <label><input type="radio" value="1" name="rep_email_exists" checked> あり</label>
+                            <label><input type="radio" value="0" name="rep_email_exists"> なし</label>
+                        </div>
+                        <input type="email" name="s_rep_email" class="w-half mt-1" placeholder="example@mail.com">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title">会社概要・経理状況</div>
+            <div class="form-table">
+                <div class="form-row">
+                    <div class="label">直前期_総資産</div>
+                    <div class="value"><input type="number" name="n_pre_total" class="w-half"> &nbsp;円</div>
+                </div>
+                <div class="form-row">
+                    <div class="label">直前期_売上高</div>
+                    <div class="value"><input type="number" name="n_pre_sales" class="w-half"> &nbsp;円</div>
+                </div>
+                <div class="form-row">
+                    <div class="label">直前期_金融債務</div>
+                    <div class="value"><input type="number" name="n_pre_debt" class="w-half"> &nbsp;円</div>
+                </div>
+                <div class="form-row">
+                    <div class="label">直前期_当期利益</div>
+                    <div class="value"><input type="number" name="n_pre_income" class="w-half"> &nbsp;円</div>
+                </div>
+                <div class="form-row">
+                    <div class="label">直前期_従事者数</div>
+                    <div class="value"><input type="number" name="n_pre_workers" class="w-short"> &nbsp;名</div>
+                </div>
+                <div class="form-row">
+                    <div class="label">消費税</div>
+                    <div class="value radio-group flex-wrap">
+                        <label><input type="radio" value="1" name="n_comsumption_tax" checked> 本則</label>
+                        <label><input type="radio" value="2" name="n_comsumption_tax"> 簡易</label>
+                        <label><input type="radio" value="3" name="n_comsumption_tax"> 免税</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="label">貿易の有無</div>
+                    <div class="value radio-group flex-wrap">
+                        <label><input type="radio" value="1" name="n_trade"> 輸入</label>
+                        <label><input type="radio" value="2" name="n_trade"> 輸出</label>
+                        <label><input type="radio" value="3" name="n_trade"> 輸出入</label>
+                        <label><input type="radio" value="0" name="n_trade" checked> なし</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="label">関連会社の有無</div>
+                    <div class="value radio-group flex-wrap">
+                        <label><input type="radio" value="1" name="n_affiliated_company"> あり</label>
+                        <label><input type="radio" value="0" name="n_affiliated_company" checked> なし</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title">今回契約</div>
+            <div class="form-table">
+                <div class="form-row">
+                    <div class="label">契約概要 <span class="text-red">*</span></div>
+                    <div class="value"><textarea name="s_contract_overview" rows="4" class="w-full" required></textarea></div>
+                </div>
+                <div class="form-row">
+                    <div class="label">関与開始年月日 <span class="text-red">*</span></div>
+                    <div class="value"><input type="date" name="dt_contract_start" class="w-half" required></div>
+                </div>
+                <div class="form-row">
+                    <div class="label">顧客担当者 <span class="text-red">*</span></div>
+                    <div class="value">
+                        <select name="s_incharge" class="w-half" required>
+                            <option value="">選択してください</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="label">紹介者区分 <span class="text-red">*</span></div>
+                    <div class="value radio-group flex-wrap">
+                        <label><input type="radio" value="1" name="n_introducer_type"> 顧問先</label>
+                        <label><input type="radio" value="2" name="n_introducer_type"> 金融機関</label>
+                        <label><input type="radio" value="3" name="n_introducer_type"> 税理士事務所</label>
+                        <label><input type="radio" value="4" name="n_introducer_type"> 紹介会社</label>
+                        <label><input type="radio" value="9" name="n_introducer_type"> その他</label>
+                        <label><input type="radio" value="0" name="n_introducer_type" checked> なし</label>
+                        <input type="text" name="s_introducer_type_others" class="w-half mt-1" placeholder="その他の紹介者区分">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="label">紹介者 <span class="text-red">*</span></div>
+                    <div class="value">
+                        <input type="text" name="s_introducer" class="w-full">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="label">きっかけ、契約経緯 <span class="text-red">*</span></div>
+                    <div class="value"><textarea name="s_situation" rows="4" class="w-full" required></textarea></div>
+                </div>
+            </div>
+
+            <div class="section-title">添付書類</div>
+            <div class="form-table">
+                <div class="form-row">
+                    <div class="label">見積書（PDF） <span class="text-red">*</span></div>
+                    <div class="value file-upload-wrapper">
+                        <input type="file" name="file_estimate" id="file-upload" class="hidden" accept=".pdf">
+                        <label for="file-upload" class="btn-upload">ファイルを選択</label>
+                        <span class="file-name-badge" id="file-name-display">選択されていません</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="approval-route-preview mt-4">
+                <table class="approval-table">
+                    <thead>
+                        <tr>
+                            <th>承認順位</th>
+                            <th>承認日時</th>
+                            <th>承認者名</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>第一承認</td><td>-</td><td>(自動設定)</td></tr>
+                        <tr><td>第二承認</td><td>-</td><td>(自動設定)</td></tr>
+                        <tr><td>契約受付</td><td>-</td><td>(システム管理者)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-red" onclick="window.history.back();">キャンセル</button>
+                <button type="button" id="btn-save-draft" class="btn btn-gray">一時保存</button>
+                <button type="submit" class="btn btn-blue">申請</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Hapus CDN Vue, ganti dengan jQuery dan scripts backend Anda -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="../assets/js/jquery.autoKana.js"></script>
+    <script src="../assets/js/main.js"></script>
+    
+    <!-- Path diarahkan ke struktur folder yang benar berdasarkan unggahan Anda -->
+    <script src="../assets/js/modules/other-form.js"></script>
+    
+    <!-- Script UI Tambahan (Tidak mengganggu logika API backend) -->
+    <script>
+        $(document).ready(function() {
+            // Disable input "Representatif Email" jika memilih 'Tidak Ada'
+            $('input[name="rep_email_exists"]').on('change', function() {
+                if ($(this).val() === '0') {
+                    $('input[name="s_rep_email"]').prop('disabled', true).val('');
+                } else {
+                    $('input[name="s_rep_email"]').prop('disabled', false);
+                }
+            });
+
+            // Disable input "Nama Introducer" jika tipe introducer adalah 'Tidak Ada'
+            $('input[name="n_introducer_type"]').on('change', function() {
+                if ($(this).val() === '0') {
+                    $('input[name="s_introducer"]').prop('disabled', true).val('');
+                } else {
+                    $('input[name="s_introducer"]').prop('disabled', false);
+                }
+            });
+
+            // Tampilkan nama file upload PDF
+            $('#file-upload').on('change', function() {
+                var fileName = $(this).val().split('\\').pop();
+                if (fileName) {
+                    $('#file-name-display').text('📄 ' + fileName);
+                } else {
+                    $('#file-name-display').text('選択されていません');
+                }
+            });
+
+            // Set state UI awal saat halaman diload
+            $('input[name="rep_email_exists"]:checked').trigger('change');
+            $('input[name="n_introducer_type"]:checked').trigger('change');
+        });
+    </script>
+</body>
+</html>
