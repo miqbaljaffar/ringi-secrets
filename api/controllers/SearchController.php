@@ -2,12 +2,10 @@
 class SearchController {
     private $db;
 
-    // 検索コントローラーのコンストラクタ (Constructor for SearchController)
     public function __construct() {
         $this->db = DB::getInstance(); 
     }
 
-    // ドキュメントの検索を処理する (Handle document search)
     public function search($request) {
         try {
             $tab = $_GET['tab'] ?? 'all';
@@ -18,6 +16,7 @@ class SearchController {
             $payer = $_GET['payer'] ?? '';
             $date_start = $_GET['date_start'] ?? '';
             $date_end = $_GET['date_end'] ?? '';
+            $applicant_name = $_GET['applicant_name'] ?? '';
             
             $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
             if ($page < 1) $page = 1;
@@ -31,12 +30,13 @@ class SearchController {
 
             $isAllTab = ($tab === 'all');
             
-            // 1. 通常稟議 (Common / AR) - Menambahkan total_amount
+            // 1. 通常稟議 (Common / AR)
             if (empty($type) || $type === 'common') {
                 $sqlCommon = "SELECT 
                                 c.id_doc, 
                                 'common' as doc_type,
                                 c.n_type as sub_type, 
+                                (SELECT tm.s_category FROM t_common_details cd JOIN tm_category tm ON cd.n_category = tm.id_category WHERE cd.n_doc = c.id_doc LIMIT 1) as sub_type_name,
                                 c.s_title as title, 
                                 c.ts_applied, 
                                 c.dt_approved_1, 
@@ -53,16 +53,10 @@ class SearchController {
                               LEFT JOIN v_worker w ON c.s_applied = w.id_worker
                               WHERE 1=1";
                 
-                // 全てのタブで期限切れのドキュメントを除外 (Exclude expired documents for all tabs)
                 if ($isAllTab) {
-                    $sqlCommon .= " AND (
-                        c.dt_deadline >= CURDATE() 
-                        OR 
-                        (c.dt_approved_2 IS NULL AND c.dt_rejected IS NULL AND c.dt_deleted IS NULL)
-                    )";
+                    $sqlCommon .= " AND (c.dt_deadline >= CURDATE() OR (c.dt_approved_2 IS NULL AND c.dt_rejected IS NULL AND c.dt_deleted IS NULL))";
                 }
 
-                // キーワード検索 (Keyword search)
                 if ($keyword) {
                     $sqlCommon .= " AND (c.s_title LIKE :kw_c1 OR c.s_overview LIKE :kw_c2)";
                     $params[':kw_c1'] = "%$keyword%";
@@ -80,12 +74,13 @@ class SearchController {
                 $subQueries[] = $sqlCommon;
             }
 
-            // 2. 税務契約 (Tax / CT) - Kolom total_amount di-set 0 untuk menyeimbangkan struktur UNION ALL
+            // 2. 税務契約 (Tax / CT)
             if (empty($type) || $type === 'tax') {
                 $sqlTax = "SELECT 
                             t.id_doc, 
                             'tax' as doc_type, 
                             t.n_type as sub_type,
+                            CASE WHEN t.n_type = 1 THEN '税務-法人' ELSE '税務-個人' END as sub_type_name,
                             t.s_name as title, 
                             t.ts_applied, 
                             t.dt_approved_1,  
@@ -103,11 +98,7 @@ class SearchController {
                            WHERE 1=1";
                 
                 if ($isAllTab) {
-                    $sqlTax .= " AND (
-                        t.dt_contract_start >= CURDATE() 
-                        OR 
-                        (t.dt_approved_2 IS NULL AND t.dt_rejected IS NULL AND t.dt_deleted IS NULL)
-                    )";
+                    $sqlTax .= " AND (t.dt_contract_start >= CURDATE() OR (t.dt_approved_2 IS NULL AND t.dt_rejected IS NULL AND t.dt_deleted IS NULL))";
                 }
 
                 if ($keyword) {
@@ -118,12 +109,13 @@ class SearchController {
                 $subQueries[] = $sqlTax;
             }
 
-            // 3. その他契約稟議 (Other Contracts / CO) - Kolom total_amount = 0
+            // 3. その他契約稟議 (Other Contracts / CO)
             if (empty($type) || $type === 'contract' || $type === 'others') {
                 $sqlOther = "SELECT 
                                 o.id_doc, 
                                 'others' as doc_type, 
                                 0 as sub_type,
+                                'その他顧客' as sub_type_name, 
                                 o.s_name as title, 
                                 o.ts_applied, 
                                 o.dt_approved_1,
@@ -141,11 +133,7 @@ class SearchController {
                              WHERE 1=1";
                 
                 if ($isAllTab) {
-                    $sqlOther .= " AND (
-                        o.dt_contract_start >= CURDATE() 
-                        OR 
-                        (o.dt_approved_2 IS NULL AND o.dt_rejected IS NULL AND o.dt_deleted IS NULL)
-                    )";
+                    $sqlOther .= " AND (o.dt_contract_start >= CURDATE() OR (o.dt_approved_2 IS NULL AND o.dt_rejected IS NULL AND o.dt_deleted IS NULL))";
                 }
 
                 if ($keyword) {
@@ -156,12 +144,13 @@ class SearchController {
                 $subQueries[] = $sqlOther;
             }
 
-            // 4. 取引先契約稟議 (Vendor / CV) - Kolom total_amount = 0
+            // 4. 取引先契約稟議 (Vendor / CV)
             if (empty($type) || $type === 'vendor') {
                 $sqlVendor = "SELECT 
                                 v.id_doc, 
                                 'vendor' as doc_type, 
                                 0 as sub_type,
+                                '取引先' as sub_type_name, 
                                 v.s_name as title, 
                                 v.ts_applied, 
                                 v.dt_approved_1, 
@@ -179,11 +168,7 @@ class SearchController {
                               WHERE 1=1";
                 
                 if ($isAllTab) {
-                    $sqlVendor .= " AND (
-                        v.ts_applied >= CURDATE() 
-                        OR 
-                        (v.dt_approved_2 IS NULL AND v.dt_rejected IS NULL AND v.dt_deleted IS NULL)
-                    )";
+                    $sqlVendor .= " AND (v.ts_applied >= CURDATE() OR (v.dt_approved_2 IS NULL AND v.dt_rejected IS NULL AND v.dt_deleted IS NULL))";
                 }
 
                 if ($keyword) {
@@ -197,23 +182,13 @@ class SearchController {
             $unionSql = implode(" UNION ALL ", $subQueries);
             $whereClauses = [];
             
-            // タブに応じた条件を追加 (Add conditions based on tab)
             switch ($tab) {
                 case 'to_approve':
-                    $whereClauses[] = "
-                        (
-                            (u.s_approved_1 = :uid1 AND u.dt_approved_1 IS NULL) 
-                            OR 
-                            (u.s_approved_2 = :uid2 AND u.dt_approved_2 IS NULL AND u.dt_approved_1 IS NOT NULL)
-                        )
-                        AND u.dt_rejected IS NULL 
-                        AND u.dt_deleted IS NULL
-                    ";
+                    $whereClauses[] = "((u.s_approved_1 = :uid1 AND u.dt_approved_1 IS NULL) OR (u.s_approved_2 = :uid2 AND u.dt_approved_2 IS NULL AND u.dt_approved_1 IS NOT NULL)) AND u.dt_rejected IS NULL AND u.dt_deleted IS NULL";
                     $params[':uid1'] = $userId;
                     $params[':uid2'] = $userId;
                     break;
                 case 'approved':
-                    // PERBAIKAN BUG #2: Menambahkan toleransi jika s_approved_2 NULL dan dt_approved_1 sudah diisi
                     $whereClauses[] = "(u.dt_approved_2 IS NOT NULL OR (u.dt_approved_1 IS NOT NULL AND u.s_approved_2 IS NULL)) AND u.dt_deleted IS NULL";
                     break;
                 case 'rejected':
@@ -235,6 +210,10 @@ class SearchController {
                 $whereClauses[] = "u.sort_date <= :date_end";
                 $params[':date_end'] = $date_end;
             }
+            if (!empty($applicant_name)) {
+                $whereClauses[] = "u.applicant_name LIKE :app_name";
+                $params[':app_name'] = "%$applicant_name%";
+            }
 
             $whereSql = implode(' AND ', $whereClauses);
             
@@ -242,8 +221,7 @@ class SearchController {
             $totalResult = $this->db->fetch($countSql, $params);
             $totalCount = $totalResult['total'];
             
-            $orderBy = "u.ts_applied DESC"; // Default fallback
-            
+            $orderBy = "u.ts_applied DESC"; 
             if ($tab === 'all') {
                 $orderBy = "u.sort_date ASC"; 
             } elseif ($tab === 'approved' || $tab === 'rejected') {
@@ -252,19 +230,14 @@ class SearchController {
                 $orderBy = "u.sort_date ASC";
             }
 
-            $mainSql = "SELECT * FROM ($unionSql) as u 
-                        WHERE $whereSql 
-                        ORDER BY $orderBy 
-                        LIMIT $perPage OFFSET $offset";
+            $mainSql = "SELECT * FROM ($unionSql) as u WHERE $whereSql ORDER BY $orderBy LIMIT $perPage OFFSET $offset";
             
             $rows = $this->db->fetchAll($mainSql, $params);
 
             $formattedData = array_map(function($row) use ($userId) {
-                // ステータスの計算 (Calculate status)
                 $status = 'pending';
                 if ($row['dt_deleted']) $status = 'withdrawn';
                 elseif ($row['dt_rejected']) $status = 'rejected';
-                // PERBAIKAN BUG : Menambahkan status 'approved' jika dt_approved_1 sudah diisi dan s_approved_2 masih kosong
                 elseif ($row['dt_approved_2'] || ($row['dt_approved_1'] && empty($row['s_approved_2']))) $status = 'approved';
                 elseif ($row['dt_approved_1']) $status = 'pending_second';
 
@@ -272,6 +245,7 @@ class SearchController {
                     'id_doc' => $row['id_doc'],
                     'type' => $row['doc_type'],
                     'sub_type' => $row['sub_type'],
+                    'sub_type_name' => $row['sub_type_name'], 
                     'title' => $row['title'] ?? '(タイトルなし)',
                     'applicant_name' => $row['applicant_name'] ?? $row['applicant_id'] ?? 'Unknown',
                     'ts_applied' => $row['ts_applied'],

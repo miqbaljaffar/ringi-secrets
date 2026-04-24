@@ -5,7 +5,7 @@ class ListHandler {
             keyword: '',
             date_start: '',
             date_end: '',
-            form_type: 'common', // Default
+            form_type: 'common', 
             n_category: '', 
             payer: '',
             applicant_name: '' 
@@ -28,7 +28,9 @@ class ListHandler {
     }
 
     setInitialState() {
-        // Set UI ke tipe default
+        const today = new Date().toISOString().split('T')[0];
+        $('input[name="date_start"]').val(today);
+
         $('input[name="form_type"][value="common"]').prop('checked', true).trigger('change');
         
         this.updateFilters();
@@ -72,11 +74,9 @@ class ListHandler {
             }
         });
 
-        // Event saat radio button jenis dokumen berubah
         $('input[name="form_type"]').on('change', function() {
             const type = $(this).val();
             
-            // 1. Ubah Judul Halaman
             const titles = {
                 'common': '通常の承認一覧',
                 'tax': '税務契約稟議一覧',
@@ -85,16 +85,14 @@ class ListHandler {
             };
             self.$pageTitle.text(titles[type] || '承認一覧');
 
-            // 2. Sesuaikan input pencarian
             if(type === 'common') {
-                $('.common-only').css('display', 'flex'); // Tampilkan Kategori & Payer inline
+                $('.common-only').css('display', 'flex');
             } else {
-                $('.common-only').hide(); // Sembunyikan untuk selain reguler
+                $('.common-only').hide();
                 $('select[name="n_category"]').val('');
                 $('input[name="payer"]').val('');
             }
 
-            // 3. Update Link Tombol Buat Baru (Optional enhancement)
             let createLink = 'contract_form.html';
             if(type === 'common') createLink = 'common_form.html';
             if(type === 'vendor') createLink = 'vendor_form.html';
@@ -130,7 +128,6 @@ class ListHandler {
                 sortOrder = 'desc'; 
             }
 
-            // Gabungkan filter pencarian
             const params = new URLSearchParams({
                 tab: this.currentTab,
                 keyword: this.filters.keyword,
@@ -149,7 +146,7 @@ class ListHandler {
                 this.renderHeader(); 
                 this.renderList(response.data);
             } else {
-                this.renderHeader(); // Tetap render header agar tabel rapi walau kosong
+                this.renderHeader(); 
                 this.$empty.show();
             }
         } catch (error) {
@@ -166,7 +163,6 @@ class ListHandler {
         let html = '';
         
         if (type === 'common') {
-            // Kolom untuk Reguler (通常)
             html = `
                 <tr>
                     <th width="12%">稟議書No</th>
@@ -180,7 +176,6 @@ class ListHandler {
                 </tr>
             `;
         } else {
-            // Kolom untuk Vendor/Tax/Other Contract
             html = `
                 <tr>
                     <th width="15%">稟議書No</th>
@@ -209,7 +204,7 @@ class ListHandler {
     formatDateDot(dateString) {
         if(!dateString) return '';
         const d = new Date(dateString);
-        return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+        return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
     }
 
     fmtMoney(val) {
@@ -218,64 +213,91 @@ class ListHandler {
 
     getStatusUI(code) {
         const uiMap = {
-            'pending': { text: '承認待ち', class: 'status-pending' },
-            'pending_second': { text: '承認待ち', class: 'status-pending' },
-            'approved': { text: '承認済み', class: 'status-approved' },
-            'rejected': { text: '拒否', class: 'status-rejected' }, // Mengikuti UI (拒否 bukan 否認)
-            'withdrawn': { text: '取下げ', class: 'status-withdrawn' },
-            'draft': { text: 'Draft', class: 'status-draft' },
-            'done': { text: '完了', class: 'status-approved' } // Dari mockup "完了"
+            'pending': { text: '承認待ち', class: 'status-pending', icon: 'fa-clock' },
+            'pending_second': { text: '承認待ち', class: 'status-pending', icon: 'fa-clock' },
+            'approved': { text: '承認済み', class: 'status-approved', icon: 'fa-check-circle' },
+            'rejected': { text: '否認', class: 'status-rejected', icon: 'fa-times-circle' }, 
+            'withdrawn': { text: '取下', class: 'status-withdrawn', icon: 'fa-undo' },
+            'draft': { text: 'Draft', class: 'status-draft', icon: 'fa-file' },
+            'done': { text: '完了', class: 'status-approved', icon: 'fa-check-double' } 
         };
-        return uiMap[code] || { text: code, class: 'status-draft' };
+        return uiMap[code] || { text: code, class: 'status-draft', icon: 'fa-file' };
     }
 
     renderList(data) {
         const typeFilter = this.filters.form_type;
 
-        const htmlPC = data.map(doc => {
+        let htmlPC = '';
+        let htmlSP = '';
+
+        data.forEach(doc => {
             const statusCode = this.getStatusCode(doc);
             const statusObj = this.getStatusUI(statusCode);
             const dateStr = this.formatDateDot(doc.ts_applied);
             const link = `detail.html?id=${doc.id_doc}&type=${doc.type}`;
             const detailIcon = `<a href="${link}"><i class="far fa-file-alt icon-detail"></i></a>`;
 
-            let trContent = '';
+            const companyName = doc.s_name || doc.company_name || '-';
+            const repName = doc.s_rep_name || doc.rep_name || '-';
+            const title = doc.title || doc.s_title || '-';
+            const amount = this.fmtMoney(doc.n_amount || doc.total_amount);
+            const deadline = this.formatDateDot(doc.sort_date);
+            const applicant = doc.applicant_name || '-';
+            const subTypeName = doc.sub_type_name || '一般稟議';
 
             if (typeFilter === 'common') {
-                const amount = this.fmtMoney(doc.n_amount || doc.total_amount);
-                const deadline = this.formatDateDot(doc.dt_deadline);
-                const title = doc.title || doc.s_title || '-';
-                
-                trContent = `
-                    <td>${doc.id_doc}</td>
-                    <td>${dateStr}</td>
-                    <td class="truncate-text" title="${title}">${title}</td>
-                    <td>${deadline}</td>
-                    <td>${amount} 円</td>
-                    <td>${doc.applicant_name || '-'}</td>
-                    <td class="${statusObj.class}">${statusObj.text}</td>
-                    <td class="text-center">${detailIcon}</td>
+                htmlPC += `
+                    <tr>
+                        <td>${doc.id_doc}</td>
+                        <td>${dateStr}</td>
+                        <td class="truncate-text" title="${title}">${title}</td>
+                        <td>${deadline}</td>
+                        <td>${amount} 円</td>
+                        <td>${applicant}</td>
+                        <td class="${statusObj.class}">${statusObj.text}</td>
+                        <td class="text-center">${detailIcon}</td>
+                    </tr>
                 `;
             } else {
-                // Untuk selain reguler
-                const companyName = doc.s_name || doc.company_name || '-';
-                const repName = doc.s_rep_name || doc.rep_name || '-';
-
-                trContent = `
-                    <td>${doc.id_doc}</td>
-                    <td>${dateStr}</td>
-                    <td class="truncate-text" title="${companyName}">${companyName}</td>
-                    <td>${repName}</td>
-                    <td>${doc.applicant_name || '-'}</td>
-                    <td class="${statusObj.class}">${statusObj.text}</td>
-                    <td class="text-center">${detailIcon}</td>
+                htmlPC += `
+                    <tr>
+                        <td>${doc.id_doc}</td>
+                        <td>${dateStr}</td>
+                        <td class="truncate-text" title="${title}">${title}</td>
+                        <td>${repName}</td>
+                        <td>${applicant}</td>
+                        <td class="${statusObj.class}">${statusObj.text}</td>
+                        <td class="text-center">${detailIcon}</td>
+                    </tr>
                 `;
             }
 
-            return `<tr>${trContent}</tr>`;
-        }).join('');
+            htmlSP += `
+                <div class="card-item" onclick="window.location.href='${link}'" style="cursor:pointer; display: flex; flex-direction: column; gap: 8px;">
+                    <!-- Baris 1: Sub Tipe / Kategori -->
+                    <div style="font-size: 11px; font-weight: bold; color: #005580; background: #e6f3ff; padding: 2px 8px; border-radius: 10px; align-self: flex-start;">
+                        ${subTypeName}
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #555;">
+                        <div>
+                            <span style="font-weight:bold; color:#333; margin-right: 10px;">${applicant}</span>
+                            <span>${dateStr}</span>
+                        </div>
+                        <div class="${statusObj.class}" style="font-size: 14px; font-weight:bold;">
+                            <i class="fas ${statusObj.icon}"></i> ${statusObj.text}
+                        </div>
+                    </div>
+                    
+                    <div style="font-size: 15px; font-weight: bold; color: #000; word-break: break-all;">
+                        ${title}
+                    </div>
+                </div>
+            `;
+        });
 
         this.$container.html(htmlPC);
+        this.$containerSP.html(htmlSP); 
     }
     
     async fetchPendingCount() {
