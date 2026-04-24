@@ -7,18 +7,21 @@ class OtherFormHandler {
     init() {
         if (!this.form) return;
 
-        // 修正: ドキュメント番号生成関数を呼び出す
         this.generateDocumentNumber();
         this.setDefaultValues();
         this.loadEmployees();
         this.bindEvents();
         
+        // Inisialisasi AutoKana
         if ($.fn.autoKana) {
             $.fn.autoKana('#s_name', '#s_kana', { katakana: true });
+            $.fn.autoKana('#rep_name_sei', '#rep_kana_sei', { katakana: true });
+            $.fn.autoKana('#rep_name_mei', '#rep_kana_mei', { katakana: true });
         }
+
+        this.initToggles();
     }
 
-    // 修正: ドキュメントID生成関数（プレフィックス CO）を追加
     generateDocumentNumber() {
         const now = new Date();
         const yymmdd = now.getFullYear().toString().slice(-2) +
@@ -34,7 +37,7 @@ class OtherFormHandler {
         const dateInput = document.getElementById('apply-date');
         if (dateInput) dateInput.value = today;
         
-        if (ringiSystem.user) {
+        if (typeof ringiSystem !== 'undefined' && ringiSystem.user) {
             const applicantInput = document.getElementById('applicant-name');
             if (applicantInput) applicantInput.value = ringiSystem.user.name;
         }
@@ -58,9 +61,8 @@ class OtherFormHandler {
         } catch (error) {
             console.warn('モック社員データを使用します:', error);
             const mockEmployees = [
-                { id_worker: '0001', s_name: 'Yamada Taro' },
-                { id_worker: '0002', s_name: 'Suzuki Ichiro' },
-                { id_worker: '0036', s_name: 'Admin Contract' }
+                { id_worker: '0001', s_name: 'Test User 1' },
+                { id_worker: '0036', s_name: 'Admin System' }
             ];
             this.renderEmployeeOptions(select, mockEmployees);
         }
@@ -75,7 +77,17 @@ class OtherFormHandler {
         });
     }
 
+    initToggles() {
+        // Trigger default state toggle di awal render
+        $('input[name="n_send_to"]:checked').trigger('change');
+        $('input[name="s_rep_title"]:checked').trigger('change');
+        $('input[name="rep_email_exists"]:checked').trigger('change');
+        $('input[name="n_introducer_type"]:checked').trigger('change');
+    }
+
     bindEvents() {
+        const self = this;
+
         this.form.addEventListener('submit', (e) => {
             e.preventDefault();
             this.handleSubmit('apply');
@@ -89,90 +101,219 @@ class OtherFormHandler {
             });
         }
 
-        // Toggle state untuk Email Rep
+        $('#btn-cancel').on('click', function(e) {
+            e.preventDefault();
+            if (confirm('入力内容が破棄されます。よろしいですか？ (Data yang diinput akan hilang. Lanjutkan?)')) {
+                window.location.href = 'list.html';
+            }
+        });
+
+        // Format angka ribuan (Money Format)
+        $(document).on('blur', '.money-input', function() {
+            let val = $(this).val().replace(/,/g, '');
+            if (!isNaN(val) && val !== '') {
+                $(this).val(Number(val).toLocaleString('ja-JP'));
+            }
+        });
+
+        $(document).on('focus', '.money-input', function() {
+            let val = $(this).val().replace(/,/g, '');
+            $(this).val(val);
+        });
+
+        // Toggle untuk Alamat Surat Menyurat
+        $('input[name="n_send_to"]').on('change', function() {
+            if ($(this).val() === '9') {
+                $('#s_send_to_others').slideDown().prop('required', true);
+            } else {
+                $('#s_send_to_others').slideUp().prop('required', false).val('');
+            }
+        });
+
+        // Toggle untuk Jabatan Representatif
+        $('input[name="s_rep_title"]').on('change', function() {
+            if ($(this).val() === '9') {
+                $('#s_rep_title_others').slideDown().prop('required', true);
+            } else {
+                $('#s_rep_title_others').slideUp().prop('required', false).val('');
+            }
+        });
+
+        // Toggle untuk Email Representatif
         $('input[name="rep_email_exists"]').on('change', function() {
             if ($(this).val() === '0') {
-                $('input[name="s_rep_email"]').prop('disabled', true).val('');
+                $('#s_rep_email').prop('readonly', true).prop('required', false).val('なし');
+                $('#s_rep_email').css('background-color', '#e9ecef');
             } else {
-                $('input[name="s_rep_email"]').prop('disabled', false);
+                $('#s_rep_email').prop('readonly', false).prop('required', true).val('');
+                $('#s_rep_email').css('background-color', '#fff');
             }
         });
 
-        // Toggle state untuk Introducer
+        // Toggle untuk Pengenal (Introducer)
         $('input[name="n_introducer_type"]').on('change', function() {
-            if ($(this).val() === '0') {
-                $('input[name="s_introducer"]').prop('disabled', true).val('');
+            const val = $(this).val();
+            const introInput = $('#s_introducer');
+            const othersInput = $('#s_introducer_type_others');
+
+            if (val === '0') {
+                introInput.val('なし').prop('readonly', true).css('background-color', '#e9ecef');
             } else {
-                $('input[name="s_introducer"]').prop('disabled', false);
+                if (introInput.val() === 'なし') introInput.val('');
+                introInput.prop('readonly', false).css('background-color', '#fff');
+            }
+
+            if (val === '9') {
+                othersInput.slideDown().prop('required', true);
+            } else {
+                othersInput.slideUp().prop('required', false).val('');
             }
         });
 
-        // Handler untuk tampilan nama file saat upload
-        $('#file-upload').on('change', function() {
-            var fileName = $(this).val().split('\\').pop();
-            if (fileName) {
-                $('#file-name-display').text('📄 ' + fileName);
+        // Handler untuk Upload File dengan Peringatan Invoice
+        $('input[type="file"]').on('change', function(e) {
+            self.handleFileUpload(e);
+        });
+    }
+
+    handleFileUpload(event) {
+        const file = event.target.files[0];
+        const displaySpan = $(event.target).siblings('.file-name-badge');
+
+        if (!file) {
+            displaySpan.text('選択されていません');
+            return;
+        }
+        
+        if (file.size > 5 * 1024 * 1024) {
+            if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification('ファイルサイズは5MB以下にしてください', 'error');
+            event.target.value = '';
+            displaySpan.text('選択されていません');
+            return;
+        }
+        
+        if (file.type !== 'application/pdf') {
+            if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification('PDFファイルのみアップロード可能です', 'error');
+            event.target.value = '';
+            displaySpan.text('選択されていません');
+            return;
+        }
+
+        const confirmMsg = "【注意事項】\n請求書（インボイス）の添付は禁止されています。\n\nアップロードするファイルは請求書ではありませんか？";
+        
+        if (!window.confirm(confirmMsg)) {
+            event.target.value = ''; 
+            displaySpan.text('選択されていません');
+            return;
+        }
+        
+        displaySpan.text('📄 ' + file.name);
+    }
+
+    validateForm() {
+        this.combineFields(); // Pastikan field digabung dulu sebelum check validasi
+        
+        const requiredFields = this.form.querySelectorAll('[required]');
+        let isValid = true;
+        
+        requiredFields.forEach(field => {
+            const isHidden = field.offsetParent === null && field.type !== 'hidden'; 
+            
+            if (!isHidden && field.type !== 'radio' && !field.value.trim()) {
+                field.style.borderColor = 'red';
+                isValid = false;
             } else {
-                $('#file-name-display').text('選択されていません');
+                field.style.borderColor = '#ccc';
             }
         });
 
-        // Trigger kondisi default pada saat render pertama kali
-        $('input[name="rep_email_exists"]:checked').trigger('change');
-        $('input[name="n_introducer_type"]:checked').trigger('change');
+        // Cek file estimate wajib
+        const estimateFile = document.getElementById('file-estimate');
+        if (estimateFile && estimateFile.required && !estimateFile.value) {
+            isValid = false;
+            if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification('見積書（PDF）を添付してください。', 'error');
+        }
+
+        if (!this.form.checkValidity()) {
+            this.form.reportValidity();
+            return false;
+        }
+        
+        if (!isValid) {
+            if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification('必須項目が入力されていないか、形式が正しくありません。', 'error');
+        }
+        
+        return isValid;
     }
 
     async handleSubmit(saveMode) {
         if (saveMode === 'apply') {
-             if (!this.form.checkValidity()) {
-                this.form.reportValidity();
-                return;
-            }
+             if (!this.validateForm()) return;
+        } else {
+             this.combineFields(); // Gabungkan untuk draft juga
         }
-
-        this.combineFields();
 
         const formData = new FormData(this.form);
         formData.append('save_mode', saveMode); 
         
+        // Membersihkan koma dari angka sebelum dikirim
+        $('.money-input').each(function() {
+            const name = $(this).attr('name');
+            if (name) {
+                const rawVal = $(this).val().replace(/,/g, '');
+                formData.set(name, rawVal);
+            }
+        });
+        
+        // Gabung kode pos kantor
         const zip1 = formData.get('zip1') || '';
         const zip2 = formData.get('zip2') || '';
-        formData.set('s_office_pcode', zip1 + zip2);
+        if (zip1 && zip2) {
+            formData.set('s_office_pcode', zip1 + zip2);
+        }
 
+        // Gabung Telpon
         const tel1 = formData.get('tel1') || '';
         const tel2 = formData.get('tel2') || '';
         const tel3 = formData.get('tel3') || '';
-        formData.set('s_office_tel', `${tel1}-${tel2}-${tel3}`);
+        if (tel1 && tel2 && tel3) {
+            formData.set('s_office_tel', `${tel1}-${tel2}-${tel3}`);
+        }
 
+        // Gabung nama representatif
         if(formData.get('rep_name_sei') && formData.get('rep_name_mei')) {
             const repName = `${formData.get('rep_name_sei')} ${formData.get('rep_name_mei')}`;
             formData.set('s_rep_name', repName.trim());
         }
         
+        // Gabung kana representatif
         if(formData.get('rep_kana_sei') && formData.get('rep_kana_mei')) {
             const repKana = `${formData.get('rep_kana_sei')} ${formData.get('rep_kana_mei')}`;
             formData.set('s_rep_kana', repKana.trim());
         }
 
         try {
+            if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification('送信中...', 'info');
+
             const response = await ringiSystem.apiRequest('POST', 'others', formData, true);
             
             if (response.success) {
                 const msg = saveMode === 'draft' ? '下書きを保存しました' : '申請が完了しました';
-                ringiSystem.showNotification(msg, 'success');
+                if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification(msg, 'success');
                 setTimeout(() => {
                     window.location.href = `detail.html?id=${response.doc_id}&type=others`;
                 }, 1500);
             } else {
                 if (response.errors) {
-                    ringiSystem.showNotification(response.errors, 'error');
+                    const errMsgs = Object.values(response.errors).flat().join('\n');
+                    if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification(errMsgs, 'error');
                 } else {
-                    ringiSystem.showNotification(response.error, 'error');
+                    if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification(response.error, 'error');
                 }
             }
         } catch (error) {
             console.error('送信エラー:', error);
-            ringiSystem.showNotification(error.message || 'データ送信に失敗しました。', 'error');
+            if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification(error.message || 'データ送信に失敗しました。', 'error');
         }
     }
 
@@ -184,14 +325,14 @@ class OtherFormHandler {
         const combinedType = t1 + t2 + t3;
 
         let hiddenInput = this.form.querySelector('input[name="s_industry_type"]');
-        if (!hiddenInput) {
-            hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.name = 's_industry_type';
-            this.form.appendChild(hiddenInput);
+        if (hiddenInput) {
+            hiddenInput.value = combinedType;
         }
-        hiddenInput.value = combinedType;
     }
 }
 
-new OtherFormHandler();
+$(document).ready(function() {
+    if (document.getElementById('other-form')) {
+        window.otherFormHandler = new OtherFormHandler();
+    }
+});

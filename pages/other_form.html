@@ -4,18 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>その他契約稟議 - 申請 | 稟議書管理システム</title>
+    <link rel="stylesheet" href="../assets/css/style.css"> 
     <link rel="stylesheet" href="../assets/css/other_form.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div id="app-other-form" class="form-container">
+    <div id="app-other-form" class="form-container" style="background:#fff; padding:30px; border-radius:4px; border:1px solid #ccc; max-width:1000px; margin: 0 auto;">
         <h1 class="page-title">その他契約稟議</h1>
         
         <div class="doc-header-table">
             <div class="form-row">
                 <div class="label">稟議書No</div>
                 <div class="value readonly-bg">
-                    <input type="text" id="id_doc" name="id_doc" class="readonly-input" style="font-weight: bold;" readonly placeholder="自動採番">
+                    <input type="text" id="id_doc" name="id_doc" class="readonly-input" style="font-weight: bold; color: #0088cc;" readonly placeholder="自動採番">
                 </div>
             </div>
             <div class="form-row">
@@ -32,28 +33,38 @@
             </div>
         </div>
 
-        <form id="other-form">
+        <form id="other-form" novalidate>
             
             <div class="section-title">会社基本情報</div>
             <div class="form-table">
                 <div class="form-row">
                     <div class="label">商号、屋号 <span class="text-red">*</span></div>
-                    <div class="value"><input type="text" name="s_name" id="s_name" class="w-full" required></div>
+                    <div class="value"><input type="text" name="s_name" id="s_name" class="w-full" placeholder="例：株式会社アイワークス" required maxlength="100"></div>
                 </div>
                 <div class="form-row">
                     <div class="label">フリガナ <span class="text-red">*</span></div>
-                    <div class="value"><input type="text" name="s_kana" id="s_kana" class="w-full" required></div>
+                    <div class="value"><input type="text" name="s_kana" id="s_kana" class="w-full" placeholder="自動入力" required maxlength="100"></div>
                 </div>
                 <div class="form-row">
                     <div class="label">業種名 <span class="text-red">*</span></div>
-                    <div class="value"><input type="text" name="s_industry" class="w-half" required></div>
+                    <div class="value"><input type="text" name="s_industry" class="w-half" required maxlength="50"></div>
                 </div>
                 <div class="form-row">
                     <div class="label">業種コード（産業分類）<span class="text-red">*</span></div>
                     <div class="value input-multi">
-                        <input type="text" name="s_industry_type_1" maxlength="1" class="w-tiny" required> -
-                        <input type="text" name="s_industry_type_2" maxlength="2" class="w-tiny" required> -
-                        <input type="text" name="s_industry_type_3" maxlength="1" class="w-tiny" required>
+                        <select name="s_industry_type_1" class="w-tiny" required style="padding: 6px;">
+                            <option value="" disabled selected>大</option>
+                            <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+                            <option value="D">D</option><option value="E">E</option><option value="F">F</option>
+                            <option value="G">G</option><option value="H">H</option><option value="I">I</option>
+                            <option value="J">J</option><option value="K">K</option><option value="L">L</option>
+                            <option value="M">M</option><option value="N">N</option><option value="O">O</option>
+                            <option value="P">P</option><option value="Q">Q</option><option value="R">R</option>
+                            <option value="S">S</option><option value="T">T</option>
+                        </select> -
+                        <input type="text" name="s_industry_type_2" maxlength="2" pattern="\d{2}" placeholder="中" class="w-tiny" required> -
+                        <input type="text" name="s_industry_type_3" maxlength="1" pattern="\d{1}" placeholder="小" class="w-tiny" required>
+                        <input type="hidden" name="s_industry_type">
                     </div>
                 </div>
                 <div class="form-row">
@@ -61,14 +72,14 @@
                     <div class="value input-multi">
                         <input type="text" name="zip1" class="w-tiny" maxlength="3" required> - 
                         <input type="text" name="zip2" class="w-short" maxlength="4" required>
+                        <button type="button" class="btn btn-secondary btn-sm ms-2" onclick="AjaxZip3.zip2addr('zip1', 'zip2', 's_office_address', 's_office_address');" style="width: auto; padding: 5px 10px;">住所検索</button>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="label">事業所住所 <span class="text-red">*</span></div>
                     <div class="value flex-col">
-                        <input type="text" name="s_office_address" class="w-full mb-1" required placeholder="住所">
-                        <input type="text" name="s_office_address2" class="w-full mb-1" placeholder="ビル名など">
-                        <input type="text" name="s_office_address3" class="w-full">
+                        <input type="text" name="s_office_address" class="w-full mb-1" required placeholder="住所" maxlength="100">
+                        <input type="text" name="s_office_address2" class="w-full" placeholder="ビル名・階数など" maxlength="100">
                     </div>
                 </div>
                 <div class="form-row">
@@ -81,11 +92,13 @@
                 </div>
                 <div class="form-row">
                     <div class="label">郵送先 <span class="text-red">*</span></div>
-                    <div class="value radio-group flex-wrap">
-                        <label><input type="radio" value="1" name="n_send_to" checked> 事業所</label>
-                        <label><input type="radio" value="2" name="n_send_to"> 代表者自宅</label>
-                        <label><input type="radio" value="9" name="n_send_to"> その他</label>
-                        <input type="text" name="s_send_to_others" class="w-half ms-2" placeholder="その他の郵送先">
+                    <div class="value flex-col" style="align-items: flex-start;">
+                        <div class="radio-group flex-wrap">
+                            <label><input type="radio" value="1" name="n_send_to" checked> 事業所</label>
+                            <label><input type="radio" value="2" name="n_send_to"> 代表者自宅</label>
+                            <label><input type="radio" value="9" name="n_send_to"> その他</label>
+                        </div>
+                        <input type="text" name="s_send_to_others" id="s_send_to_others" class="w-full mt-1" style="display:none;" placeholder="その他の郵送先住所" maxlength="100">
                     </div>
                 </div>
             </div>
@@ -95,26 +108,28 @@
                 <div class="form-row">
                     <div class="label">氏名 <span class="text-red">*</span></div>
                     <div class="value input-multi">
-                        <input type="text" name="rep_name_sei" class="w-short" placeholder="姓" required>
-                        <input type="text" name="rep_name_mei" class="w-short ms-2" placeholder="名" required>
+                        <input type="text" name="rep_name_sei" id="rep_name_sei" class="w-short" placeholder="姓" required maxlength="15">
+                        <input type="text" name="rep_name_mei" id="rep_name_mei" class="w-short ms-2" placeholder="名" required maxlength="15">
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="label">フリガナ <span class="text-red">*</span></div>
                     <div class="value input-multi">
-                        <input type="text" name="rep_kana_sei" class="w-short" placeholder="セイ" required>
-                        <input type="text" name="rep_kana_mei" class="w-short ms-2" placeholder="メイ" required>
+                        <input type="text" name="rep_kana_sei" id="rep_kana_sei" class="w-short" placeholder="セイ" required maxlength="15">
+                        <input type="text" name="rep_kana_mei" id="rep_kana_mei" class="w-short ms-2" placeholder="メイ" required maxlength="15">
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="label">肩書き <span class="text-red">*</span></div>
-                    <div class="value radio-group flex-wrap">
-                        <label><input type="radio" value="1" name="s_rep_title" checked> 代表取締役</label>
-                        <label><input type="radio" value="2" name="s_rep_title"> 取締役</label>
-                        <label><input type="radio" value="3" name="s_rep_title"> 理事長</label>
-                        <label><input type="radio" value="4" name="s_rep_title"> 代表社員</label>
-                        <label><input type="radio" value="9" name="s_rep_title"> その他</label>
-                        <input type="text" name="s_rep_title_others" class="w-half ms-2" placeholder="その他の肩書き">
+                    <div class="value flex-col" style="align-items: flex-start;">
+                        <div class="radio-group flex-wrap">
+                            <label><input type="radio" value="1" name="s_rep_title" checked> 代表取締役</label>
+                            <label><input type="radio" value="2" name="s_rep_title"> 取締役</label>
+                            <label><input type="radio" value="3" name="s_rep_title"> 理事長</label>
+                            <label><input type="radio" value="4" name="s_rep_title"> 代表社員</label>
+                            <label><input type="radio" value="9" name="s_rep_title"> その他</label>
+                        </div>
+                        <input type="text" name="s_rep_title_others" id="s_rep_title_others" class="w-half mt-1" style="display:none;" placeholder="その他の肩書き" maxlength="30">
                     </div>
                 </div>
                 <div class="form-row">
@@ -124,7 +139,7 @@
                             <label><input type="radio" value="1" name="rep_email_exists" checked> あり</label>
                             <label><input type="radio" value="0" name="rep_email_exists"> なし</label>
                         </div>
-                        <input type="email" name="s_rep_email" class="w-half mt-1" placeholder="example@mail.com">
+                        <input type="email" name="s_rep_email" id="s_rep_email" class="w-half mt-1" placeholder="example@mail.com" required maxlength="100">
                     </div>
                 </div>
             </div>
@@ -132,27 +147,27 @@
             <div class="section-title">会社概要・経理状況</div>
             <div class="form-table">
                 <div class="form-row">
-                    <div class="label">直前期_総資産</div>
-                    <div class="value"><input type="number" name="n_pre_total" class="w-half"> &nbsp;円</div>
+                    <div class="label">直前期_総資産 <span class="text-red">*</span></div>
+                    <div class="value"><input type="text" name="n_pre_total" class="w-half text-right money-input" required> &nbsp;円</div>
                 </div>
                 <div class="form-row">
-                    <div class="label">直前期_売上高</div>
-                    <div class="value"><input type="number" name="n_pre_sales" class="w-half"> &nbsp;円</div>
+                    <div class="label">直前期_売上高 <span class="text-red">*</span></div>
+                    <div class="value"><input type="text" name="n_pre_sales" class="w-half text-right money-input" required> &nbsp;円</div>
                 </div>
                 <div class="form-row">
-                    <div class="label">直前期_金融債務</div>
-                    <div class="value"><input type="number" name="n_pre_debt" class="w-half"> &nbsp;円</div>
+                    <div class="label">直前期_金融債務 <span class="text-red">*</span></div>
+                    <div class="value"><input type="text" name="n_pre_debt" class="w-half text-right money-input" required> &nbsp;円</div>
                 </div>
                 <div class="form-row">
-                    <div class="label">直前期_当期利益</div>
-                    <div class="value"><input type="number" name="n_pre_income" class="w-half"> &nbsp;円</div>
+                    <div class="label">直前期_当期利益 <span class="text-red">*</span></div>
+                    <div class="value"><input type="text" name="n_pre_income" class="w-half text-right money-input" required> &nbsp;円</div>
                 </div>
                 <div class="form-row">
-                    <div class="label">直前期_従事者数</div>
-                    <div class="value"><input type="number" name="n_pre_workers" class="w-short"> &nbsp;名</div>
+                    <div class="label">直前期_従事者数 <span class="text-red">*</span></div>
+                    <div class="value"><input type="text" name="n_pre_workers" class="w-short text-right money-input" required> &nbsp;名</div>
                 </div>
                 <div class="form-row">
-                    <div class="label">消費税</div>
+                    <div class="label">消費税 <span class="text-red">*</span></div>
                     <div class="value radio-group flex-wrap">
                         <label><input type="radio" value="1" name="n_comsumption_tax" checked> 本則</label>
                         <label><input type="radio" value="2" name="n_comsumption_tax"> 簡易</label>
@@ -160,7 +175,7 @@
                     </div>
                 </div>
                 <div class="form-row">
-                    <div class="label">貿易の有無</div>
+                    <div class="label">貿易の有無 <span class="text-red">*</span></div>
                     <div class="value radio-group flex-wrap">
                         <label><input type="radio" value="1" name="n_trade"> 輸入</label>
                         <label><input type="radio" value="2" name="n_trade"> 輸出</label>
@@ -169,7 +184,7 @@
                     </div>
                 </div>
                 <div class="form-row">
-                    <div class="label">関連会社の有無</div>
+                    <div class="label">関連会社の有無 <span class="text-red">*</span></div>
                     <div class="value radio-group flex-wrap">
                         <label><input type="radio" value="1" name="n_affiliated_company"> あり</label>
                         <label><input type="radio" value="0" name="n_affiliated_company" checked> なし</label>
@@ -180,8 +195,8 @@
             <div class="section-title">今回契約</div>
             <div class="form-table">
                 <div class="form-row">
-                    <div class="label">契約概要 <span class="text-red">*</span></div>
-                    <div class="value"><textarea name="s_contract_overview" rows="4" class="w-full" required></textarea></div>
+                    <div class="label">契約概要</div>
+                    <div class="value"><textarea name="s_contract_overview" rows="3" class="w-full"></textarea></div>
                 </div>
                 <div class="form-row">
                     <div class="label">関与開始年月日 <span class="text-red">*</span></div>
@@ -197,20 +212,22 @@
                 </div>
                 <div class="form-row">
                     <div class="label">紹介者区分 <span class="text-red">*</span></div>
-                    <div class="value radio-group flex-wrap">
-                        <label><input type="radio" value="1" name="n_introducer_type"> 顧問先</label>
-                        <label><input type="radio" value="2" name="n_introducer_type"> 金融機関</label>
-                        <label><input type="radio" value="3" name="n_introducer_type"> 税理士事務所</label>
-                        <label><input type="radio" value="4" name="n_introducer_type"> 紹介会社</label>
-                        <label><input type="radio" value="9" name="n_introducer_type"> その他</label>
-                        <label><input type="radio" value="0" name="n_introducer_type" checked> なし</label>
-                        <input type="text" name="s_introducer_type_others" class="w-half mt-1" placeholder="その他の紹介者区分">
+                    <div class="value flex-col" style="align-items: flex-start;">
+                        <div class="radio-group flex-wrap">
+                            <label><input type="radio" value="1" name="n_introducer_type"> 顧問先</label>
+                            <label><input type="radio" value="2" name="n_introducer_type"> 金融機関</label>
+                            <label><input type="radio" value="3" name="n_introducer_type"> 税理士事務所</label>
+                            <label><input type="radio" value="4" name="n_introducer_type"> 紹介会社</label>
+                            <label><input type="radio" value="9" name="n_introducer_type"> その他</label>
+                            <label><input type="radio" value="0" name="n_introducer_type" checked> なし</label>
+                        </div>
+                        <input type="text" name="s_introducer_type_others" id="s_introducer_type_others" class="w-half mt-1" style="display:none;" placeholder="その他の紹介者区分" maxlength="50">
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="label">紹介者 <span class="text-red">*</span></div>
                     <div class="value">
-                        <input type="text" name="s_introducer" class="w-full">
+                        <input type="text" name="s_introducer" id="s_introducer" class="w-full" readonly value="なし" required maxlength="50">
                     </div>
                 </div>
                 <div class="form-row">
@@ -223,40 +240,54 @@
             <div class="form-table">
                 <div class="form-row">
                     <div class="label">見積書（PDF） <span class="text-red">*</span></div>
-                    <div class="value file-upload-wrapper">
-                        <input type="file" name="file_estimate" id="file-upload" class="hidden" accept=".pdf">
-                        <label for="file-upload" class="btn-upload">ファイルを選択</label>
-                        <span class="file-name-badge" id="file-name-display">選択されていません</span>
+                    <div class="value flex-col">
+                        <div class="file-upload-wrapper">
+                            <input type="file" name="estimate_file" id="file-estimate" class="hidden" accept=".pdf" required>
+                            <label for="file-estimate" class="btn-upload"><i class="fas fa-file-upload"></i> ファイルを選択</label>
+                            <span class="file-name-badge" id="estimate-name-display">選択されていません</span>
+                        </div>
+                        <div class="note" style="color: #dc3545; font-size:11px; font-weight: bold; margin-top: 5px;">※注意事項: 請求書（インボイス）は添付しない</div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="label">その他資料添付（PDF）</div>
+                    <div class="value flex-col">
+                        <div class="file-upload-wrapper">
+                            <input type="file" name="attachment" id="file-attachment" class="hidden" accept=".pdf">
+                            <label for="file-attachment" class="btn-upload"><i class="fas fa-file-upload"></i> ファイルを選択</label>
+                            <span class="file-name-badge" id="attachment-name-display">選択されていません</span>
+                        </div>
+                        <div class="note" style="color: #dc3545; font-size:11px; font-weight: bold; margin-top: 5px;">※注意事項: 請求書（インボイス）は添付しない</div>
                     </div>
                 </div>
             </div>
 
-            <div class="approval-route-preview mt-4">
-                <table class="approval-table">
+            <div class="approval-route-preview mt-4" style="background: #f8f9fa; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">
+                <span style="font-size: 14px; font-weight: bold; margin-bottom: 10px; display: block; color: #0088cc;">承認ルート</span>
+                <table class="approval-table" style="width: 100%; text-align: left;">
                     <thead>
                         <tr>
-                            <th>承認順位</th>
-                            <th>承認日時</th>
-                            <th>承認者名</th>
+                            <th style="padding: 8px; border-bottom: 2px solid #ccc; width: 33%;">承認順位</th>
+                            <th style="padding: 8px; border-bottom: 2px solid #ccc; width: 33%;">承認日時</th>
+                            <th style="padding: 8px; border-bottom: 2px solid #ccc; width: 34%;">承認者名</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td>第一承認</td><td>-</td><td>(自動設定)</td></tr>
-                        <tr><td>第二承認</td><td>-</td><td>(自動設定)</td></tr>
-                        <tr><td>契約受付</td><td>-</td><td>(システム管理者)</td></tr>
+                        <tr><td colspan="3" style="padding: 15px; text-align: center; color: #666;">(申請後に確定します)</td></tr>
                     </tbody>
                 </table>
             </div>
 
-            <div class="form-actions">
-                <button type="button" class="btn btn-red" onclick="window.history.back();">キャンセル</button>
-                <button type="button" id="btn-save-draft" class="btn btn-gray">一時保存</button>
-                <button type="submit" class="btn btn-blue">申請</button>
+            <div class="form-actions btn-area">
+                <button type="button" id="btn-cancel" class="btn btn-red">キャンセル (Cancel)</button>
+                <button type="button" id="btn-save-draft" class="btn btn-gray">下書き保存 (Draft)</button>
+                <button type="submit" class="btn btn-blue">申請 (Apply)</button>
             </div>
         </form>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://ajaxzip3.github.io/ajaxzip3.js"></script>
     <script src="../assets/js/jquery.autoKana.js"></script>
     <script src="../assets/js/main.js"></script>
     <script src="../assets/js/modules/other-form.js"></script>

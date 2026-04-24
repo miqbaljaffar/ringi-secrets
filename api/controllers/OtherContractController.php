@@ -19,6 +19,9 @@ class OtherContractController {
         $data = $_POST;
         $files = $_FILES;
         
+        // Cek apakah ini mode simpan draf
+        $isDraft = isset($data['save_mode']) && $data['save_mode'] === 'draft';
+        
         // Memparsing Nomor Telepon menjadi berformat dengan hyphen (-)
         $tel1 = $data['tel1'] ?? '';
         $tel2 = $data['tel2'] ?? '';
@@ -42,7 +45,17 @@ class OtherContractController {
             }
         }
         
-        // PERBAIKAN 2 & 3: Konsistensi regex kode industri & Batasan nilai untuk opsi pilihan radio
+        // Inject / perbaiki value s_rep_email jika dinonaktifkan di Frontend
+        if (isset($data['rep_email_exists']) && $data['rep_email_exists'] === '0') {
+            $data['s_rep_email'] = 'なし';
+        }
+
+        // Inject / perbaiki value introducer jika dinonaktifkan di Frontend
+        if (isset($data['n_introducer_type']) && $data['n_introducer_type'] === '0') {
+            $data['s_introducer'] = 'なし';
+        }
+
+        // Aturan validasi dasar
         $rules = [
             's_name' => 'required|max:100',
             's_kana' => 'required|max:100',
@@ -71,6 +84,26 @@ class OtherContractController {
             's_situation' => 'required'
         ];
         
+        // Jika mode Draf, longgarkan validasi (hapus 'required' kecuali untuk field esensial)
+        if ($isDraft) {
+            foreach ($rules as $field => $ruleString) {
+                if (!in_array($field, ['s_name', 's_kana'])) {
+                    // Hapus string required dari rules untuk membiarkan form kosong saat draf
+                    $rules[$field] = str_replace(['required|', '|required', 'required'], '', $ruleString);
+                }
+            }
+            // Status 0 biasanya untuk Draf, 1 untuk Pending Approval
+            $data['n_status'] = 0; 
+        } else {
+            $data['n_status'] = 1;
+            
+            // Backend validation: Pastikan file PDF terupload jika bukan draf
+            if (empty($files['estimate_file']['name'])) {
+                http_response_code(API_BAD_REQUEST);
+                return ['success' => false, 'error' => '見積書（PDF）は必須です。']; // "Estimasi PDF wajib diunggah"
+            }
+        }
+        
         $validation = $this->validator->validate($data, $rules);
         
         if (!$validation['valid']) {
@@ -85,23 +118,27 @@ class OtherContractController {
             $data['s_applied'] = $request['user']['id'];
             $docId = $this->model->createDocument($data);
             
-            // Hapus Exception khusus agar ter-rollback saat error upload
+            // Simpan file estimasi jika ada
             if (!empty($files['estimate_file']) && $files['estimate_file']['error'] === UPLOAD_ERR_OK) {
                 $this->fileUpload->save($files['estimate_file'], $docId, '見積書');
             }
 
+            // Menerima file attachment kedua jika ada
             if (!empty($files['attachment']) && $files['attachment']['error'] === UPLOAD_ERR_OK) {
                 $this->fileUpload->save($files['attachment'], $docId);
             }
 
-            $newDoc = $this->model->find($docId);
-            if ($newDoc && !empty($newDoc['s_approved_1'])) {
-                $this->mailer->sendRequestNotification(
-                    $docId,
-                    $newDoc['s_approved_1'],      
-                    $request['user']['name'],    
-                    $data['s_name']               
-                );
+            // HANYA kirim email notifikasi jika ini BUKAN DRAF
+            if (!$isDraft) {
+                $newDoc = $this->model->find($docId);
+                if ($newDoc && !empty($newDoc['s_approved_1'])) {
+                    $this->mailer->sendRequestNotification(
+                        $docId,
+                        $newDoc['s_approved_1'],      
+                        $request['user']['name'],    
+                        $data['s_name']               
+                    );
+                }
             }
             
             // COMMIT JIKA SUKSES
@@ -110,7 +147,7 @@ class OtherContractController {
             return [
                 'success' => true, 
                 'doc_id' => $docId,
-                'message' => '申請が正常に送信されました' // "Aplikasi berhasil dikirim"
+                'message' => $isDraft ? '下書きを保存しました' : '申請が正常に送信されました'
             ];
             
         } catch (Exception $e) {
