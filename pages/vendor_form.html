@@ -7,9 +7,6 @@
     
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/contract_form.css">
-    
-    <link rel="stylesheet" href="../assets/css/vendor_custom.css">
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -23,8 +20,7 @@
             <div class="form-group" style="border-bottom: none; margin-bottom: 15px;">
                 <label class="form-label required">稟議書No</label>
                 <div class="form-control-wrapper">
-                    <span style="font-weight: bold; font-size: 15px;">CV251205</span>
-                    <input type="hidden" name="id_doc" id="id_doc" value="CV251205">
+                    <input type="text" name="id_doc" id="id_doc" class="input-readonly w-large" style="font-weight: bold; font-size: 15px;" readonly placeholder="自動採番">
                 </div>
             </div>
 
@@ -38,7 +34,7 @@
             <div class="form-group" style="border-bottom: none;">
                 <label class="form-label">申請日</label>
                 <div class="form-control-wrapper">
-                    <input type="text" id="apply-date" name="ts_applied" class="input-readonly w-large" readonly value="09/02/2026">
+                    <input type="date" id="apply-date" name="ts_applied" class="input-readonly w-large" readonly>
                 </div>
             </div>
         </div>
@@ -62,31 +58,31 @@
             <div class="form-group">
                 <label class="form-label required">事業所郵便番号</label>
                 <div class="form-control-wrapper flex-row">
-                    <input type="text" name="zip1" class="w-small" maxlength="3">
-                    <input type="text" name="zip2" class="w-small-plus" maxlength="4">
+                    <input type="text" name="zip1" id="zip1" class="w-small" maxlength="3" required> -
+                    <input type="text" name="zip2" id="zip2" class="w-small-plus" maxlength="4" required>
+                    <button type="button" class="btn-secondary btn-sm btn-address-search" onclick="AjaxZip3.zip2addr('zip1', 'zip2', 's_office_address', 's_office_address');">住所検索</button>
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label required">事業所住所</label>
                 <div class="form-control-wrapper flex-column" style="gap: 8px;">
-                    <input type="text" name="s_office_address" class="w-large" required>
-                    <input type="text" name="s_office_address2" class="w-large">
-                    <input type="text" name="s_office_address3" class="w-large">
+                    <input type="text" name="s_office_address" class="w-large" placeholder="住所" required>
+                    <input type="text" name="s_office_address2" class="w-large" placeholder="ビル名・階数など">
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label required">事業所TEL</label>
                 <div class="form-control-wrapper flex-row">
-                    <input type="text" name="tel1" class="w-small">
-                    <input type="text" name="tel2" class="w-small-plus">
-                    <input type="text" name="tel3" class="w-small-plus">
+                    <input type="text" name="tel1" class="w-small" maxlength="5" required> -
+                    <input type="text" name="tel2" class="w-small-plus" maxlength="4" required> -
+                    <input type="text" name="tel3" class="w-small-plus" maxlength="4" required>
                 </div>
             </div>
 
             <div class="form-group">
-                <label class="form-label">郵送先</label>
+                <label class="form-label required">郵送先</label>
                 <div class="form-control-wrapper">
                     <label><input type="radio" name="n_send_to" value="1" checked> 事業所</label>
                     <label><input type="radio" name="n_send_to" value="2"> 代表者自宅</label>
@@ -94,10 +90,10 @@
                 </div>
             </div>
 
-            <div class="form-group" style="border-bottom: none;">
+            <div class="form-group send-to-others-group" style="display: none; border-bottom: none;">
                 <label class="form-label label-gray">郵送先 その他</label>
                 <div class="form-control-wrapper">
-                    <input type="text" name="s_send_to_others" class="w-large">
+                    <input type="text" name="s_send_to_others" class="w-large" placeholder="その他の郵送先住所">
                 </div>
             </div>
         </div>
@@ -106,22 +102,24 @@
         <div class="section">
             <div class="form-group">
                 <label class="form-label required">氏名</label>
-                <div class="form-control-wrapper">
-                    <input type="text" name="s_rep_name_1" class="w-large" required>
+                <div class="form-control-wrapper flex-row">
+                    <input type="text" name="rep_name_sei" id="rep_name_sei" class="w-small-plus" placeholder="姓" required>
+                    <input type="text" name="rep_name_mei" id="rep_name_mei" class="w-small-plus" placeholder="名" required>
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label required">フリガナ</label>
-                <div class="form-control-wrapper">
-                    <input type="text" name="s_rep_kana_1" class="w-large" required>
+                <div class="form-control-wrapper flex-row">
+                    <input type="text" name="rep_kana_sei" id="rep_kana_sei" class="w-small-plus" placeholder="セイ" required>
+                    <input type="text" name="rep_kana_mei" id="rep_kana_mei" class="w-small-plus" placeholder="メイ" required>
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label required">肩書き</label>
                 <div class="form-control-wrapper">
-                    <label><input type="radio" name="s_rep_title" value="1"> 代表取締役</label>
+                    <label><input type="radio" name="s_rep_title" value="1" checked> 代表取締役</label>
                     <label><input type="radio" name="s_rep_title" value="2"> 取締役</label>
                     <label><input type="radio" name="s_rep_title" value="3"> 理事長</label>
                     <label><input type="radio" name="s_rep_title" value="4"> 代表社員</label>
@@ -129,10 +127,10 @@
                 </div>
             </div>
 
-            <div class="form-group" style="border-bottom: none;">
-                <label class="form-label label-gray">フリガナ</label>
+            <div class="form-group rep-title-others-group" style="display: none; border-bottom: none;">
+                <label class="form-label label-gray">肩書き その他</label>
                 <div class="form-control-wrapper">
-                    <input type="text" name="s_rep_title_others" class="w-large">
+                    <input type="text" name="s_rep_title_others" class="w-large" placeholder="その他の肩書き">
                 </div>
             </div>
         </div>
@@ -140,17 +138,14 @@
         <h2>今回契約</h2>
         <div class="section">
             <div class="form-group">
-                <label class="form-label required">契約概要</label>
+                <label class="form-label">契約概要</label>
                 <div class="form-control-wrapper">
-                    <div class="input-icon-wrapper">
-                        <input type="text" name="s_contract_overview" required>
-                        <i class="far fa-calendar-alt"></i>
-                    </div>
+                    <textarea name="s_contract_overview" class="w-large"></textarea>
                 </div>
             </div>
 
             <div class="form-group" style="border-bottom: none;">
-                <label class="form-label required">きっかけ</label>
+                <label class="form-label required">きっかけ・経緯</label>
                 <div class="form-control-wrapper">
                     <textarea name="s_situation" class="w-large" required></textarea>
                 </div>
@@ -162,12 +157,14 @@
             <div class="form-group" style="border-bottom: none;">
                 <label class="form-label required" style="color: #333;">見積書（PDF）</label>
                 <div class="form-control-wrapper file-upload-container">
-                    <input type="file" id="file_estimate" name="file_estimate" style="display: none;" accept=".pdf">
-                    <button type="button" class="btn-choose-file" onclick="document.getElementById('file_estimate').click()">Choosen file</button>
+                    <!-- PERBAIKAN: name diubah menjadi estimate_file sesuai controller backend -->
+                    <input type="file" id="estimate_file" name="estimate_file" style="display: none;" accept=".pdf" required>
+                    <button type="button" class="btn-choose-file" onclick="document.getElementById('estimate_file').click()">ファイルを選択</button>
                     
                     <div class="file-badge">
-                        <i class="fas fa-file-pdf"></i> 見積書.pdf
+                        <i class="fas fa-file-pdf"></i> <span id="file-name-display">選択されていません</span>
                     </div>
+                    <div style="width: 100%; font-size: 11px; color: #dc3545; font-weight: bold; margin-top: 5px;">※注意事項: 請求書（インボイス）は添付しない</div>
                 </div>
             </div>
 
@@ -183,9 +180,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td></td>
-                            <td></td>
-                            <td></td>
+                            <td colspan="3" style="text-align: center;">(申請後に確定します)</td>
                         </tr>
                     </tbody>
                 </table>
@@ -202,10 +197,10 @@
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://ajaxzip3.github.io/ajaxzip3.js"></script>
 <script src="../assets/js/jquery.autoKana.js"></script>
 <script src="../assets/js/main.js"></script>
 <script src="../assets/js/modules/vendor-form.js"></script> 
-<script src="../assets/js/modules/vendor_custom.js"></script>
 
 </body>
 </html>

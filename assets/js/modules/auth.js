@@ -6,8 +6,8 @@ class AuthHandler {
     async init() {
         const isLoginPage = window.location.pathname.includes('login.html');
 
-        // Pengecekan sesi langsung ke Backend PHP 
-        // Ini memastikan SSO dari portal (yang men-set $_SESSION['UID']) terbaca dengan benar
+        // PHPバックエンドに直接セッションを確認する
+        // ポータルのSSO（$_SESSION['UID']を設定）が正しく反映されているか確認するため
         await this.checkAuthGuard(isLoginPage);
         
         if (isLoginPage) {
@@ -17,30 +17,30 @@ class AuthHandler {
 
     async checkAuthGuard(isLoginPage) {
         try {
-            // Memanggil endpoint auth/user yang mengambil data dari $_SESSION PHP
+            // $_SESSION PHPからデータを取得するauth/userエンドポイントを呼び出す
             const response = await ringiSystem.apiRequest('GET', 'auth/user');
             
             if (response.success && response.user) {
-                // Sesi PHP Aktif
+                // PHPセッションが有効
                 sessionStorage.setItem('user', JSON.stringify(response.user));
                 ringiSystem.user = response.user;
                 
                 if (isLoginPage) {
-                    // Jika sudah login tapi akses halaman login, lempar ke list
-                    // PERBAIKAN: Gunakan relative path agar aman di sub-folder
+                    // 既にログイン済みでログインページにアクセスした場合、リストページへリダイレクト
+                    // 修正：サブフォルダでも安全なように相対パスを使用
                     window.location.href = 'list.html';
                 } else {
                     this.updateUI();
                 }
             } else {
-                throw new Error('Sesi tidak valid');
+                throw new Error('セッションが無効です');
             }
         } catch (error) {
-            // Sesi PHP Tidak Aktif
+            // PHPセッションが無効
             sessionStorage.removeItem('user');
             if (!isLoginPage) {
-                console.warn('Auth Guard: User belum login. Redirecting ke login.');
-                // PERBAIKAN: Gunakan relative path 'login.html' alih-alih '/pages/login.html'
+                console.warn('認証ガード：ユーザーはまだログインしていません。ログインページへリダイレクトします。');
+                // 修正：'/pages/login.html'ではなく相対パス'login.html'を使用
                 window.location.href = 'login.html';
             }
         }
@@ -49,15 +49,15 @@ class AuthHandler {
     bindLoginEvent() {
         $('#login-form').on('submit', async (e) => {
             e.preventDefault();
-            const workerId = $('#username').val(); // PERBAIKAN: Id input Anda di HTML adalah 'username', bukan 'id_worker'
+            const workerId = $('#username').val(); // 修正：HTMLのinput idは'id_worker'ではなく'username'
 
             if (!workerId) {
-                alert('ID karyawan wajib diisi.');
+                alert('社員IDは必須入力です。');
                 return;
             }
 
             try {
-                // Panggil endpoint login manual untuk Development Mode
+                // 開発モード用のログインエンドポイントを呼び出す
                 const response = await ringiSystem.apiRequest('POST', 'auth/login', { 
                     username: workerId
                 });
@@ -69,10 +69,10 @@ class AuthHandler {
                     }
                     window.location.href = 'list.html';
                 } else {
-                    alert(response.error || 'Login gagal.');
+                    alert(response.error || 'ログインに失敗しました。');
                 }
             } catch (error) {
-                alert('Terjadi kesalahan sistem saat login: ' + error.message);
+                alert('ログイン時にシステムエラーが発生しました: ' + error.message);
             }
         });
     }
@@ -82,7 +82,7 @@ class AuthHandler {
         if (userSession) {
             try {
                 const user = JSON.parse(userSession);
-                $('.user-name-display').text(user.name || 'User');
+                $('.user-name-display').text(user.name || 'ユーザー');
             } catch(e) {}
         }
     }

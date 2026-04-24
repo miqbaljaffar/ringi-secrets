@@ -16,7 +16,7 @@
             <div class="form-group">
                 <label class="form-label required">稟議書No</label>
                 <div class="form-control-wrapper">
-                    <input type="text" name="id_doc" id="doc-number" readonly value="AR25031600">
+                    <input type="text" name="id_doc" id="doc-number" readonly placeholder="自動採番 (Auto)">
                 </div>
             </div>
 
@@ -30,7 +30,7 @@
             <div class="form-group">
                 <label class="form-label required">申請日</label>
                 <div class="form-control-wrapper">
-                     <input type="text" name="ts_applied" id="application-date" readonly>
+                     <input type="date" name="ts_applied" id="application-date" readonly>
                 </div>
             </div>
 
@@ -55,7 +55,7 @@
             <div class="form-group">
                 <label class="form-label required">件名</label>
                 <div class="form-control-wrapper">
-                     <input type="text" name="s_title" required>
+                     <input type="text" name="s_title" required maxlength="30">
                 </div>
             </div>
 
@@ -69,14 +69,14 @@
             <div class="form-group" style="align-items: flex-start;">
                 <label class="form-label required">概要・理由</label>
                 <div class="form-control-wrapper">
-                     <textarea name="s_overview" required></textarea>
+                     <textarea name="s_overview" required placeholder="品名、金額の内訳等の詳細や申請理由を記入"></textarea>
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label">金額（総額）</label>
                 <div class="form-control-wrapper">
-                    <span id="total-amount" style="font-size: 16px;">0 円</span>
+                    <span id="total-amount" style="font-size: 16px; font-weight: bold; color: #0088cc;">0 円</span>
                 </div>
             </div>
 
@@ -88,7 +88,7 @@
                     <div style="width: 5%;"></div>
                 </div>
                 
-                <div id="details-container">
+                <div id="details-container" style="max-height: 250px; overflow-y: auto; overflow-x: hidden;">
                 </div>
                 
                 <button type="button" id="add-detail-btn" class="btn-add-detail">＋ 明細を追加</button>
@@ -100,7 +100,8 @@
             <div class="form-group">
                 <label class="form-label">ファイルアップ<br>ロード（PDF）</label>
                 <div class="form-control-wrapper">
-                    <input type="file" id="file-upload" name="file_upload" accept=".pdf" style="border:none; padding:0;">
+                    <input type="file" id="file-upload" name="attachment" accept=".pdf" style="border:none; padding:0;">
+                    <span id="file-name-display" style="font-size: 12px; margin-left: 10px; font-weight: bold;"></span>
                 </div>
             </div>
 
@@ -117,35 +118,23 @@
         </div>
 
         <div class="section" style="margin-top: 30px;">
-            <span style="font-size: 12px; font-weight: bold; margin-bottom: 5px; display: block;">承認ルート</span>
-            <table class="approval-table">
-                <thead>
-                    <tr>
-                        <th width="30%">承認順位</th>
-                        <th width="30%">承認日時</th>
-                        <th width="40%">承認者名</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                    </tr>
-                </tbody>
-            </table>
+            <span style="font-size: 14px; font-weight: bold; margin-bottom: 5px; display: block; color: #0088cc;">承認ルート</span>
+            <div id="approval-route" style="background: #f8f9fa; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">
+                読み込み中...
+            </div>
         </div>
 
         <div class="btn-area">
-            <button type="button" id="btn-save-draft" class="btn btn-gray">申請</button>
-            <button type="button" id="btn-withdraw" class="btn btn-red">取下げ</button>
-            <button type="submit" id="btn-submit" class="btn btn-blue">手配完了</button>
+            <button type="button" id="btn-save-draft" class="btn btn-gray">下書き保存 (Draft)</button>
+            <button type="button" id="btn-cancel" class="btn btn-red">キャンセル (Cancel)</button>
+            <button type="submit" id="btn-submit" class="btn btn-blue">申請 (Apply)</button>
         </div>
     </form>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="../assets/js/main.js"></script>
+<script src="../assets/js/modules/auth.js"></script>
 <script src="../assets/js/modules/common-form.js"></script>
 </body>
 </html>
