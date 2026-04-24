@@ -6,6 +6,7 @@
     <title>新規稟議申請 (税務) | 稟議書管理システム</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/contract_form.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
@@ -62,7 +63,6 @@
                         <span style="font-size: 13px;">西暦:</span>
                         <input type="date" name="dt_establishment" id="dt_est_seireki" required>
                         <span style="font-size: 13px; margin-left: 10px;">和暦:</span>
-                        <!-- PERBAIKAN: Dihilangkan atribut readonly dan background color agar dapat di-input -->
                         <input type="text" id="dt_est_wareki" class="input-mid wareki-input" placeholder="例: 令和5年10月1日">
                     </div>
                 </div>
@@ -156,7 +156,6 @@
             <div class="form-group">
                 <label class="form-label required">納税No</label>
                 <div class="form-control-wrapper">
-                    <!-- Sesuai konfirmasi, menggunakan type=text -->
                     <input type="text" name="s_tax_num" maxlength="8" pattern="\d{8}" title="数値8桁で入力してください" placeholder="数値8桁" required>
                 </div>
             </div>
@@ -244,7 +243,6 @@
                     <span style="font-size: 13px;">西暦:</span>
                     <input type="date" name="dt_rep_birth" id="dt_birth_seireki" required>
                     <span style="font-size: 13px; margin-left: 10px;">和暦:</span>
-                    <!-- PERBAIKAN: Hapus readonly agar mendukung 2 arah -->
                     <input type="text" id="dt_birth_wareki" class="input-mid wareki-input" placeholder="例: 昭和50年1月1日">
                 </div>
             </div>
@@ -456,7 +454,6 @@
                     <span style="font-size: 13px;">西暦:</span>
                     <input type="date" name="dt_contract_start" id="dt_start_seireki" required>
                     <span style="font-size: 13px; margin-left: 10px;">和暦:</span>
-                    <!-- PERBAIKAN: Hapus readonly -->
                     <input type="text" id="dt_start_wareki" class="input-mid wareki-input" placeholder="例: 令和5年10月1日">
                 </div>
             </div>
@@ -472,7 +469,6 @@
                     <div class="pre-accountant-group" style="margin-top: 10px; width: 100%;">
                         <input type="text" name="s_pre_accountant" placeholder="前関与事務所名" style="margin-bottom:5px; width: 100%;" maxlength="50">
                         <div class="flex-row">
-                            <!-- PERBAIKAN: Berubah dari select menjadi radio untuk sesuai spesifikasi -->
                             <label><input type="radio" name="n_pre_account_type" value="1" checked> 毎月</label>
                             <label><input type="radio" name="n_pre_account_type" value="2"> 隔月(2)</label>
                             <label><input type="radio" name="n_pre_account_type" value="3"> 隔月(3)</label>
@@ -552,7 +548,7 @@
             <div class="form-group">
                 <label class="form-label">見積書 (PDF)</label>
                 <div class="form-control-wrapper">
-                    <input type="file" name="file_estimate" accept=".pdf">
+                    <input type="file" name="estimate_file" accept=".pdf">
                     <span class="file-name-display" style="font-weight: bold; margin-left: 10px;"></span>
                     <div class="note" style="color: #dc3545; font-weight: bold; margin-top: 5px;">※注意事項: 請求書（インボイス）は添付しない</div>
                 </div>
@@ -560,16 +556,37 @@
             <div class="form-group">
                 <label class="form-label">その他資料 (PDF)</label>
                 <div class="form-control-wrapper">
-                    <input type="file" name="file_others" accept=".pdf">
+                    <input type="file" name="attachment" accept=".pdf">
                     <span class="file-name-display" style="font-weight: bold; margin-left: 10px;"></span>
                     <div class="note" style="color: #dc3545; font-weight: bold; margin-top: 5px;">※注意事項: 請求書（インボイス）は添付しない</div>
                 </div>
             </div>
         </div>
+
+        <div class="section" style="margin-top: 30px;">
+            <span style="font-size: 14px; font-weight: bold; margin-bottom: 5px; display: block; color: #0088cc;">承認ルート</span>
+            <div style="background: #f8f9fa; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">
+                <table class="approval-table" style="width: 100%; text-align: left;">
+                    <thead>
+                        <tr>
+                            <th style="padding: 8px; border-bottom: 2px solid #ccc; width: 33%;">承認順位</th>
+                            <th style="padding: 8px; border-bottom: 2px solid #ccc; width: 33%;">承認日時</th>
+                            <th style="padding: 8px; border-bottom: 2px solid #ccc; width: 34%;">承認者名</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="3" style="padding: 15px; text-align: center; color: #666;">(申請後に確定します)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
         
         <div class="btn-area">
-            <button type="button" id="btn-save-draft" class="btn btn-secondary">下書き保存 (Draft)</button>
-            <button type="submit" id="btn-submit" class="btn btn-primary">申請する (Apply)</button>
+            <button type="button" id="btn-save-draft" class="btn btn-gray">下書き保存 (Draft)</button>
+            <button type="button" id="btn-cancel" class="btn btn-red">キャンセル (Cancel)</button>
+            <button type="submit" id="btn-submit" class="btn btn-blue">申請する (Apply)</button>
         </div>
 
     </form>

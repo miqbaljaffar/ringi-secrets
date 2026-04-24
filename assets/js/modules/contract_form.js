@@ -11,6 +11,7 @@ class ContractFormHandler {
         this.setupAutoKana();
         this.generateDocumentNumber();
         this.setDefaultValues();
+        this.loadEmployees(); 
         this.toggleCorporateFields(); 
         this.initToggles();
     }
@@ -26,6 +27,14 @@ class ContractFormHandler {
         $('#btn-save-draft').on('click', function(e) {
             e.preventDefault();
             self.handleSubmit('draft');
+        });
+
+        // PERBAIKAN: Fungsi Batal/Cancel
+        $('#btn-cancel').on('click', function(e) {
+            e.preventDefault();
+            if (confirm('入力内容が破棄されます。よろしいですか？ (Data yang diinput akan hilang. Lanjutkan?)')) {
+                window.location.href = 'list.html';
+            }
         });
 
         $(document).on('blur', '.money-input', function() {
@@ -170,11 +179,41 @@ class ContractFormHandler {
     setDefaultValues() {
         const today = new Date().toISOString().split('T')[0];
         $('#applied_date').val(today);
-        
-        const $picSelect = $('select[name="s_incharge"]');
-        if ($picSelect.length && $picSelect.find('option').length <= 1) {
-            $picSelect.append('<option value="1">システム管理者</option>');
-            $picSelect.append('<option value="2">テストユーザー1</option>');
+    }
+    
+    async loadEmployees() {
+        const select = document.querySelector('select[name="s_incharge"]');
+        if (!select) return;
+
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
+
+        try {
+            const response = await ringiSystem.apiRequest('GET', 'users/list'); 
+            if (response.success && response.data && response.data.length > 0) {
+                response.data.forEach(emp => {
+                    const opt = document.createElement('option');
+                    opt.value = emp.id_worker;
+                    opt.textContent = `${emp.id_worker}: ${emp.s_name}`;
+                    select.appendChild(opt);
+                });
+            } else {
+                throw new Error('Data karyawan kosong');
+            }
+        } catch (error) {
+            console.warn('Gagal memuat data pegawai (Fallback aktif):', error);
+            // Fallback development mode
+            const mockEmployees = [
+                { id_worker: '0001', s_name: 'Test User' },
+                { id_worker: '0036', s_name: 'Admin System' }
+            ];
+            mockEmployees.forEach(emp => {
+                const opt = document.createElement('option');
+                opt.value = emp.id_worker;
+                opt.textContent = `${emp.id_worker}: ${emp.s_name}`;
+                select.appendChild(opt);
+            });
         }
     }
 
@@ -317,7 +356,6 @@ class ContractFormHandler {
         const cat2 = formData.get('cat2') || '';
         const cat3 = formData.get('cat3') || '';
         if (cat1 && cat2 && cat3) {
-            // PERBAIKAN 3: Perbaikan nama key formData agar match dengan PHP backend (s_industry_type)
             formData.append('s_industry_type', `${cat1}${cat2}${cat3}`);
         }
 
@@ -333,7 +371,11 @@ class ContractFormHandler {
                     window.location.href = `detail.html?id=${response.doc_id}&type=tax`;
                 }, 1500);
             } else {
-                ringiSystem.showNotification('エラー: ' + (response.error || '送信に失敗しました'), 'error');
+                let errorMessage = response.error || '送信に失敗しました';
+                if (response.errors) {
+                     errorMessage = Object.values(response.errors).flat().join('\n');
+                }
+                ringiSystem.showNotification('エラー: ' + errorMessage, 'error');
             }
         } catch (error) {
             console.error('Submit error:', error);
