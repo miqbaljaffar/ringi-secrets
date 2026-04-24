@@ -38,12 +38,20 @@ class ListHandler {
         const sessionUser = sessionStorage.getItem('user');
         const user = sessionUser ? JSON.parse(sessionUser) : ringiSystem.user;
         
-        if (user && user.role >= 1) {
-            this.currentTab = 'to_approve';
-            $('.tab-btn').removeClass('active');
-            $('.tab-btn[data-tab="to_approve"]').addClass('active');
-        } else {
-            this.currentTab = $('.tab-btn.active').data('tab') || 'all';
+        if (user) {
+            let roleName = '一般ユーザー'; // General User
+            if (user.role == 1) roleName = '承認者'; // Approver
+            else if (user.role == 2) roleName = '管理者'; // Admin
+            
+            $('#user-name-role').text(`(${user.name} - ${roleName})`);
+
+            if (user.role >= 1) {
+                this.currentTab = 'to_approve';
+                $('.tab-btn').removeClass('active');
+                $('.tab-btn[data-tab="to_approve"]').addClass('active');
+            } else {
+                this.currentTab = $('.tab-btn.active').data('tab') || 'all';
+            }
         }
 
         this.fetchData();

@@ -10,6 +10,15 @@
 <body>
 
 <div id="app" class="list-wrapper">
+    <div class="top-header" style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #75bced;">
+        <div class="user-info" style="margin-right: 15px; font-size: 14px; font-weight: bold; color: #005580;">
+            <i class="fas fa-user-circle"></i> <span id="user-name-role">読み込み中...</span>
+        </div>
+        <button type="button" id="btn-logout" class="btn btn-red" style="height: 32px; padding: 0 15px; display: inline-flex; align-items: center; gap: 5px; font-size: 13px;">
+            <i class="fas fa-sign-out-alt"></i> ログアウト (Logout)
+        </button>
+    </div>
+
     <h1 id="dynamic-page-title" class="page-title">通常の承認一覧</h1>
 
     <div class="search-container">

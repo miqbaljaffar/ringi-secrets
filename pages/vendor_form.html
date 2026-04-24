@@ -157,7 +157,6 @@
             <div class="form-group" style="border-bottom: none;">
                 <label class="form-label required" style="color: #333;">見積書（PDF）</label>
                 <div class="form-control-wrapper file-upload-container">
-                    <!-- PERBAIKAN: name diubah menjadi estimate_file sesuai controller backend -->
                     <input type="file" id="estimate_file" name="estimate_file" style="display: none;" accept=".pdf" required>
                     <button type="button" class="btn-choose-file" onclick="document.getElementById('estimate_file').click()">ファイルを選択</button>
                     
@@ -187,10 +186,10 @@
             </div>
         </div>
 
-        <div class="btn-area-custom">
-            <button type="button" class="btn-custom btn-c-red" onclick="window.history.back();">キャンセル</button>
-            <button type="button" id="btn-save-draft" class="btn-custom btn-c-gray">下書き保存</button>
-            <button type="submit" class="btn-custom btn-c-blue">申請</button>
+        <div class="btn-area">
+            <button type="button" id="btn-cancel" class="btn btn-red" onclick="window.history.back();">キャンセル (Cancel)</button>
+            <button type="button" id="btn-save-draft" class="btn btn-gray">下書き保存 (Draft)</button>
+            <button type="submit" id="btn-submit" class="btn btn-blue">申請 (Apply)</button>
         </div>
 
     </form>
