@@ -23,6 +23,8 @@ class CommonFormHandler {
     }
     
     bindEvents() {
+        const self = this;
+
         document.getElementById('add-detail-btn')?.addEventListener('click', () => {
             this.addDetailRow();
         });
@@ -31,10 +33,25 @@ class CommonFormHandler {
             this.handleFileUpload(e);
         });
         
+        // Event delegation untuk format uang otomatis saat mengetik rincian
         this.form.addEventListener('input', (e) => {
             if (e.target.classList.contains('amount-input')) {
                 this.calculateTotal();
             }
+        });
+
+        // Format angka ribuan (Money Format) untuk field dinamis
+        $(document).on('blur', '.money-input', function() {
+            let val = $(this).val().replace(/,/g, '');
+            if (!isNaN(val) && val !== '') {
+                $(this).val(Number(val).toLocaleString('ja-JP'));
+            }
+            self.calculateTotal();
+        });
+
+        $(document).on('focus', '.money-input', function() {
+            let val = $(this).val().replace(/,/g, '');
+            $(this).val(val);
         });
         
         // EVENT: Tombol Apply (Submit)
@@ -79,6 +96,7 @@ class CommonFormHandler {
                         otherInput.style.display = 'none';
                         otherInput.required = false;
                         otherInput.value = '';
+                        otherInput.style.borderColor = '#ccc'; 
                     }
                 }
             });
@@ -155,6 +173,7 @@ class CommonFormHandler {
         if(document.getElementById('deadline'))
             document.getElementById('deadline').value = nextWeek.toISOString().split('T')[0];
 
+        // Trigger inisialisasi radio attachment
         document.querySelector('input[name="s_file_type"]:checked')?.dispatchEvent(new Event('change'));
     }
     
@@ -164,6 +183,7 @@ class CommonFormHandler {
     
     addDetailRow() {
         const detailId = this.detailCounter++;
+        // Mengubah type="number" menjadi type="text" class="money-input" agar format ribuan bekerja
         const rowHtml = `
             <div class="detail-row" data-detail-id="${detailId}" style="display:flex; gap:10px; margin-bottom: 10px; align-items: center; padding-right: 5px;">
                 <div class="form-group" style="margin-bottom:0; flex:1;">
@@ -175,10 +195,10 @@ class CommonFormHandler {
                     <input type="text" class="payer-input" placeholder="支払先" required maxlength="255" style="width:100%; padding:8px;">
                 </div>
                 <div class="form-group" style="margin-bottom:0; flex:1;">
-                    <input type="number" class="amount-input" placeholder="金額" required min="0" step="1" style="width:100%; padding:8px;">
+                    <input type="text" class="amount-input money-input" placeholder="金額" required style="width:100%; padding:8px; text-align: right;">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
-                    <button type="button" class="remove-detail-btn btn btn-red btn-sm" style="height:35px; width:40px; padding:0; min-width:unset;">✕</button>
+                    <button type="button" class="remove-detail-btn btn btn-red btn-sm" style="height:35px; width:40px; padding:0; min-width:unset;" title="Hapus">✕</button>
                 </div>
             </div>
         `;
@@ -210,7 +230,9 @@ class CommonFormHandler {
     calculateTotal() {
         let total = 0;
         document.querySelectorAll('.amount-input').forEach(input => {
-            total += parseInt(input.value) || 0;
+            // Bersihkan koma saat menghitung total
+            let val = input.value.replace(/,/g, '');
+            total += parseInt(val) || 0;
         });
         
         if (this.totalAmountElement) {
@@ -223,7 +245,7 @@ class CommonFormHandler {
             const routeElement = document.getElementById('approval-route');
             if (!routeElement) return;
             
-            routeElement.innerHTML = '読み込み中...';
+            routeElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 読み込み中...';
             
             if (typeof ringiSystem !== 'undefined') {
                 const response = await ringiSystem.apiRequest('GET', `approval-route?type=${type}`);
@@ -278,14 +300,22 @@ class CommonFormHandler {
         }
         
         let total = 0;
-        document.querySelectorAll('.amount-input').forEach(input => { total += parseInt(input.value) || 0; });
+        document.querySelectorAll('.amount-input').forEach(input => { 
+            let val = input.value.replace(/,/g, '');
+            total += parseInt(val) || 0; 
+        });
         if (total <= 0) {
-            if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification('金額を入力してください', 'warning');
+            if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification('有効な金額を入力してください (Masukkan nominal yang valid)', 'warning');
             isValid = false;
+            // Tandai input amount yang kosong atau nol
+            document.querySelectorAll('.amount-input').forEach(input => {
+                let val = input.value.replace(/,/g, '');
+                if(parseInt(val) <= 0 || !val) input.style.borderColor = 'red';
+            });
         }
         
         if(!isValid && typeof ringiSystem !== 'undefined') {
-            ringiSystem.showNotification('必須項目を入力してください', 'error');
+            ringiSystem.showNotification('必須項目を正しく入力してください', 'error');
         }
         
         return isValid;
@@ -306,20 +336,24 @@ class CommonFormHandler {
             const amountInput = row.querySelector('.amount-input');
             
             if (categorySelect && payerInput && amountInput) {
+                let cleanAmount = amountInput.value.replace(/,/g, '');
                 details.push({
                     n_category: parseInt(categorySelect.value) || 0,
                     s_payer: payerInput.value,
-                    n_amount: parseInt(amountInput.value) || 0
+                    n_amount: parseInt(cleanAmount) || 0
                 });
             }
         });
         
+        // Backend mengharapkan JSON string untuk array details
         formData.append('details', JSON.stringify(details));
         
         let total = 0;
-        document.querySelectorAll('.amount-input').forEach(input => { total += parseInt(input.value) || 0; });
+        document.querySelectorAll('.amount-input').forEach(input => { 
+            let val = input.value.replace(/,/g, '');
+            total += parseInt(val) || 0; 
+        });
         formData.append('total_amount', total);
-        
         formData.append('save_mode', saveMode);
 
         const fileTypeRadio = this.form.querySelector('input[name="s_file_type"]:checked');
@@ -329,27 +363,15 @@ class CommonFormHandler {
         }
         formData.append('s_file', sFileValue);
 
-        // Tambahkan Session User ID secara eksplisit ke backend
         if (typeof ringiSystem !== 'undefined' && ringiSystem.user && ringiSystem.user.id) {
             formData.append('id_user', ringiSystem.user.id);
+            formData.append('s_applied', ringiSystem.user.id); 
         }
         
         try {
             if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification('送信中...', 'info');
             
-            // PERBAIKAN UTAMA: Menggunakan native fetch untuk bypass `application/json` limiter
-            // Hal ini karena backend kita butuh tipe `multipart/form-data`
-            const token = localStorage.getItem('token') || '';
-            const responseStream = await fetch('../api/common', {
-                method: 'POST',
-                headers: {
-                    // PENTING: Jangan set Content-Type secara manual, biarkan browser menentukannya agar file bisa di-upload
-                    'Authorization': token ? `Bearer ${token}` : ''
-                },
-                body: formData
-            });
-            
-            const response = await responseStream.json();
+            const response = await ringiSystem.apiRequest('POST', 'common', formData, true);
             
             if (response.success) {
                 const msg = saveMode === 'draft' ? '下書き保存しました (Tersimpan sebagai Draft)' : '申請が完了しました (Berhasil di-Apply)';

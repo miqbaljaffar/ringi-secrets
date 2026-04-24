@@ -16,7 +16,6 @@ const ringiSystem = {
         }, 3000);
     },
 
-    // --- Fetch API ヘルパー ---
     apiRequest: async function(method, endpoint, data = null, isFormData = false) {
         const BASE_URL = '../api/index.php'; 
         const url = `${BASE_URL}/${endpoint}`;
@@ -89,11 +88,30 @@ $(document).ready(function() {
     
     $('#btn-logout').on('click', async function(e) {
         e.preventDefault();
-        // バックエンドのログアウトエンドポイントを呼び出してPHPセッションを破棄
-        await ringiSystem.apiRequest('POST', 'auth/logout');
+
+        // 1. Validasi Konfirmasi sebelum Logout
+        const isConfirm = confirm('ログアウトしますか？\n(Apakah Anda yakin ingin logout?)');
+        if (!isConfirm) {
+            return; // Batalkan proses jika user klik "Cancel"
+        }
+
+        // 2. Ubah state tombol menjadi loading dan warnanya diubah
+        const $btn = $(this);
+        const originalText = $btn.html();
+        $btn.css('background-color', '#b30000'); 
+        $btn.html('<i class="fas fa-spinner fa-spin"></i> ログアウト中...'); // Teks loading
+        $btn.prop('disabled', true);
         
-        sessionStorage.removeItem('user');
-        sessionStorage.removeItem('token');
-        window.location.href = 'login.html'; 
+        try {
+            // バックエンドのログアウトエンドポイントを呼び出してPHPセッションを破棄
+            await ringiSystem.apiRequest('POST', 'auth/logout');
+        } catch(error) {
+            console.error('Logout error:', error);
+        } finally {
+            // Hapus session storage dan arahkan ke halaman login
+            sessionStorage.removeItem('user');
+            sessionStorage.removeItem('token');
+            window.location.href = 'login.html'; 
+        }
     });
 });

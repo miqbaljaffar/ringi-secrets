@@ -13,7 +13,7 @@
 <div class="container">
     <h1>新規稟議申請 (税務契約)</h1>
 
-    <form id="contract-form">
+    <form id="contract-form" novalidate>
         
         <div class="section">
             <div class="form-group">
@@ -68,16 +68,16 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" style="color: #800080;">資本金</label>
+                    <label class="form-label required" style="color: #800080;">資本金</label>
                     <div class="form-control-wrapper">
-                        <input type="text" name="n_capital" class="input-mid text-right money-input"> 円
+                        <input type="text" name="n_capital" class="input-mid text-right money-input" required> 円
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" style="color: #800080;">直前期</label>
+                    <label class="form-label required" style="color: #800080;">直前期</label>
                     <div class="form-control-wrapper">
-                        <input type="number" name="n_before" class="input-short text-right"> 期
+                        <input type="number" name="n_before" class="input-short text-right" required> 期
                     </div>
                 </div>
             </div>
@@ -164,8 +164,8 @@
                 <label class="form-label required">事業所住所</label>
                 <div class="form-control-wrapper">
                     <div style="width: 100%; margin-bottom: 5px;">
-                        〒 <input type="text" name="zip1" class="input-short" maxlength="3" pattern="\d{3}"> - 
-                        <input type="text" name="zip2" class="input-short" maxlength="4" pattern="\d{4}">
+                        〒 <input type="text" name="zip1" class="input-short" maxlength="3" pattern="\d{3}" required> - 
+                        <input type="text" name="zip2" class="input-short" maxlength="4" pattern="\d{4}" required>
                         <button type="button" class="btn-secondary btn-sm btn-address-search" data-target="office">住所検索</button>
                     </div>
                     <input type="text" name="s_office_address" id="address" style="width: 100%; margin-bottom: 5px;" placeholder="住所" required maxlength="100">
@@ -176,9 +176,9 @@
             <div class="form-group">
                 <label class="form-label required">事業所TEL</label>
                 <div class="form-control-wrapper flex-row">
-                    <input type="text" name="tel1" class="input-short" maxlength="5"> - 
-                    <input type="text" name="tel2" class="input-short" maxlength="4"> - 
-                    <input type="text" name="tel3" class="input-short" maxlength="4">
+                    <input type="text" name="tel1" class="input-short" maxlength="5" required> - 
+                    <input type="text" name="tel2" class="input-short" maxlength="4" required> - 
+                    <input type="text" name="tel3" class="input-short" maxlength="4" required>
                 </div>
             </div>
 
@@ -191,7 +191,7 @@
                 </div>
             </div>
             <div class="form-group send-to-others-group" style="display:none;">
-                 <label class="form-label">郵送先 (その他)</label>
+                 <label class="form-label required">郵送先 (その他)</label>
                  <div class="form-control-wrapper">
                      <input type="text" name="s_send_to_others" placeholder="その他の郵送先住所" maxlength="100">
                  </div>
@@ -233,7 +233,7 @@
                 <div class="form-control-wrapper">
                     <label><input type="radio" name="rep_email_exists" value="1" checked> あり</label>
                     <label><input type="radio" name="rep_email_exists" value="0"> なし</label>
-                    <input type="email" name="s_rep_email" id="rep_email_input" placeholder="representative@example.com" style="width: 300px;" maxlength="100">
+                    <input type="email" name="s_rep_email" id="rep_email_input" placeholder="representative@example.com" style="width: 300px;" required maxlength="100">
                 </div>
             </div>
 
@@ -252,8 +252,8 @@
                 <label class="form-label required">自宅住所</label>
                 <div class="form-control-wrapper">
                     <div style="width: 100%; margin-bottom: 5px;">
-                        〒 <input type="text" name="rep_zip1" class="input-short" maxlength="3" pattern="\d{3}"> - 
-                        <input type="text" name="rep_zip2" class="input-short" maxlength="4" pattern="\d{4}">
+                        〒 <input type="text" name="rep_zip1" class="input-short" maxlength="3" pattern="\d{3}" required> - 
+                        <input type="text" name="rep_zip2" class="input-short" maxlength="4" pattern="\d{4}" required>
                         <button type="button" class="btn-secondary btn-sm btn-address-search" data-target="rep">住所検索</button>
                     </div>
                     <input type="text" name="s_rep_address" id="rep_address" style="width: 100%; margin-bottom: 5px;" placeholder="住所" required maxlength="100">
@@ -266,9 +266,9 @@
                     <label><input type="radio" name="rep_tel_exists" value="1" checked> あり</label>
                     <label><input type="radio" name="rep_tel_exists" value="0"> なし</label>
                     <div id="rep_tel_group" class="flex-row">
-                        <input type="text" name="rep_tel1" class="input-short" maxlength="5"> - 
-                        <input type="text" name="rep_tel2" class="input-short" maxlength="4"> - 
-                        <input type="text" name="rep_tel3" class="input-short" maxlength="4">
+                        <input type="text" name="rep_tel1" class="input-short" maxlength="5" required> - 
+                        <input type="text" name="rep_tel2" class="input-short" maxlength="4" required> - 
+                        <input type="text" name="rep_tel3" class="input-short" maxlength="4" required>
                     </div>
                 </div>
             </div>
@@ -318,43 +318,43 @@
         <h2>会社概要・経理状況 (Financials)</h2>
         <div class="section">
             <div class="form-group">
-                <label class="form-label">直前期財務データ</label>
+                <label class="form-label required">直前期財務データ</label>
                 <div class="form-control-wrapper financial-grid">
                     <div class="fin-item">
                         <label>総資産</label>
                         <div class="input-with-unit">
-                            <input type="text" name="n_pre_total" class="text-right money-input"><span>円</span>
+                            <input type="text" name="n_pre_total" class="text-right money-input" required><span>円</span>
                         </div>
                     </div>
                     <div class="fin-item">
                         <label>売上高</label>
                         <div class="input-with-unit">
-                             <input type="text" name="n_pre_sales" class="text-right money-input"><span>円</span>
+                             <input type="text" name="n_pre_sales" class="text-right money-input" required><span>円</span>
                         </div>
                     </div>
                     <div class="fin-item">
                         <label>金融債務</label>
                         <div class="input-with-unit">
-                            <input type="text" name="n_pre_debt" class="text-right money-input"><span>円</span>
+                            <input type="text" name="n_pre_debt" class="text-right money-input" required><span>円</span>
                         </div>
                     </div>
                     <div class="fin-item">
                         <label>当期利益</label>
                         <div class="input-with-unit">
-                            <input type="text" name="n_pre_income" class="text-right money-input"><span>円</span>
+                            <input type="text" name="n_pre_income" class="text-right money-input" required><span>円</span>
                         </div>
                     </div>
                     <div class="fin-item">
                         <label>従事者数</label>
                         <div class="input-with-unit">
-                            <input type="number" name="n_pre_workers" class="text-right"><span>名</span>
+                            <input type="number" name="n_pre_workers" class="text-right" required><span>名</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="form-group">
-                <label class="form-label">消費税区分</label>
+                <label class="form-label required">消費税区分</label>
                 <div class="form-control-wrapper">
                     <label><input type="radio" name="n_comsumption_tax" value="1" checked> 本則</label>
                     <label><input type="radio" name="n_comsumption_tax" value="2"> 簡易</label>
@@ -363,7 +363,7 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label">貿易・関連会社</label>
+                <label class="form-label required">貿易・関連会社</label>
                 <div class="form-control-wrapper">
                      <span class="sub-label">貿易:</span>
                      <label><input type="radio" name="n_trade" value="1"> 輸入</label>
@@ -380,7 +380,7 @@
             <div class="section-sub-title">経理の現況</div>
 
             <div class="form-group">
-                <label class="form-label">自計化状況</label>
+                <label class="form-label required">自計化状況</label>
                 <div class="form-control-wrapper vertical-radio">
                     <label><input type="radio" name="n_self_accounting" value="1" checked> 自計化</label>
                     <label><input type="radio" name="n_self_accounting" value="2"> 半自計化</label>
@@ -395,7 +395,7 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label">会計ソフト</label>
+                <label class="form-label required">会計ソフト</label>
                 <div class="form-control-wrapper">
                     <label><input type="radio" name="n_accounting_apps" value="1" checked> TKC</label>
                     <label><input type="radio" name="n_accounting_apps" value="2"> 弥生会計</label>
@@ -410,7 +410,7 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label">作成している帳簿<span class="note">(複数選択可)</span></label>
+                <label class="form-label required">作成している帳簿<span class="note">(複数選択可)</span></label>
                 <div class="form-control-wrapper checkbox-grid">
                     <label><input type="checkbox" name="s_books[]" value="1"> 現金出納帳</label>
                     <label><input type="checkbox" name="s_books[]" value="2"> 預金出納帳</label>
@@ -431,14 +431,14 @@
             </div>
             
             <div class="form-group">
-                <label class="form-label">1ヶ月の伝票枚数</label>
+                <label class="form-label required">1ヶ月の伝票枚数</label>
                 <div class="form-control-wrapper">
-                    <input type="number" name="n_slip_count" class="input-mid text-right"> 枚程度
+                    <input type="number" name="n_slip_count" class="input-mid text-right" required> 枚程度
                 </div>
             </div>
             
             <div class="form-group">
-                <label class="form-label">経理担当者の有無</label>
+                <label class="form-label required">経理担当者の有無</label>
                 <div class="form-control-wrapper">
                     <label><input type="radio" name="n_accounting_staff" value="1" checked> あり</label>
                     <label><input type="radio" name="n_accounting_staff" value="0"> なし</label>
@@ -459,7 +459,7 @@
             </div>
             
             <div class="form-group">
-                <label class="form-label">従前契約 (前関与)</label>
+                <label class="form-label required">従前契約 (前関与)</label>
                 <div class="form-control-wrapper flex-column">
                     <div class="flex-row">
                          <label><input type="radio" name="pre_accountant_status" value="1" checked> あり</label>
@@ -467,7 +467,7 @@
                          <label><input type="radio" name="pre_accountant_status" value="3"> 新規開業</label>
                     </div>
                     <div class="pre-accountant-group" style="margin-top: 10px; width: 100%;">
-                        <input type="text" name="s_pre_accountant" placeholder="前関与事務所名" style="margin-bottom:5px; width: 100%;" maxlength="50">
+                        <input type="text" name="s_pre_accountant" id="s_pre_accountant" placeholder="前関与事務所名" style="margin-bottom:5px; width: 100%;" maxlength="50" required>
                         <div class="flex-row">
                             <label><input type="radio" name="n_pre_account_type" value="1" checked> 毎月</label>
                             <label><input type="radio" name="n_pre_account_type" value="2"> 隔月(2)</label>
@@ -475,9 +475,9 @@
                             <label><input type="radio" name="n_pre_account_type" value="4"> 年一</label>
                         </div>
                         <div class="flex-row" style="margin-top:5px;">
-                            <input type="text" name="n_rewards_account" placeholder="前報酬(会計)" class="money-input input-mid text-right">
-                            <input type="text" name="n_rewards_tax" placeholder="前報酬(税務)" class="money-input input-mid text-right">
-                            <input type="text" name="n_rewards_yearly" placeholder="年間報酬" class="money-input input-mid text-right">
+                            <input type="text" name="n_rewards_account" id="n_rewards_account" placeholder="前報酬(会計)" class="money-input input-mid text-right" required>
+                            <input type="text" name="n_rewards_tax" id="n_rewards_tax" placeholder="前報酬(税務)" class="money-input input-mid text-right" required>
+                            <input type="text" name="n_rewards_yearly" id="n_rewards_yearly" placeholder="年間報酬" class="money-input input-mid text-right" required>
                         </div>
                     </div>
                 </div>
@@ -521,7 +521,7 @@
                     </div>
                     
                     <div class="flex-row" style="margin-top: 15px;">
-                        <input type="text" name="s_introducer" placeholder="紹介者名" class="input-mid" maxlength="50">
+                        <input type="text" name="s_introducer" placeholder="紹介者名" class="input-mid" required maxlength="50">
                         <select name="n_introducer_type" class="input-mid">
                             <option value="0">紹介者区分：なし</option>
                             <option value="1">顧問先</option>
@@ -546,9 +546,9 @@
         <h2>添付書類</h2>
         <div class="section">
             <div class="form-group">
-                <label class="form-label">見積書 (PDF)</label>
+                <label class="form-label required">見積書 (PDF)</label>
                 <div class="form-control-wrapper">
-                    <input type="file" name="estimate_file" accept=".pdf">
+                    <input type="file" name="estimate_file" id="estimate_file" accept=".pdf" required>
                     <span class="file-name-display" style="font-weight: bold; margin-left: 10px;"></span>
                     <div class="note" style="color: #dc3545; font-weight: bold; margin-top: 5px;">※注意事項: 請求書（インボイス）は添付しない</div>
                 </div>
@@ -565,7 +565,7 @@
 
         <div class="section" style="margin-top: 30px;">
             <span style="font-size: 14px; font-weight: bold; margin-bottom: 5px; display: block; color: #0088cc;">承認ルート</span>
-            <div style="background: #f8f9fa; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">
+            <div id="approval-route" style="background: #f8f9fa; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">
                 <table class="approval-table" style="width: 100%; text-align: left;">
                     <thead>
                         <tr>
@@ -574,9 +574,9 @@
                             <th style="padding: 8px; border-bottom: 2px solid #ccc; width: 34%;">承認者名</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="approval-route-tbody">
                         <tr>
-                            <td colspan="3" style="padding: 15px; text-align: center; color: #666;">(申請後に確定します)</td>
+                            <td colspan="3" style="padding: 15px; text-align: center; color: #666;"><i class="fas fa-spinner fa-spin"></i> 読み込み中...</td>
                         </tr>
                     </tbody>
                 </table>

@@ -171,13 +171,29 @@ input[type="radio"], input[type="checkbox"] {
     font-size: 15px;
     font-weight: bold;
     text-align: center;
+    transition: all 0.3s ease;
 }
 
 .btn-gray { background-color: #999; color: white; }
-.btn-red { background-color: #e53935; color: white; }
 .btn-blue { background-color: #0088cc; color: white; }
+.btn-red { 
+    background-color: #e53935;
+    color: white; 
+}
 
-.btn:hover { opacity: 0.9; }
+.btn-gray:hover { background-color: #777; opacity: 1; }
+.btn-blue:hover { background-color: #0077b3; opacity: 1; }
+
+.btn-red:hover { 
+    background-color: #c62828 !important; 
+    opacity: 1; 
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2); 
+}
+
+.btn-red:active { 
+    background-color: #b71c1c !important; 
+    transform: translateY(2px); 
+}
 
 .approval-table {
     width: 100%;
