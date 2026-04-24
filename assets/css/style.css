@@ -30,7 +30,6 @@ body {
     padding: 30px;
 }
 
-/* Judul Halaman - Garis Biru Panjang di bawah */
 h1 {
     font-size: 22px;
     color: #000;
@@ -41,7 +40,6 @@ h1 {
     font-weight: bold;
 }
 
-/* Judul Section (Bar Biru Solid) */
 h2 {
     font-size: 15px;
     background-color: var(--primary-color);
@@ -60,7 +58,6 @@ h2 {
     padding-bottom: 5px;
 }
 
-/* Label Form */
 .form-label {
     width: 200px;
     font-weight: normal;
@@ -68,7 +65,6 @@ h2 {
     flex-shrink: 0;
 }
 
-/* Tanda Wajib (Required) Bintang Merah */
 .required::after {
     content: " *";
     color: var(--danger-color);
@@ -77,7 +73,6 @@ h2 {
     margin-left: 2px;
 }
 
-/* Area Input */
 .form-control-wrapper {
     flex-grow: 1;
     display: flex;
@@ -86,7 +81,6 @@ h2 {
     gap: 15px;
 }
 
-/* Styling Input Dasar - Sudut Tajam */
 input[type="text"],
 input[type="date"],
 input[type="number"],
@@ -95,7 +89,7 @@ select,
 textarea {
     padding: 8px 10px;
     border: 1px solid var(--border-color);
-    border-radius: 0; /* Menghilangkan rounded corners */
+    border-radius: 0; 
     width: 100%;
     max-width: 500px; 
     font-size: 14px;
@@ -106,7 +100,6 @@ textarea {
     resize: none;
 }
 
-/* Readonly Input Styling */
 input[readonly] {
     background-color: var(--readonly-bg) !important;
     color: #333 !important;
@@ -114,7 +107,6 @@ input[readonly] {
     font-weight: normal !important;
 }
 
-/* Radio & Checkbox */
 .radio-group label, .form-control-wrapper label {
     margin-right: 15px;
     cursor: pointer;

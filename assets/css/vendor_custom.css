@@ -1,7 +1,7 @@
 .form-label.required::after {
     content: " *" !important;
     background-color: transparent !important;
-    color: #e53935 !important; /* warna danger merah */
+    color: #e53935 !important; 
     font-size: 16px !important;
     padding: 0 !important;
     border-radius: 0 !important;
@@ -9,7 +9,6 @@
     vertical-align: baseline !important;
 }
 
-/* Input background memiliki sedikit aksen abu-abu di mockup */
 input[type="text"], textarea {
     background-color: #f8f9fa;
     border: 1px solid #b3b3b3;
@@ -21,7 +20,6 @@ input[type="text"]:focus, textarea:focus {
     border-color: #0088cc;
 }
 
-/* Styling untuk input yang disabled/readonly di bagian atas */
 .input-readonly {
     background-color: #e2e2e2 !important;
     border: 1px solid #ccc !important;
@@ -29,17 +27,14 @@ input[type="text"]:focus, textarea:focus {
     pointer-events: none;
 }
 
-/* Utility classes untuk lebar input */
 .w-large { width: 100%; max-width: 500px; }
 .w-small { width: 80px; }
 .w-small-plus { width: 120px; }
 
-/* Label dengan warna abu-abu (contoh: pada bagian "その他") */
 .label-gray {
     color: #999;
 }
 
-/* Wrapper untuk input yang memiliki icon (contoh: kalender) */
 .input-icon-wrapper {
     position: relative;
     width: 100%;
@@ -47,7 +42,7 @@ input[type="text"]:focus, textarea:focus {
 }
 .input-icon-wrapper input {
     width: 100%;
-    padding-right: 35px; /* Memberi ruang agar teks tidak menabrak icon */
+    padding-right: 35px; 
 }
 .input-icon-wrapper i {
     position: absolute;
@@ -58,7 +53,6 @@ input[type="text"]:focus, textarea:focus {
     font-size: 16px;
 }
 
-/* Area Upload File Custom */
 .file-upload-container {
     display: flex;
     align-items: center;
@@ -75,7 +69,6 @@ input[type="text"]:focus, textarea:focus {
 }
 .btn-choose-file:hover { background-color: #dde2e6; }
 
-/* Tampilan file terpilih seperti di mockup */
 .file-badge {
     background-color: #8f8f8f;
     color: white;
@@ -88,13 +81,12 @@ input[type="text"]:focus, textarea:focus {
     font-weight: bold;
 }
 
-/* Penyesuaian Tabel Route Approval */
 .approval-table th {
     text-align: center;
     border-right: 1px solid #fff;
 }
 .approval-table td {
-    background-color: #eaf4fc !important; /* Warna biru muda baris kosong */
+    background-color: #eaf4fc !important; 
     height: 45px;
     border-right: 1px solid #fff;
 }
@@ -105,7 +97,6 @@ input[type="text"]:focus, textarea:focus {
     display: block;
 }
 
-/* Tombol Aksi di bagian bawah */
 .btn-area-custom {
     margin-top: 40px;
     display: flex;

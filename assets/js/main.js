@@ -1,5 +1,5 @@
 const ringiSystem = {
-    // --- Helper Notifikasi ---
+    // --- 通知ヘルパー ---
     showNotification: function(message, type = 'success') {
         $('.notification').remove();
         
@@ -16,7 +16,7 @@ const ringiSystem = {
         }, 3000);
     },
 
-    // --- Helper Fetch API ---
+    // --- Fetch API ヘルパー ---
     apiRequest: async function(method, endpoint, data = null, isFormData = false) {
         const BASE_URL = '../api/index.php'; 
         const url = `${BASE_URL}/${endpoint}`;
@@ -27,7 +27,7 @@ const ringiSystem = {
             headers: {}
         };
 
-        // Jika pakai Token Bearer opsional (meski backend pakai Session)
+        // Bearerトークン（任意、バックエンドはセッション使用）
         const token = sessionStorage.getItem('token');
         if (token) {
             options.headers['Authorization'] = `Bearer ${token}`;
@@ -36,7 +36,7 @@ const ringiSystem = {
         if (data) {
             if (isFormData) {
                 options.body = data;
-                // Jangan set Content-Type untuk FormData
+                // FormDataの場合はContent-Typeを設定しない
             } else {
                 options.headers['Content-Type'] = 'application/json';
                 options.body = JSON.stringify(data);
@@ -51,26 +51,25 @@ const ringiSystem = {
                     sessionStorage.removeItem('user');
                     sessionStorage.removeItem('token');
                     
-                    // Cek apakah saat ini sedang di halaman login. Jika iya, JANGAN redirect lagi.
+                    // 現在ログインページの場合はリダイレクトしない
                     if (!window.location.pathname.includes('login.html')) {
                         window.location.href = 'login.html?error=session_expired';
                     }
                     
-                    return { success: false, error: 'Sesi berakhir. Silakan login kembali.' };
+                    return { success: false, error: 'セッションの有効期限が切れました。再度ログインしてください。' };
                 }
                 const errorData = await response.json().catch(() => ({}));
                 
                 if (errorData.errors && typeof errorData.errors === 'object') {
-                    // Extract semua pesan error array dari object
                     const errorString = Object.values(errorData.errors).flat().join('\n');
                     throw new Error(errorString);
                 }
                 
-                throw new Error(errorData.error || errorData.message || 'Terjadi kesalahan pada server');
+                throw new Error(errorData.error || errorData.message || 'サーバーでエラーが発生しました');
             }
             return await response.json();
         } catch (error) {
-            console.error('API Error:', error);
+            console.error('API エラー:', error);
             throw error;
         }
     },
@@ -90,11 +89,11 @@ $(document).ready(function() {
     
     $('#btn-logout').on('click', async function(e) {
         e.preventDefault();
-        // Panggil endpoint logout di backend untuk menghancurkan session PHP
+        // バックエンドのログアウトエンドポイントを呼び出してPHPセッションを破棄
         await ringiSystem.apiRequest('POST', 'auth/logout');
         
         sessionStorage.removeItem('user');
         sessionStorage.removeItem('token');
-        window.location.href = 'login.html'; // Perbaikan path redirect
+        window.location.href = 'login.html'; 
     });
 });

@@ -7,7 +7,7 @@ class VendorFormHandler {
     init() {
         if (!this.form) return;
 
-        // PERBAIKAN: Fungsi Generate Document Number dipanggil
+        // 修正: ドキュメント番号生成関数を呼び出す
         this.generateDocumentNumber();
         this.setDefaultValues();
         this.bindEvents();
@@ -17,7 +17,7 @@ class VendorFormHandler {
         }
     }
 
-    // PERBAIKAN: Fungsi pen-generate Nomor ID Dokumen (Prefix CV) ditambahkan
+    // 修正: ドキュメントID番号生成関数（プレフィックスCV）を追加
     generateDocumentNumber() {
         const now = new Date();
         const yymmdd = now.getFullYear().toString().slice(-2) +
@@ -73,7 +73,7 @@ class VendorFormHandler {
             const response = await ringiSystem.apiRequest('POST', 'vendor', formData, true);
             
             if (response.success) {
-                const msg = saveMode === 'draft' ? '下書き保存しました (Draft Tersimpan)' : '申請が完了しました (Berhasil Diajukan)';
+                const msg = saveMode === 'draft' ? '下書きを保存しました' : '申請が完了しました';
                 ringiSystem.showNotification(msg + ' ID: ' + response.doc_id, 'success');
                 
                 setTimeout(() => {
@@ -83,12 +83,12 @@ class VendorFormHandler {
                 if (response.errors) {
                     ringiSystem.showNotification(response.errors, 'error');
                 } else {
-                    ringiSystem.showNotification(response.error || 'Gagal menyimpan.', 'error');
+                    ringiSystem.showNotification(response.error || '保存に失敗しました。', 'error');
                 }
             }
         } catch (error) {
             console.error(error);
-            ringiSystem.showNotification('Gagal mengirim data.', 'error');
+            ringiSystem.showNotification('データ送信に失敗しました。', 'error');
         }
     }
 }

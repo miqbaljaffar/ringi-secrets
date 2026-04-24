@@ -6,17 +6,6 @@
     <title>その他契約稟議 - 申請 | 稟議書管理システム</title>
     <link rel="stylesheet" href="../assets/css/other_form.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* Gaya tambahan untuk input readonly agar menyatu dengan background abu-abu */
-        .readonly-input {
-            background: transparent;
-            border: none;
-            width: 100%;
-            color: inherit;
-            font-size: 14px;
-            outline: none;
-        }
-    </style>
 </head>
 <body>
     <div id="app-other-form" class="form-container">
@@ -267,49 +256,9 @@
         </form>
     </div>
 
-    <!-- Hapus CDN Vue, ganti dengan jQuery dan scripts backend Anda -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="../assets/js/jquery.autoKana.js"></script>
     <script src="../assets/js/main.js"></script>
-    
-    <!-- Path diarahkan ke struktur folder yang benar berdasarkan unggahan Anda -->
     <script src="../assets/js/modules/other-form.js"></script>
-    
-    <!-- Script UI Tambahan (Tidak mengganggu logika API backend) -->
-    <script>
-        $(document).ready(function() {
-            // Disable input "Representatif Email" jika memilih 'Tidak Ada'
-            $('input[name="rep_email_exists"]').on('change', function() {
-                if ($(this).val() === '0') {
-                    $('input[name="s_rep_email"]').prop('disabled', true).val('');
-                } else {
-                    $('input[name="s_rep_email"]').prop('disabled', false);
-                }
-            });
-
-            // Disable input "Nama Introducer" jika tipe introducer adalah 'Tidak Ada'
-            $('input[name="n_introducer_type"]').on('change', function() {
-                if ($(this).val() === '0') {
-                    $('input[name="s_introducer"]').prop('disabled', true).val('');
-                } else {
-                    $('input[name="s_introducer"]').prop('disabled', false);
-                }
-            });
-
-            // Tampilkan nama file upload PDF
-            $('#file-upload').on('change', function() {
-                var fileName = $(this).val().split('\\').pop();
-                if (fileName) {
-                    $('#file-name-display').text('📄 ' + fileName);
-                } else {
-                    $('#file-name-display').text('選択されていません');
-                }
-            });
-
-            // Set state UI awal saat halaman diload
-            $('input[name="rep_email_exists"]:checked').trigger('change');
-            $('input[name="n_introducer_type"]:checked').trigger('change');
-        });
-    </script>
 </body>
 </html>

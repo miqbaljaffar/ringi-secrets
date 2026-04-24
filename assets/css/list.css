@@ -11,7 +11,7 @@ body {
 
 .list-wrapper {
     width: 100%; 
-    max-width: 1400px; /* Diperlebar agar menyerupai mockup desktop */
+    max-width: 1400px; 
     min-width: 1100px; 
     margin: 0 auto;
 }
@@ -25,7 +25,7 @@ body {
 }
 
 .search-container {
-    background-color: #bce0fd; /* Biru muda mockup */
+    background-color: #bce0fd; 
     border: 1px solid #75bced;
     padding: 15px 25px; 
     margin-bottom: 15px; 
@@ -127,7 +127,7 @@ body {
 .action-buttons {
     display: flex;
     gap: 15px;
-    margin-left: auto; /* Mendorong tombol ke kanan */
+    margin-left: auto; 
 }
 
 .btn {
@@ -205,7 +205,7 @@ body {
 
 .table-container { 
     width: 100%; 
-    margin-top: -1px; /* Overlap border tab */
+    margin-top: -1px; 
 }
 
 .custom-table {
@@ -229,31 +229,27 @@ body {
 
 .custom-table td {
     padding: 12px 10px; 
-    border: 1px solid #75bced; /* Grid border seperti mockup */
-    color: #005580; /* Warna teks default biru tua */
+    border: 1px solid #75bced; 
+    color: #005580; 
     font-weight: bold;
     vertical-align: middle;
 }
 
-/* Pemotongan teks untuk kolom panjang */
 .truncate-text {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-/* Zebra Striping Mockup (Putih dan Biru sangat muda) */
 .custom-table tr:nth-child(odd) td { background-color: #fff; }
 .custom-table tr:nth-child(even) td { background-color: #e6f3ff; }
 
-/* Status Text Colors */
 .status-pending { color: #0088cc !important; }
 .status-approved { color: #28a745 !important; }
 .status-rejected { color: #dc3545 !important; }
 .status-draft { color: #000000 !important; }
 .status-withdrawn { color: #555555 !important; font-weight: normal !important; }
 
-/* Detail Icon */
 .icon-detail {
     font-size: 20px;
     color: #0088cc;
@@ -264,7 +260,6 @@ body {
 .text-center { text-align: center !important; }
 .empty-msg { padding: 40px; font-size: 16px; color: #666; }
 
-/* --- MOBILE RESPONSIVE --- */
 .pc-only { display: block; }
 .sp-only { display: none; }
 

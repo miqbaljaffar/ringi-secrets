@@ -7,7 +7,7 @@ class OtherFormHandler {
     init() {
         if (!this.form) return;
 
-        // PERBAIKAN: Fungsi Generate Document Number dipanggil
+        // 修正: ドキュメント番号生成関数を呼び出す
         this.generateDocumentNumber();
         this.setDefaultValues();
         this.loadEmployees();
@@ -18,7 +18,7 @@ class OtherFormHandler {
         }
     }
 
-    // PERBAIKAN: Fungsi pen-generate Nomor ID Dokumen (Prefix CO) ditambahkan
+    // 修正: ドキュメントID生成関数（プレフィックス CO）を追加
     generateDocumentNumber() {
         const now = new Date();
         const yymmdd = now.getFullYear().toString().slice(-2) +
@@ -54,9 +54,9 @@ class OtherFormHandler {
                 this.renderEmployeeOptions(select, response.data);
                 return;
             }
-            throw new Error('Data karyawan kosong');
+            throw new Error('社員データが空です');
         } catch (error) {
-            console.warn('Menggunakan data mock karyawan:', error);
+            console.warn('モック社員データを使用します:', error);
             const mockEmployees = [
                 { id_worker: '0001', s_name: 'Yamada Taro' },
                 { id_worker: '0002', s_name: 'Suzuki Ichiro' },
@@ -88,6 +88,38 @@ class OtherFormHandler {
                 this.handleSubmit('draft');
             });
         }
+
+        // Toggle state untuk Email Rep
+        $('input[name="rep_email_exists"]').on('change', function() {
+            if ($(this).val() === '0') {
+                $('input[name="s_rep_email"]').prop('disabled', true).val('');
+            } else {
+                $('input[name="s_rep_email"]').prop('disabled', false);
+            }
+        });
+
+        // Toggle state untuk Introducer
+        $('input[name="n_introducer_type"]').on('change', function() {
+            if ($(this).val() === '0') {
+                $('input[name="s_introducer"]').prop('disabled', true).val('');
+            } else {
+                $('input[name="s_introducer"]').prop('disabled', false);
+            }
+        });
+
+        // Handler untuk tampilan nama file saat upload
+        $('#file-upload').on('change', function() {
+            var fileName = $(this).val().split('\\').pop();
+            if (fileName) {
+                $('#file-name-display').text('📄 ' + fileName);
+            } else {
+                $('#file-name-display').text('選択されていません');
+            }
+        });
+
+        // Trigger kondisi default pada saat render pertama kali
+        $('input[name="rep_email_exists"]:checked').trigger('change');
+        $('input[name="n_introducer_type"]:checked').trigger('change');
     }
 
     async handleSubmit(saveMode) {
@@ -126,7 +158,7 @@ class OtherFormHandler {
             const response = await ringiSystem.apiRequest('POST', 'others', formData, true);
             
             if (response.success) {
-                const msg = saveMode === 'draft' ? '下書き保存しました (Draft Tersimpan)' : '申請が完了しました (Berhasil Diajukan)';
+                const msg = saveMode === 'draft' ? '下書きを保存しました' : '申請が完了しました';
                 ringiSystem.showNotification(msg, 'success');
                 setTimeout(() => {
                     window.location.href = `detail.html?id=${response.doc_id}&type=others`;
@@ -139,8 +171,8 @@ class OtherFormHandler {
                 }
             }
         } catch (error) {
-            console.error('Error submit:', error);
-            ringiSystem.showNotification(error.message || 'Gagal mengirim data.', 'error');
+            console.error('送信エラー:', error);
+            ringiSystem.showNotification(error.message || 'データ送信に失敗しました。', 'error');
         }
     }
 
