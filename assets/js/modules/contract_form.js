@@ -109,10 +109,16 @@ class ContractFormHandler {
             }
         });
 
-        $('select[name="n_introducer_type"]').on('change', function() {
+        // Mengubah selector dari select ke input[type="radio"] sesuai spesifikasi 
+        $('input[name="n_introducer_type"]').on('change', function() {
             const val = $(this).val();
+            const introInput = $('#s_introducer');
+            
             if (val === '0') {
-                $('input[name="s_introducer"]').val('なし');
+                introInput.val('なし').prop('readonly', true).css('background-color', '#e9ecef');
+            } else {
+                if (introInput.val() === 'なし') introInput.val('');
+                introInput.prop('readonly', false).css('background-color', '#fff');
             }
             
             if (val === '9') {
@@ -189,6 +195,11 @@ class ContractFormHandler {
     setDefaultValues() {
         const today = new Date().toISOString().split('T')[0];
         $('#applied_date').val(today);
+        
+        // Menambahkan nama user otomatis dari session
+        if (typeof ringiSystem !== 'undefined' && ringiSystem.user) {
+            $('#applicant-name').val(ringiSystem.user.name);
+        }
     }
     
     async loadEmployees() {
@@ -262,7 +273,7 @@ class ContractFormHandler {
         $('input[name="rep_email_exists"]:checked').trigger('change');
         $('input[name="rep_tel_exists"]:checked').trigger('change');
         $('input[name="n_send_to"]:checked').trigger('change');
-        $('select[name="n_introducer_type"]').trigger('change');
+        $('input[name="n_introducer_type"]:checked').trigger('change');
         $('input[name="pre_accountant_status"]:checked').trigger('change');
         $('input[name="n_e_filing"]:checked').trigger('change');
     }
@@ -361,13 +372,23 @@ class ContractFormHandler {
             // Melewati validasi elemen tersembunyi karena parent di hide oleh toggle display:none
             const isHidden = field.offsetParent === null; 
             
-            if (!isHidden && !field.disabled && field.type !== 'radio' && !field.value.trim()) {
+            if (!isHidden && !field.disabled && field.type !== 'radio' && field.type !== 'checkbox' && !field.value.trim()) {
                 field.style.borderColor = 'red';
                 isValid = false;
             } else {
-                field.style.borderColor = '#ccc';
+                if(field.style) field.style.borderColor = '#ccc';
             }
         });
+
+        // Validasi Khusus untuk Checkbox array (Buku Akuntansi)
+        const checkedBooks = $('input[name="s_books[]"]:checked').length;
+        if (checkedBooks === 0) {
+            isValid = false;
+            ringiSystem.showNotification('作成している帳簿を少なくとも1つ選択してください。', 'error');
+            $('.checkbox-grid').css('border', '1px solid red').css('padding', '5px');
+        } else {
+            $('.checkbox-grid').css('border', 'none');
+        }
 
         // Validasi File Upload Wajib (Khusus saat Apply)
         const estimateFile = document.getElementById('estimate_file');
@@ -405,11 +426,34 @@ class ContractFormHandler {
             }
         });
 
+        // Penggabungan Kode Industri
         const cat1 = formData.get('cat1') || '';
         const cat2 = formData.get('cat2') || '';
         const cat3 = formData.get('cat3') || '';
         if (cat1 && cat2 && cat3) {
             formData.append('s_industry_type', `${cat1}${cat2}${cat3}`);
+        }
+
+        // Penggabungan Kode Pos Rumah Representatif
+        const repZip1 = formData.get('rep_zip1') || '';
+        const repZip2 = formData.get('rep_zip2') || '';
+        if (repZip1 && repZip2) {
+            formData.set('s_rep_pcode', repZip1 + repZip2);
+        }
+
+        // Penanganan Telepon Representatif Jika 'なし'
+        if (formData.get('rep_tel_exists') === '1') {
+            const rt1 = formData.get('rep_tel1') || '';
+            const rt2 = formData.get('rep_tel2') || '';
+            const rt3 = formData.get('rep_tel3') || '';
+            formData.set('s_rep_tel', `${rt1}-${rt2}-${rt3}`);
+        } else {
+            formData.set('s_rep_tel', 'なし');
+        }
+
+        // Penanganan Email Representatif Jika 'なし'
+        if (formData.get('rep_email_exists') === '0') {
+            formData.set('s_rep_email', 'なし');
         }
 
         try {

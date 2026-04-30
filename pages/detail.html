@@ -23,6 +23,36 @@
       
       <p style="text-align:center; font-weight:bold; color: #555;">申請者: <span id="lbl_applicant"></span> | 申請日: <span id="lbl_date"></span></p>
 
+      <div id="common-section" style="display: none;">
+          <h2>稟議内容 (Content)</h2>
+          <table class="detail-table" style="width: 100%; text-align: left; line-height: 1.8;">
+             <tr>
+                <th width="150">件名 (Title)</th><td><span id="common_s_title"></span></td>
+             </tr>
+             <tr>
+                <th>実施(決済)期限</th><td><span id="common_dt_deadline"></span></td>
+             </tr>
+             <tr>
+                <th>概要・理由</th><td style="white-space: pre-wrap;" id="common_s_overview"></td>
+             </tr>
+          </table>
+
+          <h2>明細 (Details)</h2>
+          <div style="max-height: 250px; overflow-y: auto; border: 1px solid #ccc;">
+              <table class="approval-table" style="margin-top: 0; border: none;">
+                  <thead><tr><th>分類</th><th>支払先</th><th class="text-right">金額</th></tr></thead>
+                  <tbody id="details-tbody">
+                  </tbody>
+                  <tfoot>
+                      <tr>
+                          <th colspan="2" class="text-right">合計 (Total)</th>
+                          <th class="text-right" id="common_total_amount" style="font-size: 16px; color: #0088cc;">0 円</th>
+                      </tr>
+                  </tfoot>
+              </table>
+          </div>
+      </div>
+
       <div id="tax-section" style="display: none;">
           <h2>基本情報 (Basic Info)</h2>
           <table class="detail-table" style="width: 100%; text-align: left; line-height: 1.8;">
@@ -53,7 +83,10 @@
               </tr>
               <tr>
                   <th>事業所住所</th>
-                  <td colspan="3">〒<span id="tax_s_office_pcode"></span> <span id="tax_s_office_address"></span> <span id="tax_s_office_address2"></span></td>
+                  <td colspan="3">
+                      〒<span id="tax_s_office_pcode"></span> <span id="tax_s_office_address"></span> <span id="tax_s_office_address2"></span><br>
+                      郵送先: <span id="tax_n_send_to"></span>
+                  </td>
               </tr>
               <tr>
                   <th>事業所TEL</th><td colspan="3"><span id="tax_s_office_tel"></span></td>
@@ -124,35 +157,104 @@
           </div>
       </div>
 
-      <div id="common-section" style="display: none;">
+      <div id="others-section" style="display: none;">
+          <h2>会社基本情報 (Basic Info)</h2>
+          <table class="detail-table" style="width: 100%; text-align: left; line-height: 1.8;">
+              <tr>
+                  <th width="150">商号 (Company)</th>
+                  <td colspan="3"><span id="oth_s_name"></span> (<span id="oth_s_kana"></span>)</td>
+              </tr>
+              <tr>
+                  <th>業種情報</th>
+                  <td colspan="3">業種名: <span id="oth_s_industry"></span> | 産業分類コード: <span id="oth_s_industry_type"></span></td>
+              </tr>
+              <tr>
+                  <th>事業所住所</th>
+                  <td colspan="3">
+                      〒<span id="oth_s_office_pcode"></span> <span id="oth_s_office_address"></span> <span id="oth_s_office_address2"></span><br>
+                      郵送先: <span id="oth_n_send_to"></span>
+                  </td>
+              </tr>
+              <tr>
+                  <th>事業所TEL</th><td colspan="3"><span id="oth_s_office_tel"></span></td>
+              </tr>
+              <tr>
+                  <th>代表者 (Rep)</th>
+                  <td colspan="3">
+                      <span id="oth_s_rep_name"></span> (<span id="oth_s_rep_kana"></span>) | 役職: <span id="oth_s_rep_title"></span><br>
+                      Email: <span id="oth_s_rep_email"></span>
+                  </td>
+              </tr>
+          </table>
+
+          <h2>会社概要・経理状況 (Financials)</h2>
+          <table class="detail-table" style="width: 100%; text-align: left; line-height: 1.8;">
+               <tr>
+                  <th width="150">直前期データ</th>
+                  <td colspan="3">
+                      総資産: <span id="oth_n_pre_total"></span> 円 | 売上高: <span id="oth_n_pre_sales"></span> 円 | 金融債務: <span id="oth_n_pre_debt"></span> 円<br>
+                      当期利益: <span id="oth_n_pre_income"></span> 円 | 従事者数: <span id="oth_n_pre_workers"></span> 名
+                  </td>
+              </tr>
+              <tr>
+                  <th>消費税区分</th><td><span id="oth_n_comsumption_tax"></span></td>
+                  <th>貿易 / 関連会社</th><td><span id="oth_n_trade"></span> / <span id="oth_n_affiliated_company"></span></td>
+              </tr>
+          </table>
+
+          <h2>今回契約 (Contract)</h2>
           <div class="section">
-             <div class="form-group">
-                <label class="form-label">件名</label>
-                <div class="form-control-wrapper"><span id="common_s_title"></span></div>
-             </div>
-             <div class="form-group">
-                <label class="form-label">概要</label>
-                <div class="form-control-wrapper" style="white-space: pre-wrap;" id="common_s_overview"></div>
-             </div>
-             <div style="max-height: 150px; overflow-y: auto; border: 1px solid #ccc; margin-top:20px;">
-                 <table class="approval-table" style="margin-top: 0; border: none;">
-                     <thead><tr><th>分類</th><th>支払先</th><th>金額</th></tr></thead>
-                     <tbody id="details-tbody">
-                     </tbody>
-                 </table>
-             </div>
+              <p><strong>契約概要:</strong> <br><span id="oth_s_contract_overview" style="white-space: pre-wrap;"></span></p>
+              <p><strong>関与開始日:</strong> <span id="oth_dt_contract_start"></span></p>
+              <p><strong>顧客担当者:</strong> <span id="oth_s_incharge"></span></p>
+              <p><strong>紹介者:</strong> <span id="oth_s_introducer"></span> (<span id="oth_n_introducer_type"></span>)</p>
+              <p><strong>きっかけ、契約経緯:</strong> <br><span id="oth_s_situation" style="white-space: pre-wrap;"></span></p>
           </div>
       </div>
 
-      <h2>承認ルート</h2>
+      <div id="vendor-section" style="display: none;">
+          <h2>会社基本情報 (Company Info)</h2>
+          <table class="detail-table" style="width: 100%; text-align: left; line-height: 1.8;">
+              <tr>
+                  <th width="150">商号 (Company)</th>
+                  <td colspan="3"><span id="vnd_s_name"></span> (<span id="vnd_s_kana"></span>)</td>
+              </tr>
+              <tr>
+                  <th>事業所住所</th>
+                  <td colspan="3">
+                      〒<span id="vnd_s_office_pcode"></span> <span id="vnd_s_office_address"></span> <span id="vnd_s_office_address2"></span><br>
+                      郵送先: <span id="vnd_n_send_to"></span>
+                  </td>
+              </tr>
+              <tr>
+                  <th>事業所TEL</th><td colspan="3"><span id="vnd_s_office_tel"></span></td>
+              </tr>
+              <tr>
+                  <th>代表者 (Rep)</th>
+                  <td colspan="3">
+                      <span id="vnd_s_rep_name"></span> (<span id="vnd_s_rep_kana"></span>) | 役職: <span id="vnd_s_rep_title"></span>
+                  </td>
+              </tr>
+          </table>
+
+          <h2>今回契約 (Contract)</h2>
+          <div class="section">
+              <p><strong>契約概要:</strong> <br><span id="vnd_s_contract_overview" style="white-space: pre-wrap;"></span></p>
+              <p><strong>きっかけ、契約経緯:</strong> <br><span id="vnd_s_situation" style="white-space: pre-wrap;"></span></p>
+          </div>
+      </div>
+
+      <div class="approval-route-container"></div> 
+
+      <h2>承認ルート (Approval Route)</h2>
       <div class="section">
             <table class="approval-table">
                 <thead>
                     <tr>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Approver</th>
-                        <th>Date</th>
+                        <th>役割 (Role)</th>
+                        <th>状況 (Status)</th>
+                        <th>承認者 (Approver)</th>
+                        <th>日時 (Date)</th>
                     </tr>
                 </thead>
                 <tbody id="approval-route-tbody">

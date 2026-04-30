@@ -33,14 +33,14 @@ class CommonFormHandler {
             this.handleFileUpload(e);
         });
         
-        // Event delegation untuk format uang otomatis saat mengetik rincian
+        // Event delegation untuk format uang otomatis
         this.form.addEventListener('input', (e) => {
             if (e.target.classList.contains('amount-input')) {
                 this.calculateTotal();
             }
         });
 
-        // Format angka ribuan (Money Format) untuk field dinamis
+        // Format angka ribuan
         $(document).on('blur', '.money-input', function() {
             let val = $(this).val().replace(/,/g, '');
             if (!isNaN(val) && val !== '') {
@@ -54,13 +54,11 @@ class CommonFormHandler {
             $(this).val(val);
         });
         
-        // EVENT: Tombol Apply (Submit)
         this.form.addEventListener('submit', (e) => {
             e.preventDefault();
             this.handleSubmit('apply');
         });
 
-        // EVENT: Tombol Draft
         const draftBtn = document.getElementById('btn-save-draft');
         if (draftBtn) {
             draftBtn.addEventListener('click', (e) => {
@@ -69,11 +67,10 @@ class CommonFormHandler {
             });
         }
 
-        // EVENT: Tombol Cancel
         const cancelBtn = document.getElementById('btn-cancel');
         if (cancelBtn) {
             cancelBtn.addEventListener('click', () => {
-                if (confirm('入力内容が破棄されます。よろしいですか？ (Data yang diinput akan hilang. Lanjutkan?)')) {
+                if (confirm('入力内容が破棄されます。よろしいですか？')) {
                     window.location.href = 'list.html';
                 }
             });
@@ -116,7 +113,7 @@ class CommonFormHandler {
         } catch (error) {
             console.warn('Fallback loading categories due to api error.');
         }
-        // Fallback jika API gagal
+        
         this.categories = [
             {id_category: 1, s_category: '書籍購入'},
             {id_category: 2, s_category: '物品購入(1万円以上)'},
@@ -168,12 +165,12 @@ class CommonFormHandler {
         if(document.getElementById('application-date'))
             document.getElementById('application-date').value = today;
         
+        // Default deadline: 1 minggu dari sekarang
         const nextWeek = new Date();
         nextWeek.setDate(nextWeek.getDate() + 7);
         if(document.getElementById('deadline'))
             document.getElementById('deadline').value = nextWeek.toISOString().split('T')[0];
 
-        // Trigger inisialisasi radio attachment
         document.querySelector('input[name="s_file_type"]:checked')?.dispatchEvent(new Event('change'));
     }
     
@@ -183,22 +180,22 @@ class CommonFormHandler {
     
     addDetailRow() {
         const detailId = this.detailCounter++;
-        // Mengubah type="number" menjadi type="text" class="money-input" agar format ribuan bekerja
+        // Height diset agar 3.5 baris muat pas ke 170px max-height parent
         const rowHtml = `
-            <div class="detail-row" data-detail-id="${detailId}" style="display:flex; gap:10px; margin-bottom: 10px; align-items: center; padding-right: 5px;">
-                <div class="form-group" style="margin-bottom:0; flex:1;">
-                    <select class="category-select" style="width:100%; padding:8px;" required>
+            <div class="detail-row" data-detail-id="${detailId}" style="display:flex; gap:0; border-bottom: 1px solid #eee; background: #fff; padding: 5px;">
+                <div style="width: 30%; padding-right: 5px;">
+                    <select class="category-select" style="width:100%; padding:6px; border:1px solid #ccc;" required>
                         <option value="">分類を選択</option>
                     </select>
                 </div>
-                <div class="form-group" style="margin-bottom:0; flex:2;">
-                    <input type="text" class="payer-input" placeholder="支払先" required maxlength="255" style="width:100%; padding:8px;">
+                <div style="width: 40%; padding-right: 5px;">
+                    <input type="text" class="payer-input" placeholder="支払先を入力" required maxlength="255" style="width:100%; padding:6px; border:1px solid #ccc;">
                 </div>
-                <div class="form-group" style="margin-bottom:0; flex:1;">
-                    <input type="text" class="amount-input money-input" placeholder="金額" required style="width:100%; padding:8px; text-align: right;">
+                <div style="width: 25%; padding-right: 5px;">
+                    <input type="text" class="amount-input money-input" placeholder="0" required style="width:100%; padding:6px; border:1px solid #ccc; text-align: right;">
                 </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <button type="button" class="remove-detail-btn btn btn-red btn-sm" style="height:35px; width:40px; padding:0; min-width:unset;" title="Hapus">✕</button>
+                <div style="width: 5%; display: flex; align-items: center; justify-content: center;">
+                    <button type="button" class="remove-detail-btn" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 16px;" title="削除"><i class="fas fa-trash-alt"></i></button>
                 </div>
             </div>
         `;
@@ -230,7 +227,6 @@ class CommonFormHandler {
     calculateTotal() {
         let total = 0;
         document.querySelectorAll('.amount-input').forEach(input => {
-            // Bersihkan koma saat menghitung total
             let val = input.value.replace(/,/g, '');
             total += parseInt(val) || 0;
         });
@@ -261,20 +257,28 @@ class CommonFormHandler {
     }
     
     renderApprovalRoute(container, routeData) {
-        let html = '<div style="display:flex; gap:15px; flex-wrap:wrap;">';
+        let html = `
+        <table class="approval-table" style="width: 100%; text-align: left; background: #fff;">
+            <thead>
+                <tr>
+                    <th style="padding: 8px; border-bottom: 2px solid #ccc; width: 33%;">承認順位</th>
+                    <th style="padding: 8px; border-bottom: 2px solid #ccc; width: 33%;">承認日時</th>
+                    <th style="padding: 8px; border-bottom: 2px solid #ccc; width: 34%;">承認者名</th>
+                </tr>
+            </thead>
+            <tbody>`;
+            
         routeData.forEach((approver, index) => {
             html += `
-                <div style="background:#fff; border:1px solid #ccc; padding:10px; border-radius:4px; min-width: 150px;">
-                    <div style="font-size:12px; color:#666;">第${index + 1}承認</div>
-                    <div style="font-weight:bold; margin-top:5px;">${approver.name}</div>
-                    <div style="font-size:11px; color:#888;">${approver.role}</div>
-                </div>
+                <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">第${index + 1}承認</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee; color: #666;">(申請後に確定)</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;"><strong>${approver.name}</strong> <span style="font-size:12px; color:#888;">(${approver.role})</span></td>
+                </tr>
             `;
-            if (index < routeData.length - 1) {
-                html += `<div style="display:flex; align-items:center; color:#999;">▶</div>`;
-            }
         });
-        html += '</div>';
+        
+        html += `</tbody></table>`;
         container.innerHTML = html;
     }
     
@@ -286,7 +290,7 @@ class CommonFormHandler {
             if (field.id === 'file-type-others' && field.style.display === 'none') return;
             
             if (!field.value.trim()) {
-                field.style.borderColor = 'red';
+                field.style.borderColor = '#dc3545';
                 isValid = false;
             } else {
                 field.style.borderColor = '#ccc';
@@ -298,24 +302,36 @@ class CommonFormHandler {
             if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification('少なくとも1行の詳細を追加してください', 'warning');
             isValid = false;
         }
+
+        // Validasi ekstra ketat untuk field di dalam detail (Kategori, Payer, Amount)
+        detailRows.forEach(row => {
+            const cat = row.querySelector('.category-select');
+            const payer = row.querySelector('.payer-input');
+            const amount = row.querySelector('.amount-input');
+
+            if (!cat.value) { cat.style.borderColor = '#dc3545'; isValid = false; }
+            if (!payer.value.trim()) { payer.style.borderColor = '#dc3545'; isValid = false; }
+            
+            let val = amount.value.replace(/,/g, '');
+            if (!val || parseInt(val) <= 0) {
+                amount.style.borderColor = '#dc3545'; 
+                isValid = false;
+            }
+        });
         
         let total = 0;
         document.querySelectorAll('.amount-input').forEach(input => { 
             let val = input.value.replace(/,/g, '');
             total += parseInt(val) || 0; 
         });
+        
         if (total <= 0) {
-            if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification('有効な金額を入力してください (Masukkan nominal yang valid)', 'warning');
+            if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification('有効な金額を入力してください', 'warning');
             isValid = false;
-            // Tandai input amount yang kosong atau nol
-            document.querySelectorAll('.amount-input').forEach(input => {
-                let val = input.value.replace(/,/g, '');
-                if(parseInt(val) <= 0 || !val) input.style.borderColor = 'red';
-            });
         }
         
         if(!isValid && typeof ringiSystem !== 'undefined') {
-            ringiSystem.showNotification('必須項目を正しく入力してください', 'error');
+            ringiSystem.showNotification('必須項目を正しく入力してください（赤枠を確認）', 'error');
         }
         
         return isValid;
@@ -328,7 +344,6 @@ class CommonFormHandler {
         
         const formData = new FormData(this.form);
         
-        // Kumpulkan data array details
         const details = [];
         document.querySelectorAll('.detail-row').forEach(row => {
             const categorySelect = row.querySelector('.category-select');
@@ -337,15 +352,17 @@ class CommonFormHandler {
             
             if (categorySelect && payerInput && amountInput) {
                 let cleanAmount = amountInput.value.replace(/,/g, '');
-                details.push({
-                    n_category: parseInt(categorySelect.value) || 0,
-                    s_payer: payerInput.value,
-                    n_amount: parseInt(cleanAmount) || 0
-                });
+                // Hanya push jika ada data (berguna saat save draft dengan row kosong)
+                if (categorySelect.value || payerInput.value || cleanAmount) {
+                    details.push({
+                        n_category: parseInt(categorySelect.value) || 0,
+                        s_payer: payerInput.value,
+                        n_amount: parseInt(cleanAmount) || 0
+                    });
+                }
             }
         });
         
-        // Backend mengharapkan JSON string untuk array details
         formData.append('details', JSON.stringify(details));
         
         let total = 0;
@@ -374,11 +391,11 @@ class CommonFormHandler {
             const response = await ringiSystem.apiRequest('POST', 'common', formData, true);
             
             if (response.success) {
-                const msg = saveMode === 'draft' ? '下書き保存しました (Tersimpan sebagai Draft)' : '申請が完了しました (Berhasil di-Apply)';
+                const msg = saveMode === 'draft' ? '下書き保存しました' : '申請が完了しました';
                 if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification(msg, 'success');
                 
                 setTimeout(() => {
-                    window.location.href = `list.html`; // Redirect kembali ke list
+                    window.location.href = `list.html`; 
                 }, 1500);
             } else {
                  if(response.errors) {
@@ -386,14 +403,13 @@ class CommonFormHandler {
                      if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification(errMsgs, 'error');
                      else alert(errMsgs);
                  } else {
-                     if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification(response.error || 'Error terjadi', 'error');
+                     if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification(response.error || 'エラーが発生しました', 'error');
                      else alert(response.error);
                  }
             }
         } catch (error) {
             console.error('Submit error:', error);
             if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification('サーバーとの通信に失敗しました', 'error');
-            else alert('Gagal terhubung ke server Backend.');
         }
     }
     
@@ -402,34 +418,35 @@ class CommonFormHandler {
         const fileNameDisplay = document.getElementById('file-name-display');
         
         if (!file) {
-            if (fileNameDisplay) fileNameDisplay.textContent = '';
+            if (fileNameDisplay) fileNameDisplay.textContent = '選択されていません';
             return;
         }
         
         if (file.size > 5 * 1024 * 1024) {
             if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification('ファイルサイズは5MB以下にしてください', 'error');
             event.target.value = '';
-            if (fileNameDisplay) fileNameDisplay.textContent = '';
+            if (fileNameDisplay) fileNameDisplay.textContent = '選択されていません';
             return;
         }
         
         if (file.type !== 'application/pdf') {
             if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification('PDFファイルのみアップロード可能です', 'error');
             event.target.value = '';
-            if (fileNameDisplay) fileNameDisplay.textContent = '';
+            if (fileNameDisplay) fileNameDisplay.textContent = '選択されていません';
             return;
         }
 
-        const confirmMsg = "【注意事項】\n請求書（インボイス）の添付は禁止されています。\n\nアップロードするファイルは請求書ではありませんか？\n(Pastikan yang diupload bukan invoice/tagihan)";
+        const confirmMsg = "【注意事項】\n請求書（インボイス）の添付は禁止されています。\n\nアップロードするファイルは請求書ではありませんか？";
         
         if (!window.confirm(confirmMsg)) {
             event.target.value = ''; 
-            if (fileNameDisplay) fileNameDisplay.textContent = '';
+            if (fileNameDisplay) fileNameDisplay.textContent = '選択されていません';
             return;
         }
         
         if (fileNameDisplay) {
             fileNameDisplay.textContent = '📄 ' + file.name;
+            fileNameDisplay.style.color = '#28a745';
         }
     }
 }

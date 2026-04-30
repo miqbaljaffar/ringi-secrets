@@ -10,6 +10,7 @@ class OtherFormHandler {
         this.generateDocumentNumber();
         this.setDefaultValues();
         this.loadEmployees();
+        this.fetchApprovalRoute(); 
         this.bindEvents();
         
         // Inisialisasi AutoKana
@@ -77,8 +78,41 @@ class OtherFormHandler {
         });
     }
 
+    // FIX UX: Menampilkan Approval Route sesuai tabel kategori = 5
+    async fetchApprovalRoute() {
+        const tbody = document.getElementById('approval-route-tbody');
+        if (!tbody) return;
+
+        try {
+            const response = await ringiSystem.apiRequest('GET', 'approval-route?type=1');
+            if (response.success && response.data.length > 0) {
+                let html = '';
+                response.data.forEach((approver, index) => {
+                    html += `
+                        <tr>
+                            <td style="padding: 8px; border-bottom: 1px solid #ccc;">第${index + 1}承認</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #ccc; color:#666;">(申請後に確定)</td>
+                            <td style="padding: 8px; border-bottom: 1px solid #ccc;"><strong>${approver.name}</strong> <span style="font-size:12px; color:#888;">(${approver.role})</span></td>
+                        </tr>
+                    `;
+                });
+                
+                // Sesuai spesifikasi, tambahkan admin penerima kontrak
+                html += `
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #ccc;">契約受付者</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #ccc; color:#666;">(申請後に確定)</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #ccc;"><strong>システム管理者</strong> <span style="font-size:12px; color:#888;">(0036)</span></td>
+                    </tr>
+                `;
+                tbody.innerHTML = html;
+            }
+        } catch(error) {
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: red;">承認ルートの取得に失敗しました</td></tr>`;
+        }
+    }
+
     initToggles() {
-        // Trigger default state toggle di awal render
         $('input[name="n_send_to"]:checked').trigger('change');
         $('input[name="s_rep_title"]:checked').trigger('change');
         $('input[name="rep_email_exists"]:checked').trigger('change');

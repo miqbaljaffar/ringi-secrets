@@ -272,16 +272,16 @@
                             <th style="padding: 8px; border-bottom: 2px solid #ccc; width: 34%;">承認者名</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr><td colspan="3" style="padding: 15px; text-align: center; color: #666;">(申請後に確定します)</td></tr>
+                    <tbody id="approval-route-tbody">
+                        <tr><td colspan="3" style="padding: 15px; text-align: center; color: #666;"><i class="fas fa-spinner fa-spin"></i> 読み込み中...</td></tr>
                     </tbody>
                 </table>
             </div>
 
             <div class="form-actions btn-area">
-                <button type="button" id="btn-cancel" class="btn btn-red">キャンセル (Cancel)</button>
-                <button type="button" id="btn-save-draft" class="btn btn-gray">下書き保存 (Draft)</button>
-                <button type="submit" class="btn btn-blue">申請 (Apply)</button>
+                <button type="button" id="btn-cancel" class="btn btn-red">キャンセル</button>
+                <button type="button" id="btn-save-draft" class="btn btn-gray">下書き保存</button>
+                <button type="submit" class="btn btn-blue">申請</button>
             </div>
         </form>
     </div>

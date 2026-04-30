@@ -12,26 +12,26 @@
 <div class="container">
     <h1>通常稟議</h1>
 
-    <form id="common-form">
+    <form id="common-form" novalidate>
         <div class="section">
             <div class="form-group">
                 <label class="form-label required">稟議書No</label>
                 <div class="form-control-wrapper">
-                    <input type="text" name="id_doc" id="doc-number" readonly placeholder="自動採番 (Auto)">
+                    <input type="text" name="id_doc" id="doc-number" class="input-mid" readonly style="background-color: #e9ecef; font-weight: bold; color: #0088cc;" placeholder="自動採番 (Auto)">
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label required">申請者</label>
                 <div class="form-control-wrapper">
-                     <input type="text" id="applicant-name" readonly>
+                     <input type="text" id="applicant-name" class="input-mid" style="background-color: #e9ecef;" readonly>
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label required">申請日</label>
                 <div class="form-control-wrapper">
-                     <input type="date" name="ts_applied" id="application-date" readonly>
+                     <input type="date" name="ts_applied" id="application-date" class="input-mid" style="background-color: #e9ecef;" readonly>
                 </div>
             </div>
 
@@ -46,7 +46,7 @@
             <div class="form-group">
                 <label class="form-label required">所属</label>
                 <div class="form-control-wrapper">
-                     <input type="text" id="department-name" readonly>
+                     <input type="text" id="department-name" class="input-mid" style="background-color: #e9ecef;" readonly>
                 </div>
             </div>
         </div>
@@ -56,40 +56,41 @@
             <div class="form-group">
                 <label class="form-label required">件名</label>
                 <div class="form-control-wrapper">
-                     <input type="text" name="s_title" required maxlength="30">
+                     <input type="text" name="s_title" required maxlength="30" style="width: 100%; max-width: 600px;" placeholder="稟議の件名を入力">
                 </div>
             </div>
 
             <div class="form-group">
-                <label class="form-label required">実施期限</label>
+                <label class="form-label required">実施(決済)期限</label>
                 <div class="form-control-wrapper">
-                     <input type="date" name="dt_deadline" id="deadline" required style="max-width: 200px;">
+                     <input type="date" name="dt_deadline" id="deadline" required class="input-mid">
                 </div>
             </div>
 
             <div class="form-group" style="align-items: flex-start;">
                 <label class="form-label required">概要・理由</label>
                 <div class="form-control-wrapper">
-                     <textarea name="s_overview" required placeholder="品名、金額の内訳等の詳細や申請理由を記入"></textarea>
+                     <textarea name="s_overview" required placeholder="品名、金額の内訳等の詳細や申請理由を記入" style="width: 100%; max-width: 600px; height: 100px;"></textarea>
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label">金額（総額）</label>
-                <div class="form-control-wrapper">
-                    <span id="total-amount" style="font-size: 16px; font-weight: bold; color: #0088cc;">0 円</span>
+                <div class="form-control-wrapper flex-column" style="align-items: flex-start;">
+                    <span id="total-amount" style="font-size: 18px; font-weight: bold; color: #0088cc;">0 円</span>
+                    <span class="note" style="color: #dc3545; font-weight: bold; margin-top: 5px;">※注意事項: 税込、毎月支払いの場合は年額を記入</span>
                 </div>
             </div>
 
             <div style="margin-top: 15px;">
-                <div class="detail-grid-header">
+                <div class="detail-grid-header" style="border-radius: 4px 4px 0 0;">
                     <div style="width: 30%;">分類</div>
                     <div style="width: 40%;">支払先</div>
                     <div style="width: 25%;">金額</div>
                     <div style="width: 5%;"></div>
                 </div>
                 
-                <div id="details-container" style="max-height: 250px; overflow-y: auto; overflow-x: hidden;">
+                <div id="details-container" style="max-height: 170px; overflow-y: auto; overflow-x: hidden; border-bottom: 1px solid #ccc; border-left: 1px solid #ccc; border-right: 1px solid #ccc;">
                 </div>
                 
                 <button type="button" id="add-detail-btn" class="btn-add-detail"><i class="fas fa-plus"></i> 明細を追加</button>
@@ -98,22 +99,24 @@
 
         <h2>添付書類</h2>
         <div class="section">
-            <div class="form-group">
-                <label class="form-label">ファイルアップ<br>ロード（PDF）</label>
-                <div class="form-control-wrapper">
-                    <input type="file" id="file-upload" name="attachment" accept=".pdf" style="border:none; padding:0;">
-                    <span id="file-name-display" style="font-size: 12px; margin-left: 10px; font-weight: bold;"></span>
-                </div>
-            </div>
-
             <div class="form-group" style="align-items: flex-start;">
-                <label class="form-label">添付書類</label>
+                <label class="form-label required">添付書類</label>
                 <div class="form-control-wrapper">
                     <label><input type="radio" name="s_file_type" value="収支予算書"> 収支予算書</label>
                     <label><input type="radio" name="s_file_type" value="見積書"> 見積書</label>
                     <label><input type="radio" name="s_file_type" value="パンフレット"> パンフレット</label>
                     <label><input type="radio" name="s_file_type" value="その他" checked> その他</label>
-                    <input type="text" id="file-type-others" style="margin-top: 8px;">
+                    <input type="text" id="file-type-others" style="margin-top: 8px; width: 100%; max-width: 300px;" placeholder="その他の書類名を入力">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">ファイルアップ<br>ロード（PDF）</label>
+                <div class="form-control-wrapper file-upload-container">
+                    <input type="file" id="file-upload" name="attachment" accept=".pdf" style="display: none;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('file-upload').click()"><i class="fas fa-file-upload"></i> ファイルを選択</button>
+                    <span id="file-name-display" style="font-weight: bold; margin-left: 10px; font-size: 13px;">選択されていません</span>
+                    <div style="width: 100%; font-size: 11px; color: #dc3545; font-weight: bold; margin-top: 5px;">※注意事項: 請求書（インボイス）は添付しない</div>
                 </div>
             </div>
         </div>
@@ -126,9 +129,9 @@
         </div>
 
         <div class="btn-area">
-            <button type="button" id="btn-save-draft" class="btn btn-gray">下書き保存 (Draft)</button>
-            <button type="button" id="btn-cancel" class="btn btn-red">キャンセル (Cancel)</button>
-            <button type="submit" id="btn-submit" class="btn btn-blue">申請 (Apply)</button>
+            <button type="button" id="btn-cancel" class="btn btn-red">キャンセル</button>
+            <button type="button" id="btn-save-draft" class="btn btn-gray">下書き保存</button>
+            <button type="submit" id="btn-submit" class="btn btn-blue">申請</button>
         </div>
     </form>
 </div>
