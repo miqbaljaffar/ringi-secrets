@@ -489,8 +489,14 @@ class DetailHandler {
         if (!confirm(confirmMsg)) return;
 
         try {
-            const payload = { doc_id: this.id, action: action, comment: '' };
-            const response = await ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/approve`, payload);
+            let response;
+            
+            if (action === 'withdraw') {
+                response = await ringiSystem.apiRequest('DELETE', `${this.docType}/${this.id}`);
+            } else {
+                const payload = { doc_id: this.id, action: action, comment: '' };
+                response = await ringiSystem.apiRequest('POST', `${this.docType}/${this.id}/approve`, payload);
+            }
 
             if (response.success) {
                 let successMsg = '処理が完了しました。';

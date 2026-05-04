@@ -6,12 +6,11 @@ class FileUpload {
     private $basePath;
     private $subDirectory;
     
-    // コンストラクタでアップロードディレクトリを設定 (Constructor to set upload directory)
     public function __construct($subDirectory = '') {
-        if (defined('UPLOAD_PATH')) {
+        if (defined('UPLOAD_PATH') && UPLOAD_PATH) {
             $this->basePath = UPLOAD_PATH;
         } else {
-            $this->basePath = realpath(__DIR__ . '/../../files');
+            $this->basePath = __DIR__ . '/../../files';
         }
 
         if (defined('MAX_FILE_SIZE')) {
@@ -21,7 +20,6 @@ class FileUpload {
         $this->subDirectory = strtolower($subDirectory);
     }
     
-    // ファイルを保存するメソッド (Save file method)
     public function save($file, $docId, $customName = null) {
         $this->validate($file);
         
@@ -29,7 +27,6 @@ class FileUpload {
             throw new Exception("設定エラー: UPLOAD_PATHが定義されていません。");
         }
 
-        // ファイル名を安全に処理し、保存先のディレクトリを作成 (Sanitize file name and create target directory)
         $targetDir = $this->basePath . '/' . $this->subDirectory . '/' . strtolower($docId);
         
         if (!file_exists($targetDir)) {
@@ -43,11 +40,9 @@ class FileUpload {
         if ($customName) {
             $filename = $customName . '.' . $extension;
         } else {
-            // ファイル名を安全に処理し、拡張子を保持して保存 (Sanitize file name, keep extension for saving)
             $nameWithoutExt = pathinfo($file['name'], PATHINFO_FILENAME);
             $cleanName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $nameWithoutExt);
             
-            // ファイル名を35文字に制限し、タイムスタンプと拡張子を追加 (Limit file name to 35 characters, add timestamp and extension)
             $shortName = substr($cleanName, 0, 35); 
             $filename = $shortName . '_' . time() . '.' . $extension;
         }
@@ -61,7 +56,6 @@ class FileUpload {
         return $filename;
     }
     
-    // 複数ファイルを保存するメソッド (Save multiple files method)
     public function saveMultiple($files, $docId) {
         $savedFiles = [];
         foreach ($files as $file) {
@@ -76,7 +70,6 @@ class FileUpload {
         return $savedFiles;
     }
     
-    // ファイルのバリデーション (Validation of files)
     private function validate($file) {
         if ($file['error'] !== UPLOAD_ERR_OK) {
             $errors = [
@@ -110,3 +103,4 @@ class FileUpload {
         }
     }
 }
+?>

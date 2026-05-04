@@ -18,16 +18,28 @@ return [
     'common/{id}/approve' => ['POST' => 'CommonController@approve'],
     
     'tax' => ['POST' => 'TaxController@store'],
-    'tax/{id}' => ['GET' => 'TaxController@show'],
+    'tax/{id}' => [
+        'GET' => 'TaxController@show',
+        'PUT' => 'CommonController@update',
+        'DELETE' => 'CommonController@withdraw'
+    ],
     'tax/{id}/approve' => ['POST' => 'CommonController@approve'], 
 
     'others' => ['POST' => 'OtherContractController@store'],
-    'others/{id}' => ['GET' => 'OtherContractController@show'],
+    'others/{id}' => [
+        'GET' => 'OtherContractController@show',
+        'PUT' => 'CommonController@update',
+        'DELETE' => 'CommonController@withdraw'
+    ],
 
     'others/{id}/approve' => ['POST' => 'CommonController@approve'],
 
     'vendor' => ['POST' => 'VendorController@store'],
-    'vendor/{id}' => ['GET' => 'VendorController@show'],
+    'vendor/{id}' => [
+        'GET' => 'VendorController@show',
+        'PUT' => 'CommonController@update',
+        'DELETE' => 'CommonController@withdraw'
+    ],
     'vendor/{id}/approve' => ['POST' => 'CommonController@approve'],
     
     'categories' => ['GET' => 'CommonController@getCategories'],

@@ -2,7 +2,7 @@
 define('APP_NAME', 'Sistem Manajemen Ringi');
 define('APP_VERSION', '1.0.0');
 
-define('UPLOAD_PATH', realpath(__DIR__ . '/../../files')); 
+define('UPLOAD_PATH', __DIR__ . '/../../files'); 
 
 define('MAX_FILE_SIZE', 5242880); 
 define('ALLOWED_FILE_TYPES', ['application/pdf']);
