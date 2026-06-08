@@ -119,21 +119,33 @@ class CommonController {
             $data = json_decode(file_get_contents('php://input'), true);
             $files = [];
         }
-        
-        $validation = $this->validator->validate($data, [
-            'n_type' => 'required|in:1,2',
-            's_title' => 'required|max:30',
-            'dt_deadline' => 'required|date',
-            's_overview' => 'required',
-            'details' => 'required'
-        ]);
-        
-        if (!$validation['valid']) {
-            http_response_code(API_BAD_REQUEST);
-            return [
-                'success' => false,
-                'errors' => $validation['errors']
-            ];
+
+        // 下書きモードかどうかを判定 (Detect whether this is draft save mode)
+        $isDraft = isset($data['save_mode']) && $data['save_mode'] === 'draft';
+
+        // 下書きの場合は必須バリデーションをスキップ (Skip required validation for draft mode)
+        if (!$isDraft) {
+            $validation = $this->validator->validate($data, [
+                'n_type'      => 'required|in:1,2',
+                's_title'     => 'required|max:30',
+                'dt_deadline' => 'required|date',
+                's_overview'  => 'required',
+                'details'     => 'required'
+            ]);
+
+            if (!$validation['valid']) {
+                http_response_code(API_BAD_REQUEST);
+                return [
+                    'success' => false,
+                    'errors'  => $validation['errors']
+                ];
+            }
+        } else {
+            // 下書きの場合でも業務区分の形式だけ確認 (Even for draft, lightly validate n_type format)
+            if (!empty($data['n_type']) && !in_array($data['n_type'], ['1', '2', 1, 2])) {
+                http_response_code(API_BAD_REQUEST);
+                return ['success' => false, 'error' => '業務区分の値が不正です。'];
+            }
         }
         
         try {
@@ -142,6 +154,11 @@ class CommonController {
             $data['s_applied'] = $request['user']['id'];
             $docId = IdGenerator::generate('AR', 't_common');
             $data['id_doc'] = $docId;
+
+            // 下書きステータスを設定 (Set draft status)
+            if ($isDraft) {
+                $data['n_status'] = 0;
+            }
             
             // ファイルがアップロードされている場合の処理 (Handle file upload if a file is provided)
             if (!empty($files['attachment']) && $files['attachment']['error'] === UPLOAD_ERR_OK) {
@@ -158,28 +175,31 @@ class CommonController {
                 }
             }
 
-            if (is_string($data['details'])) {
+            if (is_string($data['details'] ?? null)) {
                 $data['details'] = json_decode($data['details'], true);
             }
             
             $createdDocId = $this->commonModel->createDocument($data);
-            
-            $newDoc = $this->commonModel->find($createdDocId);
-            if ($newDoc && !empty($newDoc['s_approved_1'])) {
-                $this->mailer->sendRequestNotification(
-                    $createdDocId,
-                    $newDoc['s_approved_1'],      
-                    $request['user']['name'],     
-                    $data['s_title']              
-                );
+
+            // 下書きでない場合のみ承認者へメール送信 (Send email to approver only if not draft)
+            if (!$isDraft) {
+                $newDoc = $this->commonModel->find($createdDocId);
+                if ($newDoc && !empty($newDoc['s_approved_1'])) {
+                    $this->mailer->sendRequestNotification(
+                        $createdDocId,
+                        $newDoc['s_approved_1'],
+                        $request['user']['name'],
+                        $data['s_title']
+                    );
+                }
             }
             
             $this->commonModel->commit();
 
             return [
                 'success' => true,
-                'doc_id' => $createdDocId,
-                'message' => '申請が正常に送信されました。'
+                'doc_id'  => $createdDocId,
+                'message' => $isDraft ? '下書きを保存しました。' : '申請が正常に送信されました。'
             ];
             
         } catch (Throwable $e) {
@@ -187,7 +207,7 @@ class CommonController {
             http_response_code(API_SERVER_ERROR);
             return [
                 'success' => false,
-                'error' => '申請の保存に失敗しました: ' . $e->getMessage()
+                'error'   => '申請の保存に失敗しました: ' . $e->getMessage()
             ];
         }
     }

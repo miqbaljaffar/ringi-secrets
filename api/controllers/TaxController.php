@@ -17,7 +17,6 @@ class TaxController {
     // 新規申請を保存する処理 (Store new application)
     public function store($request) {
         try {
-            // MULAI TRANSAKSI DI SINI
             $this->taxModel->beginTransaction();
 
             $data = $request['body'] ?? $_POST; 
@@ -26,6 +25,9 @@ class TaxController {
             if (empty($data) && !empty($_POST)) {
                 $data = $_POST;
             }
+
+            // 下書きモードかどうかを判定 (Detect whether this is draft save mode)
+            $isDraft = isset($data['save_mode']) && $data['save_mode'] === 'draft';
 
             // s_booksが配列の場合はカンマ区切りの文字列に変換 (Convert s_books array to comma-separated string if it's an array)
             if (isset($data['s_books']) && is_array($data['s_books'])) {
@@ -78,44 +80,68 @@ class TaxController {
                 $data['s_rep_pcode'] = $rep_zip1 . $rep_zip2;
             }
 
-            // PERBAIKAN BUG : Menambahkan validasi max length untuk Password Pajak
-            $rules = [
-                'n_type' => 'required|in:1,2',
-                's_name' => 'required|max:100',
-                's_kana' => 'required|max:100',
-                's_office_address' => 'required|max:100',
-                's_rep_name' => 'required|max:50',
-                's_rep_title' => 'required|in:1,2,3,4,9',
-                'dt_contract_start' => 'required|date',
-                's_industry_type' => 'required|regex:/^[A-T][0-9]{2}[0-9]$/', 
-                's_industry_oms' => 'required|regex:/^[0-9]{4}$/',
-                's_office_pcode' => 'required|regex:/^[0-9]{7}$/', 
-                's_tax_num' => 'required|regex:/^[0-9]{8}$/',
-                'n_pre_total' => 'required',
-                'n_pre_sales' => 'required',
-                'n_pre_debt' => 'required',
-                'n_pre_income' => 'required',
-                'n_pre_workers' => 'required',
-                's_national_tax_pw' => 'max:50', // Validasi keamanan batas varchar
-                's_local_tax_pw' => 'max:16',    // Validasi keamanan batas varchar
-                'n_tax_place' => 'in:1,2',
-                'n_send_to' => 'in:1,2,9',
-                'n_e_filing' => 'in:1,2',
-                'n_comsumption_tax' => 'in:1,2,3',
-                'n_trade' => 'in:0,1,2,3',
-                'n_affiliated_company' => 'in:0,1',
-                'n_self_accounting' => 'in:1,2,3,4,5,9',
-                'n_accounting_apps' => 'in:1,2,3,4,8,9',
-                'n_accounting_staff' => 'in:0,1',
-                'n_account_type' => 'in:1,2,3,4',
-                'n_introducer_type' => 'in:0,1,2,3,4,9'
-            ];
-            
-            if (isset($data['n_type']) && $data['n_type'] == 1) {
-                $rules['dt_establishment'] = 'required|date';
-                $rules['n_capital'] = 'required';
-                $rules['n_before'] = 'required';
-                $rules['n_closing_month'] = 'required|in:1,2,3,4,5,6,7,8,9,10,11,12'; 
+            if ($isDraft) {
+                // 下書きモード: 必須バリデーションをスキップ、最小限のチェックのみ (Draft mode: skip required validation, only minimum checks)
+                $rules = [];
+                if (!empty($data['n_type'])) {
+                    $rules['n_type'] = 'in:1,2';
+                }
+                // 型チェックのみ（必須なし）(Format check only, no required)
+                if (!empty($data['s_industry_type']) && strlen($data['s_industry_type']) >= 4) {
+                    $rules['s_industry_type'] = 'regex:/^[A-T][0-9]{2}[0-9]$/';
+                }
+                if (!empty($data['s_office_pcode']) && strlen(str_replace('-', '', $data['s_office_pcode'])) === 7) {
+                    $rules['s_office_pcode'] = 'regex:/^[0-9]{7}$/';
+                }
+                $data['n_status'] = 0; // 下書きフラグ (Draft flag)
+            } else {
+                // 本申請モード: 全バリデーションルールを適用 (Apply mode: apply all validation rules)
+                // ドラフト以外の場合、PDFアップロード必須 (Require PDF upload if not draft)
+                if (empty($files['estimate_file']['name'])) {
+                    $this->taxModel->rollback();
+                    http_response_code(API_BAD_REQUEST);
+                    return ['success' => false, 'error' => '見積書（PDF）は必須です。'];
+                }
+
+                // PERBAIKAN BUG : Menambahkan validasi max length untuk Password Pajak
+                $rules = [
+                    'n_type'            => 'required|in:1,2',
+                    's_name'            => 'required|max:100',
+                    's_kana'            => 'required|max:100',
+                    's_office_address'  => 'required|max:100',
+                    's_rep_name'        => 'required|max:50',
+                    's_rep_title'       => 'required|in:1,2,3,4,9',
+                    'dt_contract_start' => 'required|date',
+                    's_industry_type'   => 'required|regex:/^[A-T][0-9]{2}[0-9]$/', 
+                    's_industry_oms'    => 'required|regex:/^[0-9]{4}$/',
+                    's_office_pcode'    => 'required|regex:/^[0-9]{7}$/', 
+                    's_tax_num'         => 'required|regex:/^[0-9]{8}$/',
+                    'n_pre_total'       => 'required',
+                    'n_pre_sales'       => 'required',
+                    'n_pre_debt'        => 'required',
+                    'n_pre_income'      => 'required',
+                    'n_pre_workers'     => 'required',
+                    's_national_tax_pw' => 'max:50', // Validasi keamanan batas varchar
+                    's_local_tax_pw'    => 'max:16',    // Validasi keamanan batas varchar
+                    'n_tax_place'       => 'in:1,2',
+                    'n_send_to'         => 'in:1,2,9',
+                    'n_e_filing'        => 'in:1,2',
+                    'n_comsumption_tax' => 'in:1,2,3',
+                    'n_trade'           => 'in:0,1,2,3',
+                    'n_affiliated_company' => 'in:0,1',
+                    'n_self_accounting' => 'in:1,2,3,4,5,9',
+                    'n_accounting_apps' => 'in:1,2,3,4,8,9',
+                    'n_accounting_staff'=> 'in:0,1',
+                    'n_account_type'    => 'in:1,2,3,4',
+                    'n_introducer_type' => 'in:0,1,2,3,4,9'
+                ];
+                
+                if (isset($data['n_type']) && $data['n_type'] == 1) {
+                    $rules['dt_establishment'] = 'required|date';
+                    $rules['n_capital']        = 'required';
+                    $rules['n_before']         = 'required';
+                    $rules['n_closing_month']  = 'required|in:1,2,3,4,5,6,7,8,9,10,11,12'; 
+                }
             }
 
             $validation = $this->validator->validate($data, $rules);
@@ -145,22 +171,25 @@ class TaxController {
                 $this->fileUpload->save($files['attachment'], $docId);
             }
 
-            $newDoc = $this->taxModel->find($docId);
-            if ($newDoc && !empty($newDoc['s_approved_1'])) {
-                $this->mailer->sendRequestNotification(
-                    $docId,
-                    $newDoc['s_approved_1'],
-                    $request['user']['name'],
-                    $data['s_name']
-                );
+            // 下書きでない場合のみ承認者へメール送信 (Send email to approver only if not draft)
+            if (!$isDraft) {
+                $newDoc = $this->taxModel->find($docId);
+                if ($newDoc && !empty($newDoc['s_approved_1'])) {
+                    $this->mailer->sendRequestNotification(
+                        $docId,
+                        $newDoc['s_approved_1'],
+                        $request['user']['name'],
+                        $data['s_name']
+                    );
+                }
             }
 
             $this->taxModel->commit();
 
             return [
                 'success' => true, 
-                'doc_id' => $docId,
-                'message' => '税務書類の申請が正常に送信されました'
+                'doc_id'  => $docId,
+                'message' => $isDraft ? '下書きを保存しました' : '税務書類の申請が正常に送信されました'
             ];
             
         } catch (Throwable $e) {

@@ -395,7 +395,8 @@ class CommonFormHandler {
                 if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification(msg, 'success');
                 
                 setTimeout(() => {
-                    window.location.href = `list.html`; 
+                    // 下書きも申請もリスト画面へ遷移 (Both draft and apply redirect to list)
+                    window.location.href = `list.html`;
                 }, 1500);
             } else {
                  if(response.errors) {
