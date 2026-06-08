@@ -179,6 +179,11 @@ class OtherContractController {
                 http_response_code(API_NOT_FOUND);
                 return ['success' => false, 'error' => 'Document not found'];
             }
+
+            if (strpos($doc['ts_applied'], '1970-01') === 0 && $doc['s_applied'] !== $request['user']['id']) {
+                http_response_code(403);
+                return ['success' => false, 'error' => 'この下書きを表示する権限がありません。'];
+            }
             
             $userModel = new User();
             $applicant = $userModel->findByEmployeeId($doc['s_applied']);

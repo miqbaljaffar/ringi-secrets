@@ -54,7 +54,7 @@ class SearchController {
                               WHERE 1=1";
                 
                 if ($isAllTab) {
-                    $sqlCommon .= " AND (c.dt_deadline >= CURDATE() OR (c.dt_approved_2 IS NULL AND c.dt_rejected IS NULL AND c.dt_deleted IS NULL))";
+                    $sqlCommon .= " AND (c.dt_deadline >= CURDATE() OR (c.dt_approved_2 IS NULL AND (c.dt_approved_1 IS NULL OR c.s_approved_2 IS NOT NULL) AND c.dt_rejected IS NULL AND c.dt_deleted IS NULL))";
                 }
 
                 if ($keyword) {
@@ -98,7 +98,7 @@ class SearchController {
                            WHERE 1=1";
                 
                 if ($isAllTab) {
-                    $sqlTax .= " AND (t.dt_contract_start >= CURDATE() OR (t.dt_approved_2 IS NULL AND t.dt_rejected IS NULL AND t.dt_deleted IS NULL))";
+                    $sqlTax .= " AND (t.dt_contract_start >= CURDATE() OR (t.dt_approved_2 IS NULL AND (t.dt_approved_1 IS NULL OR t.s_approved_2 IS NOT NULL) AND t.dt_rejected IS NULL AND t.dt_deleted IS NULL))";
                 }
 
                 if ($keyword) {
@@ -133,7 +133,7 @@ class SearchController {
                              WHERE 1=1";
                 
                 if ($isAllTab) {
-                    $sqlOther .= " AND (o.dt_contract_start >= CURDATE() OR (o.dt_approved_2 IS NULL AND o.dt_rejected IS NULL AND o.dt_deleted IS NULL))";
+                    $sqlOther .= " AND (o.dt_contract_start >= CURDATE() OR (o.dt_approved_2 IS NULL AND (o.dt_approved_1 IS NULL OR o.s_approved_2 IS NOT NULL) AND o.dt_rejected IS NULL AND o.dt_deleted IS NULL))";
                 }
 
                 if ($keyword) {
@@ -168,7 +168,7 @@ class SearchController {
                               WHERE 1=1";
                 
                 if ($isAllTab) {
-                    $sqlVendor .= " AND (v.ts_applied >= CURDATE() OR (v.dt_approved_2 IS NULL AND v.dt_rejected IS NULL AND v.dt_deleted IS NULL))";
+                    $sqlVendor .= " AND (v.ts_applied >= CURDATE() OR (v.dt_approved_2 IS NULL AND (v.dt_approved_1 IS NULL OR v.s_approved_2 IS NOT NULL) AND v.dt_rejected IS NULL AND v.dt_deleted IS NULL))";
                 }
 
                 if ($keyword) {
@@ -184,30 +184,39 @@ class SearchController {
             
             switch ($tab) {
                 case 'to_approve':
-                    $whereClauses[] = "((u.s_approved_1 = :uid1 AND u.dt_approved_1 IS NULL) OR (u.s_approved_2 = :uid2 AND u.dt_approved_2 IS NULL AND u.dt_approved_1 IS NOT NULL)) AND u.dt_rejected IS NULL AND u.dt_deleted IS NULL";
+                    $whereClauses[] = "((u.s_approved_1 = :uid1 AND u.dt_approved_1 IS NULL) OR (u.s_approved_2 = :uid2 AND u.dt_approved_2 IS NULL AND u.dt_approved_1 IS NOT NULL)) AND u.dt_rejected IS NULL AND u.dt_deleted IS NULL AND u.ts_applied NOT LIKE '1970-01%'";
                     $params[':uid1'] = $userId;
                     $params[':uid2'] = $userId;
                     break;
                 case 'approved':
-                    $whereClauses[] = "(u.dt_approved_2 IS NOT NULL OR (u.dt_approved_1 IS NOT NULL AND u.s_approved_2 IS NULL)) AND u.dt_deleted IS NULL";
+                    $whereClauses[] = "(u.dt_approved_2 IS NOT NULL OR (u.dt_approved_1 IS NOT NULL AND u.s_approved_2 IS NULL)) AND u.dt_deleted IS NULL AND u.ts_applied NOT LIKE '1970-01%'";
                     break;
                 case 'rejected':
-                    $whereClauses[] = "(u.dt_rejected IS NOT NULL OR u.dt_deleted IS NOT NULL)";
+                    $whereClauses[] = "(u.dt_rejected IS NOT NULL OR u.dt_deleted IS NOT NULL) AND u.ts_applied NOT LIKE '1970-01%'";
                     break;
                 case 'pending':
-                    $whereClauses[] = "u.dt_approved_2 IS NULL AND u.dt_rejected IS NULL AND u.dt_deleted IS NULL";
+                    $whereClauses[] = "u.dt_approved_2 IS NULL AND u.dt_rejected IS NULL AND u.dt_deleted IS NULL AND u.ts_applied NOT LIKE '1970-01%'";
                     break;
                 default:
                     $whereClauses[] = "1=1"; 
                     break;
             }
 
+            // Only creator can see draft documents
+            $whereClauses[] = "(u.ts_applied NOT LIKE '1970-01%' OR (u.ts_applied LIKE '1970-01%' AND u.applicant_id = :current_user_id))";
+            $params[':current_user_id'] = $userId;
+
             if (!empty($date_start)) {
-                $whereClauses[] = "u.sort_date >= :date_start";
+                $todayStr = date('Y-m-d');
+                if ($date_start === $todayStr) {
+                    $whereClauses[] = "(DATE(u.sort_date) >= :date_start OR (u.dt_approved_2 IS NULL AND (u.dt_approved_1 IS NULL OR u.s_approved_2 IS NOT NULL) AND u.dt_rejected IS NULL AND u.dt_deleted IS NULL))";
+                } else {
+                    $whereClauses[] = "DATE(u.sort_date) >= :date_start";
+                }
                 $params[':date_start'] = $date_start;
             }
             if (!empty($date_end)) {
-                $whereClauses[] = "u.sort_date <= :date_end";
+                $whereClauses[] = "DATE(u.sort_date) <= :date_end";
                 $params[':date_end'] = $date_end;
             }
             if (!empty($applicant_name)) {
@@ -236,7 +245,8 @@ class SearchController {
 
             $formattedData = array_map(function($row) use ($userId) {
                 $status = 'pending';
-                if ($row['dt_deleted']) $status = 'withdrawn';
+                if (strpos($row['ts_applied'], '1970-01') === 0) $status = 'draft';
+                elseif ($row['dt_deleted']) $status = 'withdrawn';
                 elseif ($row['dt_rejected']) $status = 'rejected';
                 elseif ($row['dt_approved_2'] || ($row['dt_approved_1'] && empty($row['s_approved_2']))) $status = 'approved';
                 elseif ($row['dt_approved_1']) $status = 'pending_second';

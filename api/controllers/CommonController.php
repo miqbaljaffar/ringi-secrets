@@ -84,6 +84,11 @@ class CommonController {
                 http_response_code(API_NOT_FOUND);
                 return ['success' => false, 'error' => '見つかりません'];
             }
+
+            if (strpos($document['ts_applied'], '1970-01') === 0 && $document['s_applied'] !== $request['user']['id']) {
+                http_response_code(403);
+                return ['success' => false, 'error' => 'この下書きを表示する権限がありません。'];
+            }
             
             $details = $this->detailModel->getByDocument($docId);
             $document['details'] = $details;
@@ -93,6 +98,18 @@ class CommonController {
                 $document['applicant_info'] = $userModel->findByEmployeeId($document['s_applied']);
                 $document['approver1_info'] = $document['s_approved_1'] ? $userModel->findByEmployeeId($document['s_approved_1']) : null;
                 $document['approver2_info'] = $document['s_approved_2'] ? $userModel->findByEmployeeId($document['s_approved_2']) : null;
+            }
+
+            // Parse attachment path and clean display name
+            $document['s_file_path'] = null;
+            if (!empty($document['s_file'])) {
+                $parts = explode('|', $document['s_file']);
+                $filename = isset($parts[1]) ? $parts[1] : $parts[0];
+                $docIdLower = strtolower($docId);
+                $document['s_file_path'] = "files/ar/{$docIdLower}/{$filename}";
+                if (isset($parts[1])) {
+                    $document['s_file'] = $parts[0]; // Set name to the display label (e.g. "見積書")
+                }
             }
             
             return [
@@ -152,7 +169,10 @@ class CommonController {
             $this->commonModel->beginTransaction();
 
             $data['s_applied'] = $request['user']['id'];
-            $docId = IdGenerator::generate('AR', 't_common');
+            $docId = $data['id_doc'] ?? null;
+            if (empty($docId) || strpos($docId, '..') !== false) {
+                $docId = IdGenerator::generate('AR', 't_common');
+            }
             $data['id_doc'] = $docId;
 
             // 下書きステータスを設定 (Set draft status)

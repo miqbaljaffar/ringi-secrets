@@ -9,17 +9,23 @@ class CommonFormHandler {
         this.init();
     }
     
-    init() {
+    async init() {
         if (!this.form) return;
         
         this.bindEvents();
-        this.loadCategories();
-        this.generateDocumentNumber();
-        this.setDefaultValues();
-        this.addFirstDetailRow();
+        await this.loadCategories();
         
-        const initialType = document.querySelector('input[name="n_type"]:checked').value;
-        this.updateApprovalRoute(initialType);
+        this.id = this.getUrlParameter('id');
+        if (this.id) {
+            await this.loadDraftData(this.id);
+        } else {
+            this.generateDocumentNumber();
+            this.setDefaultValues();
+            this.addFirstDetailRow();
+            
+            const initialType = document.querySelector('input[name="n_type"]:checked').value;
+            this.updateApprovalRoute(initialType);
+        }
     }
     
     bindEvents() {
@@ -178,7 +184,7 @@ class CommonFormHandler {
         this.addDetailRow();
     }
     
-    addDetailRow() {
+    addDetailRow(data = null) {
         const detailId = this.detailCounter++;
         // Height diset agar 3.5 baris muat pas ke 170px max-height parent
         const rowHtml = `
@@ -219,6 +225,17 @@ class CommonFormHandler {
                 option.textContent = category.s_category;
                 select.appendChild(option);
             });
+        }
+        
+        if (data) {
+            if (select) select.value = data.n_category || data.category_id || '';
+            const payerInput = rowElement.querySelector('.payer-input');
+            if (payerInput) payerInput.value = data.s_payer || data.payer || '';
+            const amountInput = rowElement.querySelector('.amount-input');
+            if (amountInput) {
+                const amt = data.n_amount || data.amount || 0;
+                amountInput.value = Number(amt).toLocaleString('ja-JP');
+            }
         }
         
         this.detailsContainer.scrollTop = this.detailsContainer.scrollHeight;
@@ -448,6 +465,103 @@ class CommonFormHandler {
         if (fileNameDisplay) {
             fileNameDisplay.textContent = '📄 ' + file.name;
             fileNameDisplay.style.color = '#28a745';
+        }
+    }
+
+    getUrlParameter(name) {
+        const results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        return results ? results[1] : null;
+    }
+
+    async loadDraftData(id) {
+        try {
+            if (typeof ringiSystem !== 'undefined') {
+                ringiSystem.showNotification('下書きデータを読み込み中...', 'info');
+                const response = await ringiSystem.apiRequest('GET', `common/${id}`);
+                if (response.success) {
+                    const d = response.data;
+                    
+                    // 1. Populate doc ID
+                    document.getElementById('doc-number').value = d.id_doc;
+                    
+                    // 2. Populate applicant & dept & date
+                    const applicantName = document.getElementById('applicant-name');
+                    if (applicantName) applicantName.value = d.applicant_info ? d.applicant_info.s_name : (d.applicant_name || d.s_applied || '');
+                    
+                    const deptName = document.getElementById('department-name');
+                    if (deptName) deptName.value = d.applicant_info ? d.applicant_info.s_department : (d.s_department || '');
+                    
+                    const appDate = document.getElementById('application-date');
+                    if (appDate) {
+                        const today = new Date().toISOString().split('T')[0];
+                        appDate.value = today;
+                    }
+                    
+                    // 3. Populate type radio
+                    const typeRadio = document.querySelector(`input[name="n_type"][value="${d.n_type}"]`);
+                    if (typeRadio) {
+                        typeRadio.checked = true;
+                    }
+                    this.updateApprovalRoute(d.n_type);
+                    
+                    // 4. Populate title, deadline, overview
+                    const sTitleInput = this.form.querySelector('input[name="s_title"]');
+                    if (sTitleInput) sTitleInput.value = d.s_title || '';
+                    
+                    const deadlineInput = document.getElementById('deadline');
+                    if (deadlineInput && d.dt_deadline && d.dt_deadline !== '0000-00-00') {
+                        deadlineInput.value = d.dt_deadline.split(' ')[0];
+                    }
+                    
+                    const sOverviewInput = this.form.querySelector('textarea[name="s_overview"]');
+                    if (sOverviewInput) sOverviewInput.value = d.s_overview || '';
+                    
+                    // 5. Populate details
+                    this.detailsContainer.innerHTML = '';
+                    if (d.details && d.details.length > 0) {
+                        d.details.forEach(item => {
+                            this.addDetailRow(item);
+                        });
+                    } else {
+                        this.addFirstDetailRow();
+                    }
+                    this.calculateTotal();
+                    
+                    // 6. Populate attachment files
+                    if (d.s_file) {
+                        const stdTypes = ["収支予算書", "見積書", "パンフレット"];
+                        if (stdTypes.includes(d.s_file)) {
+                            const radio = this.form.querySelector(`input[name="s_file_type"][value="${d.s_file}"]`);
+                            if (radio) radio.checked = true;
+                        } else {
+                            const radio = this.form.querySelector(`input[name="s_file_type"][value="その他"]`);
+                            if (radio) radio.checked = true;
+                            const otherInput = document.getElementById('file-type-others');
+                            if (otherInput) {
+                                otherInput.value = d.s_file;
+                                otherInput.style.display = 'inline-block';
+                            }
+                        }
+                    }
+                    
+                    if (d.s_file_path) {
+                        const fileNameDisplay = document.getElementById('file-name-display');
+                        if (fileNameDisplay) {
+                            const parts = d.s_file_path.split('/');
+                            const name = parts[parts.length - 1];
+                            fileNameDisplay.textContent = '📄 ' + name + ' (アップロード済み)';
+                            fileNameDisplay.style.color = '#28a745';
+                        }
+                    }
+                    
+                    ringiSystem.showNotification('下書きデータを読み込みました', 'success');
+                } else {
+                    ringiSystem.showNotification('下書きデータの取得に失敗しました', 'error');
+                }
+            }
+        } catch (error) {
+            console.error('Load draft data error:', error);
+            if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification('下書きの読み込み中にエラーが発生しました', 'error');
         }
     }
 }

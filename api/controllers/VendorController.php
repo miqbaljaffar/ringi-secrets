@@ -120,7 +120,12 @@ class VendorController {
 
     // ドキュメント詳細取得処理 (Retrieve document details)
     public function show($request) {
-        $id = $request['params']['id'];
+        $id = $request['params']['id'] ?? $_GET['id'] ?? null;
+        if (!$id) {
+            http_response_code(API_BAD_REQUEST);
+            return ['success' => false, 'error' => 'IDが必要です'];
+        }
+        
         $doc = $this->model->find($id);
         
         // ドキュメントが存在しない場合 (If document not found)
@@ -128,12 +133,41 @@ class VendorController {
             http_response_code(API_NOT_FOUND);
             return ['success' => false, 'error' => 'ドキュメントが見つかりません'];
         }
+
+        if (strpos($doc['ts_applied'], '1970-01') === 0 && $doc['s_applied'] !== $request['user']['id']) {
+            http_response_code(403);
+            return ['success' => false, 'error' => 'この下書きを表示する権限がありません。'];
+        }
         
         // ユーザー情報の取得 (Fetch user information)
         if (class_exists('User')) {
             $userModel = new User();
             $applicant = $userModel->findByEmployeeId($doc['s_applied']);
             $doc['applicant_name'] = $applicant ? $applicant['s_name'] : $doc['s_applied'];
+            $doc['applicant_info'] = $applicant;
+            $doc['approver1_info'] = !empty($doc['s_approved_1']) ? $userModel->findByEmployeeId($doc['s_approved_1']) : null;
+            $doc['approver2_info'] = !empty($doc['s_approved_2']) ? $userModel->findByEmployeeId($doc['s_approved_2']) : null;
+        }
+
+        // Scan directory for file paths
+        $docIdLower = strtolower($id);
+        $dir = realpath(__DIR__ . '/../../files/cv/' . $docIdLower);
+        
+        $doc['s_file_estimate_path'] = null;
+        $doc['s_file_others_path'] = null;
+
+        if ($dir && is_dir($dir)) {
+            $files = scandir($dir);
+            foreach ($files as $file) {
+                if ($file !== '.' && $file !== '..') {
+                    $relativePath = "files/cv/{$docIdLower}/{$file}";
+                    if (mb_strpos($file, '見積書') === 0) {
+                        $doc['s_file_estimate_path'] = $relativePath;
+                    } else {
+                        $doc['s_file_others_path'] = $relativePath;
+                    }
+                }
+            }
         }
         
         return ['success' => true, 'data' => $doc];

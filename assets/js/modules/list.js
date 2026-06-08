@@ -22,14 +22,19 @@ class ListHandler {
         this.init();
     }
 
-    init() {
+    async init() {
         this.bindEvents();
+        await this.loadCategories();
         this.setInitialState(); 
     }
 
     setInitialState() {
-        const today = new Date().toISOString().split('T')[0];
-        $('input[name="date_start"]').val(today);
+        // Default: Mulai hari ini ~ Kosong (Berlaku terus)
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        $('input[name="date_start"]').val(`${yyyy}-${mm}-${dd}`);
 
         $('input[name="form_type"][value="common"]').prop('checked', true).trigger('change');
         
@@ -56,6 +61,23 @@ class ListHandler {
 
         this.fetchData();
         this.fetchPendingCount();
+    }
+
+    async loadCategories() {
+        try {
+            if (typeof ringiSystem !== 'undefined') {
+                const response = await ringiSystem.apiRequest('GET', 'categories');
+                if (response.success && response.data) {
+                    const select = $('select[name="n_category"]');
+                    select.empty().append('<option value="">すべて</option>');
+                    response.data.forEach(cat => {
+                        select.append(`<option value="${cat.id_category}">${cat.s_category}</option>`);
+                    });
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to load categories dynamically:', error);
+        }
     }
 
     bindEvents() {
@@ -210,8 +232,9 @@ class ListHandler {
     }
 
     formatDateDot(dateString) {
-        if(!dateString) return '';
+        if(!dateString || dateString.startsWith('1970-01-01') || dateString.startsWith('0000-00-00')) return '-';
         const d = new Date(dateString);
+        if (isNaN(d.getTime())) return '-';
         return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
     }
 

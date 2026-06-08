@@ -9,7 +9,10 @@ class Vendor extends BaseModel {
     public function createDocument($data) {
         
         try {
-            $docId = IdGenerator::generate('CV', $this->table);
+            $docId = $data['id_doc'] ?? null;
+            if (empty($docId) || strpos($docId, '..') !== false) {
+                $docId = IdGenerator::generate('CV', $this->table);
+            }
             
             $postalCode = $data['s_office_pcode'] ?? ($data['zip1'] . $data['zip2'] ?? '');
             $postalCode = str_replace('-', '', $postalCode);
@@ -37,11 +40,17 @@ class Vendor extends BaseModel {
                 's_situation' => $data['s_situation'] ?? '',
                 's_memo' => $data['s_memo'] ?? '',
                 
-                'ts_applied' => date('Y-m-d H:i:s'),
+                'ts_applied' => (isset($data['save_mode']) && $data['save_mode'] === 'draft') ? '1970-01-01 09:00:01' : date('Y-m-d H:i:s'),
                 's_applied' => $data['s_applied']
             ];
             
-            $this->db->insert($this->table, $dbData);
+            $exists = $this->find($docId);
+            if ($exists) {
+                unset($dbData['id_doc']);
+                $this->update($docId, $dbData);
+            } else {
+                $this->db->insert($this->table, $dbData);
+            }
             
             $this->setApprovalRoute($docId);
             

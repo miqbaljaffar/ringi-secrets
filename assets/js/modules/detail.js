@@ -44,6 +44,7 @@ class DetailHandler {
             
             if (response.success) {
                 this.data = response.data;
+                this.data.status_code = this.getStatusCode(this.data);
                 this.renderData();
                 this.renderAttachments(); 
                 this.renderMemo(); 
@@ -62,12 +63,25 @@ class DetailHandler {
     }
 
     // Helper Functions
+    getStatusCode(d) {
+        if (d.status_code) return d.status_code; 
+        if (d.dt_deleted) return 'withdrawn';
+        if (d.dt_rejected) return 'rejected';
+        if (d.dt_approved_2 || (d.dt_approved_1 && !d.s_approved_2)) return 'approved';
+        if (d.dt_approved_1) return 'pending_second';
+        if (!d.ts_applied || d.ts_applied.startsWith('1970-01')) return 'draft';
+        return 'pending';
+    }
+
     fmtMoney(val) {
         return val ? new Intl.NumberFormat('ja-JP').format(val) : '0';
     }
 
     fmtDate(val) {
-        return val ? new Date(val).toLocaleDateString('ja-JP') : '-';
+        if(!val || val.startsWith('1970-01-01') || val.startsWith('0000-00-00')) return '-';
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return '-';
+        return d.toLocaleDateString('ja-JP');
     }
 
     getSendToText(val, others) {
@@ -394,7 +408,7 @@ class DetailHandler {
         const isApp2Turn = (String(d.s_approved_2) === uid && d.dt_approved_1 && !d.dt_approved_2); 
         
         if (isApp1Turn || isApp2Turn) {
-            if (!d.dt_rejected && !d.dt_deleted) {
+            if (!d.dt_rejected && !d.dt_deleted && d.status_code !== 'draft') {
                 canApprove = true;
             }
         }
@@ -404,9 +418,26 @@ class DetailHandler {
 
         // 2. Applicant Logic (Withdraw & Tehai Kanryou)
         const isApplicant = (String(d.s_applied) === uid);
-        const canWithdraw = isApplicant && !d.dt_approved_1 && !d.dt_rejected && !d.dt_deleted;
+        const canWithdraw = isApplicant && !d.dt_approved_1 && !d.dt_rejected && !d.dt_deleted && d.status_code !== 'draft';
         const isFullyApproved = d.dt_approved_1 && (!d.s_approved_2 || d.dt_approved_2);
         
+        // Edit Draft Button
+        const isDraft = (d.status_code === 'draft');
+        const canEditDraft = isApplicant && isDraft;
+        if (canEditDraft) {
+            if ($('#btn-edit-draft').length === 0) {
+                let formPage = 'common_form.html';
+                if (this.docType === 'tax') formPage = 'contract_form.html';
+                else if (this.docType === 'others') formPage = 'other_form.html';
+                else if (this.docType === 'vendor') formPage = 'vendor_form.html';
+                
+                $('.btn-area').prepend(`<a href="${formPage}?id=${d.id_doc}" id="btn-edit-draft" class="btn btn-warning mr-2" style="background-color: #ffc107; color: #000; text-decoration: none;"><i class="fas fa-edit"></i> 下書きを編集 (Edit Draft)</a>`);
+            }
+            $('#btn-edit-draft').show();
+        } else {
+            $('#btn-edit-draft').hide();
+        }
+
         // Withdraw Button
         if (canWithdraw) {
             if ($('#btn-withdraw').length === 0) {

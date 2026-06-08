@@ -4,14 +4,12 @@ class OtherFormHandler {
         this.init();
     }
 
-    init() {
+    async init() {
         if (!this.form) return;
 
-        this.generateDocumentNumber();
-        this.setDefaultValues();
-        this.loadEmployees();
-        this.fetchApprovalRoute(); 
         this.bindEvents();
+        await this.loadEmployees();
+        await this.fetchApprovalRoute(); 
         
         // Inisialisasi AutoKana
         if ($.fn.autoKana) {
@@ -20,7 +18,14 @@ class OtherFormHandler {
             $.fn.autoKana('#rep_name_mei', '#rep_kana_mei', { katakana: true });
         }
 
-        this.initToggles();
+        this.id = this.getUrlParameter('id');
+        if (this.id) {
+            await this.loadDraftData(this.id);
+        } else {
+            this.generateDocumentNumber();
+            this.setDefaultValues();
+            this.initToggles();
+        }
     }
 
     generateDocumentNumber() {
@@ -289,6 +294,13 @@ class OtherFormHandler {
 
         const formData = new FormData(this.form);
         formData.append('save_mode', saveMode); 
+
+        if ($('#id_doc').length) {
+            formData.set('id_doc', $('#id_doc').val());
+        }
+        if ($('#apply-date').length) {
+            formData.set('ts_applied', $('#apply-date').val());
+        }
         
         // Membersihkan koma dari angka sebelum dikirim
         $('.money-input').each(function() {
@@ -361,6 +373,138 @@ class OtherFormHandler {
         let hiddenInput = this.form.querySelector('input[name="s_industry_type"]');
         if (hiddenInput) {
             hiddenInput.value = combinedType;
+        }
+    }
+
+    getUrlParameter(name) {
+        const results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        return results ? results[1] : null;
+    }
+
+    async loadDraftData(id) {
+        try {
+            if (typeof ringiSystem !== 'undefined') {
+                ringiSystem.showNotification('下書きデータを読み込み中...', 'info');
+                const response = await ringiSystem.apiRequest('GET', `others/${id}`);
+                if (response.success) {
+                    const d = response.data;
+                    
+                    // 1. Document ID
+                    const docIdEl = document.getElementById('id_doc');
+                    if (docIdEl) docIdEl.value = d.id_doc;
+                    
+                    // 2. Applicant Info
+                    const applicantInput = document.getElementById('applicant-name');
+                    if (applicantInput) {
+                        applicantInput.value = d.applicant_info ? d.applicant_info.s_name : (d.applicant_name || d.s_applied || '');
+                    }
+                    
+                    // 3. Application Date
+                    const today = new Date().toISOString().split('T')[0];
+                    const dateInput = document.getElementById('apply-date');
+                    if (dateInput) dateInput.value = today;
+                    
+                    // 4. Company Info
+                    $('input[name="s_name"]').val(d.s_name || '');
+                    $('input[name="s_kana"]').val(d.s_kana || '');
+                    $('input[name="s_industry"]').val(d.s_industry || '');
+                    
+                    if (d.s_industry_type && d.s_industry_type.length >= 4) {
+                        $('select[name="s_industry_type_1"]').val(d.s_industry_type.charAt(0));
+                        $('input[name="s_industry_type_2"]').val(d.s_industry_type.substring(1, 3));
+                        $('input[name="s_industry_type_3"]').val(d.s_industry_type.substring(3));
+                    }
+                    
+                    // 5. Office Address & Zip
+                    if (d.s_office_pcode && d.s_office_pcode.length >= 7) {
+                        $('input[name="zip1"]').val(d.s_office_pcode.substring(0, 3));
+                        $('input[name="zip2"]').val(d.s_office_pcode.substring(3));
+                    }
+                    $('input[name="s_office_address"]').val(d.s_office_address || '');
+                    $('input[name="s_office_address2"]').val(d.s_office_address2 || '');
+                    
+                    $('input[name="n_send_to"][value="' + d.n_send_to + '"]').prop('checked', true).trigger('change');
+                    if (d.n_send_to === '9') {
+                        $('#s_send_to_others').val(d.s_send_to_others || '');
+                    }
+                    
+                    // Office Tel
+                    if (d.s_office_tel) {
+                        const telParts = d.s_office_tel.split('-');
+                        $('input[name="tel1"]').val(telParts[0] || '');
+                        $('input[name="tel2"]').val(telParts[1] || '');
+                        $('input[name="tel3"]').val(telParts[2] || '');
+                    }
+                    
+                    // 6. Representative Info
+                    if (d.s_rep_name) {
+                        const parts = d.s_rep_name.split(/\s+/);
+                        $('#rep_name_sei').val(parts[0] || '');
+                        $('#rep_name_mei').val(parts.slice(1).join(' ') || '');
+                    }
+                    if (d.s_rep_kana) {
+                        const parts = d.s_rep_kana.split(/\s+/);
+                        $('#rep_kana_sei').val(parts[0] || '');
+                        $('#rep_kana_mei').val(parts.slice(1).join(' ') || '');
+                    }
+                    
+                    $('input[name="s_rep_title"][value="' + d.s_rep_title + '"]').prop('checked', true).trigger('change');
+                    if (d.s_rep_title === '9') {
+                        $('#s_rep_title_others').val(d.s_rep_title_others || '');
+                    }
+                    
+                    if (d.s_rep_email && d.s_rep_email !== 'なし') {
+                        $('input[name="rep_email_exists"][value="1"]').prop('checked', true).trigger('change');
+                        $('#s_rep_email').val(d.s_rep_email);
+                    } else {
+                        $('input[name="rep_email_exists"][value="0"]').prop('checked', true).trigger('change');
+                    }
+                    
+                    // 7. Financials
+                    $('input[name="n_pre_total"]').val(d.n_pre_total ? Number(d.n_pre_total).toLocaleString('ja-JP') : '');
+                    $('input[name="n_pre_sales"]').val(d.n_pre_sales ? Number(d.n_pre_sales).toLocaleString('ja-JP') : '');
+                    $('input[name="n_pre_debt"]').val(d.n_pre_debt ? Number(d.n_pre_debt).toLocaleString('ja-JP') : '');
+                    $('input[name="n_pre_income"]').val(d.n_pre_income ? Number(d.n_pre_income).toLocaleString('ja-JP') : '');
+                    $('input[name="n_pre_workers"]').val(d.n_pre_workers || '');
+                    
+                    $('input[name="n_comsumption_tax"][value="' + d.n_comsumption_tax + '"]').prop('checked', true);
+                    $('input[name="n_trade"][value="' + d.n_trade + '"]').prop('checked', true);
+                    
+                    // 8. Contract Details
+                    $('textarea[name="s_contract_overview"]').val(d.s_contract_overview || '');
+                    
+                    $('input[name="dt_contract_start"]').val(d.dt_contract_start ? d.dt_contract_start.split(' ')[0] : '');
+                    $('select[name="s_incharge"]').val(d.s_incharge || '');
+                    
+                    $('input[name="n_introducer_type"][value="' + d.n_introducer_type + '"]').prop('checked', true).trigger('change');
+                    $('#s_introducer').val(d.s_introducer || '');
+                    if (d.n_introducer_type === '9') {
+                        $('#s_introducer_type_others').val(d.s_introducer_type_others || '');
+                    }
+                    
+                    $('textarea[name="s_situation"]').val(d.s_situation || '');
+                    
+                    // 9. Files
+                    if (d.s_file_estimate_path) {
+                        const parts = d.s_file_estimate_path.split('/');
+                        const name = parts[parts.length - 1];
+                        $('#estimate-name-display').text('📄 ' + name + ' (アップロード済み)').css('color', '#28a745');
+                        $('#file-estimate').prop('required', false);
+                    }
+                    if (d.s_file_others_path) {
+                        const parts = d.s_file_others_path.split('/');
+                        const name = parts[parts.length - 1];
+                        $('#attachment-name-display').text('📄 ' + name + ' (アップロード済み)').css('color', '#28a745');
+                    }
+                    
+                    ringiSystem.showNotification('下書きデータを読み込みました', 'success');
+                } else {
+                    ringiSystem.showNotification('下書きデータの取得に失敗しました', 'error');
+                }
+            }
+        } catch (error) {
+            console.error('Load draft data error:', error);
+            if(typeof ringiSystem !== 'undefined') ringiSystem.showNotification('下書きの読み込み中にエラーが発生しました', 'error');
         }
     }
 }

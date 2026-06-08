@@ -15,7 +15,10 @@ class Tax extends BaseModel {
     // 新規ドキュメントを作成してデータベースに保存する処理 (Process to create a new document and save it to the database)
     public function createDocument($data) {
         try {
-            $docId = IdGenerator::generate('CT', $this->table);
+            $docId = $data['id_doc'] ?? null;
+            if (empty($docId) || strpos($docId, '..') !== false) {
+                $docId = IdGenerator::generate('CT', $this->table);
+            }
             
             $postalCode = $data['s_office_pcode'] ?? '';
             if (empty($postalCode)) {
@@ -127,7 +130,7 @@ class Tax extends BaseModel {
                 'n_introducer_type' => $data['n_introducer_type'] ?? 0,
                 's_introducer_type_others' => $this->safeSubstr($data['s_introducer_type_others'] ?? '', 0, 50),
 
-                'ts_applied' => date('Y-m-d H:i:s'),
+                'ts_applied' => (isset($data['save_mode']) && $data['save_mode'] === 'draft') ? '1970-01-01 09:00:01' : date('Y-m-d H:i:s'),
                 's_applied' => $this->safeSubstr($data['s_applied'] ?? '0000', 0, 4),
 
                 's_approved_1' => $approverData['s_approved_1'] ?? '0000', 
@@ -135,7 +138,13 @@ class Tax extends BaseModel {
                 's_confirmed' => '0036' 
             ];
 
-            $this->db->insert($this->table, $dbData);
+            $exists = $this->find($docId);
+            if ($exists) {
+                unset($dbData['id_doc']);
+                $this->update($docId, $dbData);
+            } else {
+                $this->db->insert($this->table, $dbData);
+            }
             
             return $docId;
             

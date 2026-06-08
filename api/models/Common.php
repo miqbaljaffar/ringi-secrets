@@ -10,6 +10,8 @@ class Common extends BaseModel {
         try {
             $docId = $data['id_doc'] ?? IdGenerator::generate('AR', $this->table);
             
+            $tsApplied = (isset($data['save_mode']) && $data['save_mode'] === 'draft') ? '1970-01-01 09:00:01' : date('Y-m-d H:i:s');
+            
             $mainData = [
                 'id_doc' => $docId,
                 'n_type' => $data['n_type'],
@@ -17,13 +19,23 @@ class Common extends BaseModel {
                 'dt_deadline' => $data['dt_deadline'],
                 's_overview' => $data['s_overview'],
                 's_applied' => $data['s_applied'],
-                'ts_applied' => date('Y-m-d H:i:s')
+                'ts_applied' => $tsApplied
             ];
             
             if (isset($data['s_file'])) $mainData['s_file'] = $data['s_file'];
             if (isset($data['s_memo'])) $mainData['s_memo'] = $data['s_memo'];
             
-            $this->db->insert($this->table, $mainData);
+            $exists = $this->find($docId);
+            if ($exists) {
+                // Remove id_doc from mainData before updating since it's the primary key
+                unset($mainData['id_doc']);
+                $this->update($docId, $mainData);
+                
+                // Clear existing details
+                $this->db->query("DELETE FROM t_common_details WHERE n_doc = :doc_id", [':doc_id' => $docId]);
+            } else {
+                $this->db->insert($this->table, $mainData);
+            }
             
             if (isset($data['details']) && is_array($data['details'])) {
                 $detailModel = new CommonDetail();

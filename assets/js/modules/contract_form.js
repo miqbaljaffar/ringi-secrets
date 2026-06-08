@@ -4,17 +4,23 @@ class ContractFormHandler {
         this.init();
     }
 
-    init() {
+    async init() {
         if (!this.form) return;
 
         this.bindEvents();
         this.setupAutoKana();
-        this.generateDocumentNumber();
-        this.setDefaultValues();
-        this.loadEmployees(); 
-        this.fetchApprovalRoute(); 
-        this.toggleCorporateFields(); 
-        this.initToggles();
+        await this.loadEmployees(); 
+        await this.fetchApprovalRoute(); 
+        
+        this.id = this.getUrlParameter('id');
+        if (this.id) {
+            await this.loadDraftData(this.id);
+        } else {
+            this.generateDocumentNumber();
+            this.setDefaultValues();
+            this.toggleCorporateFields(); 
+            this.initToggles();
+        }
     }
 
     bindEvents() {
@@ -477,6 +483,218 @@ class ContractFormHandler {
         } catch (error) {
             console.error('Submit error:', error);
             ringiSystem.showNotification('システムエラーが発生しました。', 'error');
+        }
+    }
+
+    getUrlParameter(name) {
+        const results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        return results ? results[1] : null;
+    }
+
+    async loadDraftData(id) {
+        try {
+            ringiSystem.showNotification('下書きデータを読み込み中...', 'info');
+            const response = await ringiSystem.apiRequest('GET', `tax/${id}`);
+            if (response.success) {
+                const d = response.data;
+                
+                // 1. Document ID
+                $('#id_doc').val(d.id_doc);
+                
+                // 2. Applicant Info
+                if (d.applicant_info) {
+                    $('#applicant-name').val(d.applicant_info.s_name);
+                } else {
+                    $('#applicant-name').val(d.applicant_name || d.s_applied || '');
+                }
+                
+                // 3. Application Date
+                const today = new Date().toISOString().split('T')[0];
+                $('#applied_date').val(today);
+                
+                // 4. Corporation/Individual Type
+                $('input[name="n_type"][value="' + d.n_type + '"]').prop('checked', true).trigger('change');
+                
+                // 5. Company Name & Kana
+                $('input[name="s_name"]').val(d.s_name || '');
+                $('input[name="s_kana"]').val(d.s_kana || '');
+                
+                // 6. Establishment Date (Corporation Only)
+                if (d.n_type == '1') {
+                    $('#dt_est_seireki').val(d.dt_establishment ? d.dt_establishment.split(' ')[0] : '');
+                    $('#dt_est_wareki').val(this.convertToWareki(d.dt_establishment));
+                    $('input[name="n_capital"]').val(d.n_capital ? Number(d.n_capital).toLocaleString('ja-JP') : '');
+                    $('input[name="n_before"]').val(d.n_before || '');
+                }
+                
+                // 7. Industry Info
+                $('input[name="s_industry"]').val(d.s_industry || '');
+                $('input[name="s_industry_oms"]').val(d.s_industry_oms || '');
+                if (d.s_industry_type && d.s_industry_type.length >= 3) {
+                    $('select[name="cat1"]').val(d.s_industry_type.charAt(0));
+                    $('select[name="cat2"]').val(d.s_industry_type.charAt(1));
+                    $('select[name="cat3"]').val(d.s_industry_type.charAt(2));
+                }
+                
+                // 8. Representative Info
+                if (d.s_rep_name) {
+                    const parts = d.s_rep_name.split(/\s+/);
+                    $('#rep_name_sei').val(parts[0] || '');
+                    $('#rep_name_mei').val(parts.slice(1).join(' ') || '');
+                }
+                if (d.s_rep_kana) {
+                    const parts = d.s_rep_kana.split(/\s+/);
+                    $('#rep_kana_sei').val(parts[0] || '');
+                    $('#rep_kana_mei').val(parts.slice(1).join(' ') || '');
+                }
+                
+                $('input[name="s_rep_title"][value="' + d.s_rep_title + '"]').prop('checked', true).trigger('change');
+                if (d.s_rep_title === '9') {
+                    $('#rep_title_others_input').val(d.s_rep_title_others || '');
+                }
+                
+                $('#dt_birth_seireki').val(d.dt_rep_birth ? d.dt_rep_birth.split(' ')[0] : '');
+                $('#dt_birth_wareki').val(this.convertToWareki(d.dt_rep_birth));
+                
+                if (d.s_rep_email && d.s_rep_email !== 'なし') {
+                    $('input[name="rep_email_exists"][value="1"]').prop('checked', true).trigger('change');
+                    $('#rep_email_input').val(d.s_rep_email);
+                } else {
+                    $('input[name="rep_email_exists"][value="0"]').prop('checked', true).trigger('change');
+                }
+                
+                if (d.s_rep_pcode && d.s_rep_pcode.length >= 7) {
+                    $('input[name="rep_zip1"]').val(d.s_rep_pcode.substring(0, 3));
+                    $('input[name="rep_zip2"]').val(d.s_rep_pcode.substring(3));
+                }
+                $('input[name="s_rep_address"]').val(d.s_rep_address || '');
+                $('input[name="s_rep_address2"]').val(d.s_rep_address2 || '');
+                
+                if (d.s_rep_tel && d.s_rep_tel !== 'なし') {
+                    $('input[name="rep_tel_exists"][value="1"]').prop('checked', true).trigger('change');
+                    const telParts = d.s_rep_tel.split('-');
+                    $('input[name="rep_tel1"]').val(telParts[0] || '');
+                    $('input[name="rep_tel2"]').val(telParts[1] || '');
+                    $('input[name="rep_tel3"]').val(telParts[2] || '');
+                } else {
+                    $('input[name="rep_tel_exists"][value="0"]').prop('checked', true).trigger('change');
+                }
+                
+                // 9. Office Info
+                if (d.s_office_pcode && d.s_office_pcode.length >= 7) {
+                    $('input[name="zip1"]').val(d.s_office_pcode.substring(0, 3));
+                    $('input[name="zip2"]').val(d.s_office_pcode.substring(3));
+                }
+                $('input[name="s_office_address"]').val(d.s_office_address || '');
+                $('input[name="s_office_address2"]').val(d.s_office_address2 || '');
+                
+                $('input[name="n_send_to"][value="' + d.n_send_to + '"]').prop('checked', true).trigger('change');
+                if (d.n_send_to === '9') {
+                    $('input[name="s_send_to_others"]').val(d.s_send_to_others || '');
+                }
+                $('input[name="s_office_tel"]').val(d.s_office_tel || '');
+                
+                // 10. Tax Info
+                $('input[name="s_tax_office"]').val(d.s_tax_office || '');
+                $('input[name="s_declaration_type"][value="' + d.s_declaration_type + '"]').prop('checked', true);
+                $('input[name="n_tax_place"][value="' + d.n_tax_place + '"]').prop('checked', true);
+                $('input[name="s_tax_num"]').val(d.s_tax_num || '');
+                
+                $('input[name="n_e_filing"][value="' + d.n_e_filing + '"]').prop('checked', true).trigger('change');
+                if (d.n_e_filing === '1') {
+                    $('textarea[name="s_e_filing_reason"]').val(d.s_e_filing_reason || '');
+                }
+                $('input[name="s_national_tax_id"]').val(d.s_national_tax_id || '');
+                $('input[name="s_local_tax_id"]').val(d.s_local_tax_id || '');
+                
+                // 11. Financials
+                $('input[name="n_pre_total"]').val(d.n_pre_total ? Number(d.n_pre_total).toLocaleString('ja-JP') : '');
+                $('input[name="n_pre_sales"]').val(d.n_pre_sales ? Number(d.n_pre_sales).toLocaleString('ja-JP') : '');
+                $('input[name="n_pre_debt"]').val(d.n_pre_debt ? Number(d.n_pre_debt).toLocaleString('ja-JP') : '');
+                $('input[name="n_pre_income"]').val(d.n_pre_income ? Number(d.n_pre_income).toLocaleString('ja-JP') : '');
+                $('input[name="n_pre_workers"]').val(d.n_pre_workers || '');
+                
+                $('input[name="n_comsumption_tax"][value="' + d.n_comsumption_tax + '"]').prop('checked', true);
+                $('input[name="n_trade"][value="' + d.n_trade + '"]').prop('checked', true);
+                $('input[name="n_affiliated_company"][value="' + d.n_affiliated_company + '"]').prop('checked', true);
+                
+                $('input[name="n_self_accounting"][value="' + d.n_self_accounting + '"]').prop('checked', true).trigger('change');
+                if (d.n_self_accounting === '9') {
+                    $('#self_accounting_others').val(d.s_self_accounting_others || '');
+                }
+                
+                $('input[name="n_accounting_apps"][value="' + d.n_accounting_apps + '"]').prop('checked', true).trigger('change');
+                if (d.n_accounting_apps === '9') {
+                    $('#accounting_soft_others').val(d.s_accounting_apps_others || '');
+                }
+                
+                // Reset checklist first
+                $('input[name="s_books[]"]').prop('checked', false);
+                if (d.s_books) {
+                    const booksArr = d.s_books.split(',');
+                    booksArr.forEach(val => {
+                        const chk = $('input[name="s_books[]"][value="' + val.trim() + '"]');
+                        chk.prop('checked', true);
+                        if (val.trim() === '99') {
+                            $('#book_other_check').prop('checked', true).trigger('change');
+                            $('#books_others_input').val(d.s_books_others || '');
+                        }
+                    });
+                }
+                
+                $('input[name="n_slip_count"]').val(d.n_slip_count ? Number(d.n_slip_count).toLocaleString('ja-JP') : '');
+                $('input[name="n_accounting_staff"][value="' + d.n_accounting_staff + '"]').prop('checked', true);
+                
+                // 12. Pre accountant status & details
+                if (d.s_pre_accountant) {
+                    $('input[name="pre_accountant_status"][value="1"]').prop('checked', true).trigger('change');
+                    $('#s_pre_accountant').val(d.s_pre_accountant);
+                    $('#n_rewards_account').val(d.n_rewards_account ? Number(d.n_rewards_account).toLocaleString('ja-JP') : '');
+                    $('#n_rewards_tax').val(d.n_rewards_tax ? Number(d.n_rewards_tax).toLocaleString('ja-JP') : '');
+                    $('#n_rewards_yearly').val(d.n_rewards_yearly ? Number(d.n_rewards_yearly).toLocaleString('ja-JP') : '');
+                } else {
+                    $('input[name="pre_accountant_status"][value="0"]').prop('checked', true).trigger('change');
+                }
+                
+                // 13. Contract
+                $('input[name="n_account_type"][value="' + d.n_account_type + '"]').prop('checked', true);
+                $('textarea[name="s_contract_overview"]').val(d.s_contract_overview || '');
+                
+                $('input[name="s_incharge_bigin"]').val(d.s_incharge_bigin || '');
+                $('input[name="s_incharge_close"]').val(d.s_incharge_close || '');
+                $('select[name="s_incharge"]').val(d.s_incharge || '');
+                
+                $('input[name="n_introducer_type"][value="' + d.n_introducer_type + '"]').prop('checked', true).trigger('change');
+                $('#s_introducer').val(d.s_introducer || '');
+                if (d.n_introducer_type === '9') {
+                    $('#introducer_type_others').val(d.s_introducer_type_others || '');
+                }
+                
+                $('textarea[name="s_situation"]').val(d.s_situation || '');
+                
+                $('#dt_start_seireki').val(d.dt_contract_start ? d.dt_contract_start.split(' ')[0] : '');
+                $('#dt_start_wareki').val(this.convertToWareki(d.dt_contract_start));
+                
+                // 14. File display labels
+                if (d.s_file_estimate_path) {
+                    const parts = d.s_file_estimate_path.split('/');
+                    const name = parts[parts.length - 1];
+                    $('#estimate_file').siblings('.file-name-display').text('📄 ' + name + ' (アップロード済み)').css('color', '#28a745');
+                    $('#estimate_file').prop('required', false);
+                }
+                if (d.s_file_others_path) {
+                    const parts = d.s_file_others_path.split('/');
+                    const name = parts[parts.length - 1];
+                    $('input[name="attachment"]').siblings('.file-name-display').text('📄 ' + name + ' (アップロード済み)').css('color', '#28a745');
+                }
+                
+                ringiSystem.showNotification('下書きデータを読み込みました', 'success');
+            } else {
+                ringiSystem.showNotification('下書きデータの取得に失敗しました', 'error');
+            }
+        } catch (error) {
+            console.error('Load draft data error:', error);
+            ringiSystem.showNotification('下書きの読み込み中にエラーが発生しました', 'error');
         }
     }
 }
